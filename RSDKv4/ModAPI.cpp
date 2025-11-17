@@ -20,7 +20,12 @@ char modScriptPaths[OBJECT_COUNT][0x40];
 byte modScriptFlags[OBJECT_COUNT];
 byte modObjCount = 0;
 
+#if RETRO_PLATFORM == RETRO_PS3
+#include <dirent.h>
+#include <sys/stat.h>
+#else
 #include <filesystem>
+#endif
 #include <locale>
 
 void OpenModMenu()
@@ -29,6 +34,7 @@ void OpenModMenu()
     Engine.modMenuCalled = true;
 }
 
+#if RETRO_PLATFORM != RETRO_PS3
 #if RETRO_PLATFORM == RETRO_ANDROID
 namespace fs = std::__fs::filesystem; // this is so we can avoid using c++17, which causes a ton of warnings w asio and looks ugly
 #else
@@ -54,6 +60,7 @@ fs::path resolvePath(fs::path given)
     }
     return given; // might work might not!
 }
+#endif
 
 void InitMods()
 {
@@ -68,6 +75,53 @@ void InitMods()
     char modBuf[0x100];
     sprintf(modBuf, "%smods", modsPath);
 
+#if RETRO_PLATFORM == RETRO_PS3
+    struct stat st;
+    if (stat(modBuf, &st) == 0 && S_ISDIR(st.st_mode)) {
+        std::string mod_config = std::string(modBuf) + "/modconfig.ini";
+        FileIO *configFile     = fOpen(mod_config.c_str(), "r");
+        if (configFile) {
+            fClose(configFile);
+            IniParser modConfig(mod_config.c_str(), false);
+
+            for (int m = 0; m < modConfig.items.size(); ++m) {
+                bool active = false;
+                ModInfo info;
+                modConfig.GetBool("mods", modConfig.items[m].key, &active);
+                if (LoadMod(&info, modBuf, modConfig.items[m].key, active))
+                    modList.push_back(info);
+            }
+        }
+
+        DIR *dir = opendir(modBuf);
+        if (dir) {
+            struct dirent *de;
+            while ((de = readdir(dir)) != NULL) {
+                if (de->d_type == DT_DIR) {
+                    std::string folder = de->d_name;
+                    if (folder == "." || folder == "..")
+                        continue;
+
+                    ModInfo info;
+
+                    bool flag = true;
+                    for (int m = 0; m < modList.size(); ++m) {
+                        if (modList[m].folder == folder) {
+                            flag = false;
+                            break;
+                        }
+                    }
+
+                    if (flag) {
+                        if (LoadMod(&info, modBuf, folder, false))
+                            modList.push_back(info);
+                    }
+                }
+            }
+            closedir(dir);
+        }
+    }
+#else
     fs::path modPath = resolvePath(modBuf);
 
     if (fs::exists(modPath) && fs::is_directory(modPath)) {
@@ -117,6 +171,7 @@ void InitMods()
             PrintLog(fe.what());
         }
     }
+#endif
 
     forceUseScripts    = forceUseScripts_Config;
     skipStartMenu      = skipStartMenu_Config;
@@ -229,6 +284,39 @@ bool LoadMod(ModInfo *info, std::string modsPath, std::string folder, bool activ
     return false;
 }
 
+#if RETRO_PLATFORM == RETRO_PS3
+void ScanModFolderRecursive_PS3(ModInfo *info, const std::string &folderPath, const std::string &prefix)
+{
+    DIR *dir = opendir(folderPath.c_str());
+    if (dir) {
+        struct dirent *de;
+        while ((de = readdir(dir)) != NULL) {
+            std::string name = de->d_name;
+            if (name == "." || name == "..")
+                continue;
+
+            std::string fullPath = folderPath + "/" + name;
+            struct stat st;
+            if (stat(fullPath.c_str(), &st) == 0) {
+                if (S_ISDIR(st.st_mode)) {
+                    ScanModFolderRecursive_PS3(info, fullPath, prefix + name + "/");
+                }
+                else {
+                    std::string path = prefix + name;
+                    char pathLower[0x100];
+                    memset(pathLower, 0, sizeof(char) * 0x100);
+                    for (int c = 0; c < path.size(); ++c) {
+                        pathLower[c] = tolower(path.c_str()[c]);
+                    }
+                    info->fileMap.insert(std::pair<std::string, std::string>(pathLower, fullPath));
+                }
+            }
+        }
+        closedir(dir);
+    }
+}
+#endif
+
 void ScanModFolder(ModInfo *info)
 {
     if (!info)
@@ -237,6 +325,17 @@ void ScanModFolder(ModInfo *info)
     char modBuf[0x100];
     sprintf(modBuf, "%smods", modsPath);
 
+#if RETRO_PLATFORM == RETRO_PS3
+    const std::string modDir = std::string(modBuf) + "/" + info->folder;
+    info->fileMap.clear();
+
+    // Check for Data/ replacements
+    std::string dataPath = modDir + "/Data";
+    struct stat st;
+    if (stat(dataPath.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
+        ScanModFolderRecursive_PS3(info, dataPath, "Data/");
+    }
+#else
     fs::path modPath = resolvePath(modBuf);
 
     const std::string modDir = modPath.string() + "/" + info->folder;
@@ -290,8 +389,15 @@ void ScanModFolder(ModInfo *info)
             PrintLog(fe.what());
         }
     }
+#endif
 
     // Check for Bytecode/ replacements
+#if RETRO_PLATFORM == RETRO_PS3
+    std::string bytecodePath = modDir + "/Bytecode";
+    if (stat(bytecodePath.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
+        ScanModFolderRecursive_PS3(info, bytecodePath, "Bytecode/");
+    }
+#else
     fs::path bytecodePath = resolvePath(modDir + "/Bytecode");
 
     if (fs::exists(bytecodePath) && fs::is_directory(bytecodePath)) {
@@ -338,12 +444,29 @@ void ScanModFolder(ModInfo *info)
             PrintLog(fe.what());
         }
     }
+#endif
 }
 
 void SaveMods()
 {
     char modBuf[0x100];
     sprintf(modBuf, "%smods", modsPath);
+
+#if RETRO_PLATFORM == RETRO_PS3
+    struct stat st;
+    if (stat(modBuf, &st) == 0 && S_ISDIR(st.st_mode)) {
+        std::string mod_config = std::string(modBuf) + "/modconfig.ini";
+        IniParser modConfig;
+
+        for (int m = 0; m < modList.size(); ++m) {
+            ModInfo *info = &modList[m];
+
+            modConfig.SetBool("mods", info->folder.c_str(), info->active);
+        }
+
+        modConfig.Write(mod_config.c_str(), false);
+    }
+#else
     fs::path modPath = resolvePath(modBuf);
 
     if (fs::exists(modPath) && fs::is_directory(modPath)) {
@@ -358,6 +481,7 @@ void SaveMods()
 
         modConfig.Write(mod_config.c_str(), false);
     }
+#endif
 }
 
 void RefreshEngine()

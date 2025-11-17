@@ -1,4 +1,5 @@
 #include "RetroEngine.hpp"
+#include <cstdlib>
 
 #if !RETRO_USE_ORIGINAL_CODE
 bool usingCWD        = false;
@@ -815,9 +816,9 @@ void RetroEngine::LoadXMLPalettes()
                                 start = 4;
                             }
 
-                            r = std::stoi(match[start + 0].str(), nullptr, base);
-                            g = std::stoi(match[start + 1].str(), nullptr, base);
-                            b = std::stoi(match[start + 2].str(), nullptr, base);
+                            r = strtol(match[start + 0].str().c_str(), nullptr, base);
+                            g = strtol(match[start + 1].str().c_str(), nullptr, base);
+                            b = strtol(match[start + 2].str().c_str(), nullptr, base);
 
                             SetPaletteEntry(bank, index++, r, g, b);
                             text = match.suffix();

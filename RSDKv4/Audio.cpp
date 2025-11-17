@@ -669,7 +669,12 @@ void LoadSfx(char *filePath, byte sfxID)
         else if (type == 'o') {
             // ogg sfx :(
             OggVorbis_File vf;
-            ov_callbacks callbacks = OV_CALLBACKS_NOCLOSE;
+            ov_callbacks callbacks = {
+                (size_t (*)(void *, size_t, size_t, void *))  readVorbis,
+                (int (*)(void *, ogg_int64_t, int))           seekVorbis, 
+                (int (*)(void *))                             closeVorbis, 
+                (long (*)(void *))                            tellVorbis
+            };
             vorbis_info *vinfo;
             byte *buf;
             SDL_AudioSpec spec;

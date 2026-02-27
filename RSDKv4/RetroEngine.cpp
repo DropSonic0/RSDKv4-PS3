@@ -1,5 +1,4 @@
 #include "RetroEngine.hpp"
-#include <cstdlib>
 
 #if !RETRO_USE_ORIGINAL_CODE
 bool usingCWD        = false;
@@ -717,10 +716,13 @@ void RetroEngine::LoadXMLVariables()
                             if (valAttr)
                                 varValue = GetXMLAttributeValueInt(valAttr);
 
-                            StrCopy(globalVariableNames[globalVariablesCount], varName);
-                            globalVariables[globalVariablesCount] = varValue;
-                            globalVariablesCount++;
-
+                            if (globalVariablesCount >= GLOBALVAR_COUNT)
+                                PrintLog("Failed to add global variable '%s' (max limit reached)", varName);
+                            else if (GetGlobalVariableID(varName) == 0xFF) {
+                                StrCopy(globalVariableNames[globalVariablesCount], varName);
+                                globalVariables[globalVariablesCount] = varValue;
+                                globalVariablesCount++;
+                            }
                         } while ((varElement = NextXMLSiblingElement(doc, varElement, "variable")));
                     }
                 }
@@ -816,9 +818,9 @@ void RetroEngine::LoadXMLPalettes()
                                 start = 4;
                             }
 
-                            r = strtol(match[start + 0].str().c_str(), nullptr, base);
-                            g = strtol(match[start + 1].str().c_str(), nullptr, base);
-                            b = strtol(match[start + 2].str().c_str(), nullptr, base);
+                            r = std::stoi(match[start + 0].str(), nullptr, base);
+                            g = std::stoi(match[start + 1].str(), nullptr, base);
+                            b = std::stoi(match[start + 2].str(), nullptr, base);
 
                             SetPaletteEntry(bank, index++, r, g, b);
                             text = match.suffix();

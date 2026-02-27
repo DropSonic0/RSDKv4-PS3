@@ -15,11 +15,7 @@
 #endif
 
 #ifndef RETRO_USE_NETWORKING
-#if RETRO_PLATFORM == RETRO_PS3
-#define RETRO_USE_NETWORKING (0)
-#else
 #define RETRO_USE_NETWORKING (!RETRO_USE_ORIGINAL_CODE && 1)
-#endif
 #endif
 
 // Forces all DLC flags to be disabled, this should be enabled in any public releases
@@ -94,9 +90,6 @@ typedef unsigned int uint;
 #elif defined(__linux__)
 #define RETRO_PLATFORM   (RETRO_LINUX)
 #define RETRO_DEVICETYPE (RETRO_STANDARD)
-#elif defined(PS3)
-#define RETRO_PLATFORM   (RETRO_PS3)
-#define RETRO_DEVICETYPE (RETRO_STANDARD)
 #else
 //#error "No Platform was defined"
 #define RETRO_PLATFORM   (RETRO_LINUX)
@@ -109,7 +102,7 @@ typedef unsigned int uint;
 #define RETRO_USING_TOUCH
 
 #ifndef BASE_PATH
-#define BASE_PATH "/dev_hdd0/game/RSDKV4PS3/"
+#define BASE_PATH ""
 #endif
 
 #if !defined(RETRO_USE_SDL2) && !defined(RETRO_USE_SDL1)
@@ -117,7 +110,7 @@ typedef unsigned int uint;
 #endif
 
 #if RETRO_PLATFORM == RETRO_WIN || RETRO_PLATFORM == RETRO_OSX || RETRO_PLATFORM == RETRO_LINUX || RETRO_PLATFORM == RETRO_UWP                       \
-    || RETRO_PLATFORM == RETRO_ANDROID || RETRO_PLATFORM == RETRO_PS3
+    || RETRO_PLATFORM == RETRO_ANDROID
 #ifdef RETRO_USE_SDL2
 #define RETRO_USING_SDL1 (0)
 #define RETRO_USING_SDL2 (1)
@@ -150,11 +143,7 @@ typedef unsigned int uint;
 #endif
 
 #ifndef RETRO_USING_OPENGL
-#if RETRO_PLATFORM == RETRO_PS3
-#define RETRO_USING_OPENGL (0)
-#else
 #define RETRO_USING_OPENGL (1)
-#endif
 #endif
 
 #define RETRO_SOFTWARE_RENDER (RETRO_RENDERTYPE == RETRO_SW_RENDER)

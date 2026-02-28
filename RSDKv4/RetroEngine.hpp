@@ -53,12 +53,18 @@ typedef unsigned int uint;
 // Custom Platforms start here
 #define RETRO_UWP   (7)
 #define RETRO_LINUX (8)
+#define RETRO_SWITCH (9)
+#define RETRO_VITA   (10)
 
 // Platform types (Game manages platform-specific code such as HUD position using this rather than the above)
 #define RETRO_STANDARD (0)
 #define RETRO_MOBILE   (1)
 
-#if defined _WIN32
+#if defined(PS3) || defined(__PS3__) || defined(__CELLOS_LV2__)
+#include "ps3_compat.h"
+#define RETRO_PLATFORM   (RETRO_PS3)
+#define RETRO_DEVICETYPE (RETRO_STANDARD)
+#elif defined _WIN32
 
 #if defined WINAPI_FAMILY
 #if WINAPI_FAMILY != WINAPI_FAMILY_APP

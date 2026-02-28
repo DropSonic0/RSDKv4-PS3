@@ -311,6 +311,9 @@ void RetroEngine::Init()
     StrCopy(dest, gamePath);
     StrAdd(dest, Engine.dataFile[0]);
     disableFocusPause = 0; // focus pause is ALWAYS enabled.
+#elif RETRO_PLATFORM == RETRO_PS3
+    StrCopy(dest, "/dev_hdd0/game/RSDKV4000/USRDIR/");
+    StrAdd(dest, Engine.dataFile[0]);
 #else
 
     StrCopy(dest, BASE_PATH);
@@ -324,7 +327,11 @@ void RetroEngine::Init()
 #if !RETRO_USE_ORIGINAL_CODE
     for (int i = 1; i < RETRO_PACK_COUNT; ++i) {
         if (!StrComp(Engine.dataFile[i], "")) {
+#if RETRO_PLATFORM == RETRO_PS3
+            StrCopy(dest, "/dev_hdd0/game/RSDKV4000/USRDIR/");
+#else
             StrCopy(dest, BASE_PATH);
+#endif
             StrAdd(dest, Engine.dataFile[i]);
             CheckRSDKFile(dest);
         }
@@ -492,6 +499,8 @@ void RetroEngine::Init()
             sprintf(rootDir, "%s", "");
 #elif RETRO_PLATFORM == RETRO_OSX
         sprintf(rootDir, "%s/", gamePath);
+#elif RETRO_PLATFORM == RETRO_PS3
+        sprintf(rootDir, "/dev_hdd0/game/RSDKV4000/USRDIR/");
 #else
         sprintf(rootDir, "%s", "");
 #endif

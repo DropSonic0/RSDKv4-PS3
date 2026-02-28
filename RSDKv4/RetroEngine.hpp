@@ -26,7 +26,9 @@
 // ================
 // STANDARD LIBS
 // ================
+#ifdef PS3
 #include "ps3_compat.h"
+#endif
 #include <stdio.h>
 #include <string.h>
 #include <cmath>

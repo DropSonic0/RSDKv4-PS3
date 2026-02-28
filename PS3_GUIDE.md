@@ -5,7 +5,7 @@ Esta guía detalla los pasos necesarios para portar y compilar este motor en una
 ## Requisitos de Software
 
 1.  **Sony PS3 SDK 4.75**: Ya lo tienes instalado.
-2.  **Visual Studio 2010**: Es la versión recomendada y oficialmente soportada por el SDK 4.75 para la integración con las herramientas de Sony (ProDG).
+2.  **Visual Studio 2013 o 2015**: El instalador del SDK 4.75 requiere una de estas versiones (2012, 2013 o 2015). Se recomienda **Visual Studio 2015 Professional** por su mejor soporte de estándares modernos de C++.
 3. **Cygwin**: Requerido por el SDK de PS3 para las herramientas de compilación basadas en GCC/SN. Asegúrate de incluir los paquetes de `make` y `perl`.
 4. **SN Systems / ProDG**: Estas herramientas suelen venir con el SDK y son las que permiten la depuración y comunicación con la consola (Target Manager).
 5. **Python 2.7**: Muchos scripts de automatización del SDK oficial todavía dependen de Python 2.x.
@@ -13,7 +13,7 @@ Esta guía detalla los pasos necesarios para portar y compilar este motor en una
 ## Configuración del Proyecto
 
 ### Visual Studio
-- **Versión**: Se recomienda **Visual Studio 2010 Professional**. La versión Express no soporta plugins de terceros como el de Sony.
+- **Versión**: Se recomienda **Visual Studio 2015 Professional**. La versión Express no soporta plugins de terceros como el de Sony (ProDG).
 - **Integración**: Debes instalar el "Sony PlayStation(R)3 Integration" que viene con el SDK. Esto añadirá la plataforma "PS3" a Visual Studio.
 - **Variables de Entorno**: Asegúrate de que `CELL_SDK` y `SN_PPU_TOOLCHAIN` estén correctamente configuradas en tu sistema.
 

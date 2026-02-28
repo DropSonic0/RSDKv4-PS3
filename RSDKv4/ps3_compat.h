@@ -23,9 +23,6 @@
 #include <cell/dbgfont.h>
 #include <cell/resc.h>
 #include <cell/gcm.h>
-#include <sysutil/sysutil_common.h>
-#include <sysutil/sysutil_sysparam.h>
-#include <sysutil/sysutil_videoout.h>
 
 #ifndef BYTE_DEFINED
 #define BYTE_DEFINED
@@ -81,37 +78,10 @@ static inline int strncasecmp_ps3(const char *s1, const char *s2, size_t n) {
 #endif
 
 #if defined(__PS3__) || defined(PS3) || defined(__CELLOS_LV2__)
+#define PSGL_USE_GL_NAMES
 #include <PSGL/psgl.h>
 #include <PSGL/psglu.h>
 
-#define glDeleteTextures psglDeleteTextures
-#define glGenTextures psglGenTextures
-#define glBindTexture psglBindTexture
-#define glTexParameterf psglTexParameterf
-#define glTexImage2D psglTexImage2D
-#define glTexSubImage2D psglTexSubImage2D
-#define glClearColor psglClearColor
-#define glDisable psglDisable
-#define glEnable psglEnable
-#define glBlendFunc psglBlendFunc
-#define glMatrixMode psglMatrixMode
-#define glLoadIdentity psglLoadIdentity
-#define glLightfv psglLightfv
-#define glViewport psglViewport
-#define glScalef psglScalef
-#define glMultMatrixf psglMultMatrixf
-#define glClear psglClear
-#define glEnableClientState psglEnableClientState
-#define glLoadMatrixf psglLoadMatrixf
-#define glVertexPointer psglVertexPointer
-#define glTexCoordPointer psglTexCoordPointer
-#define glDisableClientState psglDisableClientState
-#define glColorPointer psglColorPointer
-#define glNormalPointer psglNormalPointer
-#define glDrawElements psglDrawElements
-#define glPushMatrix psglPushMatrix
-#define glPopMatrix psglPopMatrix
-#define glGetIntegerv psglGetIntegerv
 #endif
 
 // Some SDK versions might have these with a slightly different name or in different paths

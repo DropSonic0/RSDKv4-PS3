@@ -36,9 +36,9 @@ bool convertTo32Bit     = false;
 bool mixFiltersOnJekyll = false;
 
 #if RETRO_USING_OPENGL
-GLint defaultFramebuffer = -1;
-GLuint framebufferHiRes  = -1;
-GLuint renderbufferHiRes = -1;
+GLint defaultFramebuffer = 0;
+GLuint framebufferHiRes  = 0;
+GLuint renderbufferHiRes = 0;
 #endif
 
 #if !RETRO_USE_ORIGINAL_CODE
@@ -204,10 +204,9 @@ int InitRenderDevice()
     initOpts.initializeSPUs = GL_FALSE;
     psglInit(&initOpts);
 
-    PSGLdevice *psgl_device = psglCreateDeviceExtended(1280, 720); // Default to 720p
+    PSGLdevice *psgl_device = psglCreateDeviceExtended(NULL);
     PSGLcontext *psgl_context = psglCreateContext();
     psglMakeCurrent(psgl_context, psgl_device);
-    psglResetCurrent();
 #elif RETRO_PLATFORM != RETRO_PS3
     // Init GL
     Engine.glContext = SDL_GL_CreateContext(Engine.window);
@@ -248,7 +247,7 @@ int InitRenderDevice()
     displaySettings.height = SCREEN_YSIZE * Engine.windowScale;
 #endif
 
-    textureList[0].id = -1;
+    textureList[0].id = 0;
     SetupViewport();
 
     ResetRenderStates();
@@ -308,7 +307,9 @@ int InitRenderDevice()
 void FlipScreen()
 {
 #if !RETRO_USE_ORIGINAL_CODE
+#if RETRO_PLATFORM != RETRO_PS3
     float dimAmount = 1.0;
+#endif
     if ((!Engine.masterPaused || Engine.frameStep) && !drawStageGFXHQ) {
         if (Engine.dimTimer < Engine.dimLimit) {
             if (Engine.dimPercent < 1.0) {
@@ -321,7 +322,9 @@ void FlipScreen()
             Engine.dimPercent *= 0.9;
         }
 
+#if RETRO_PLATFORM != RETRO_PS3
         dimAmount = Engine.dimMax * Engine.dimPercent;
+#endif
     }
 
 #if RETRO_SOFTWARE_RENDER && !RETRO_USING_OPENGL
@@ -852,13 +855,13 @@ void SetupViewport()
     if (Engine.useHighResAssets) {
 #if RETRO_USING_OPENGL
 #if RETRO_PLATFORM != RETRO_PS3
-        if (framebufferHiRes != -1)
+        if (framebufferHiRes != 0)
             glDeleteFramebuffers(1, &framebufferHiRes);
 #endif
-        if (renderbufferHiRes != -1)
+        if (renderbufferHiRes != 0)
             glDeleteTextures(1, &renderbufferHiRes);
-        framebufferHiRes  = -1;
-        renderbufferHiRes = -1;
+        framebufferHiRes  = 0;
+        renderbufferHiRes = 0;
 
 #if RETRO_PLATFORM != RETRO_PS3
         glGenFramebuffers(1, &framebufferHiRes);
@@ -904,23 +907,23 @@ void SetupViewport()
     else {
 #if RETRO_USING_OPENGL
 #if RETRO_PLATFORM != RETRO_PS3
-        if (framebufferHiRes != -1)
+        if (framebufferHiRes != 0)
             glDeleteFramebuffers(1, &framebufferHiRes);
 #endif
-        if (renderbufferHiRes != -1)
+        if (renderbufferHiRes != 0)
             glDeleteTextures(1, &renderbufferHiRes);
 #if RETRO_PLATFORM != RETRO_PS3
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 #endif
 
-        framebufferHiRes  = -1;
-        renderbufferHiRes = -1;
+        framebufferHiRes  = 0;
+        renderbufferHiRes = 0;
 #endif
     }
 
     bool transfer = false;
 #if RETRO_USING_OPENGL
-    if (textureList[0].id != -1) {
+    if (textureList[0].id != 0) {
         glDeleteTextures(1, &textureList[0].id);
         transfer = true;
     }

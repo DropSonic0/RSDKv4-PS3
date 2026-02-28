@@ -214,7 +214,9 @@ typedef unsigned int uint;
 #endif
 #endif
 
+#ifndef RETRO_USE_HAPTICS
 #define RETRO_USE_HAPTICS (1)
+#endif
 
 // NOTE: This is only used for rev00 stuff, it was removed in rev01 and later builds
 #if RETRO_PLATFORM <= RETRO_WP7

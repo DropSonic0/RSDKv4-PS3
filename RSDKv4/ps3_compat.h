@@ -65,42 +65,6 @@ static inline int strncasecmp_ps3(const char *s1, const char *s2, size_t n) {
 }
 #endif
 
-#if defined(__PS3__) || defined(PS3) || defined(__CELLOS_LV2__)
-#define glDeleteTextures psglDeleteTextures
-#define glGenTextures psglGenTextures
-#define glBindTexture psglBindTexture
-#define glTexParameterf psglTexParameterf
-#define glTexImage2D psglTexImage2D
-#define glTexSubImage2D psglTexSubImage2D
-#define glClearColor psglClearColor
-#define glDisable psglDisable
-#define glEnable psglEnable
-#define glBlendFunc psglBlendFunc
-#define glMatrixMode psglMatrixMode
-#define glLoadIdentity psglLoadIdentity
-#define glLightfv psglLightfv
-#define glViewport psglViewport
-#define glScalef psglScalef
-#define glMultMatrixf psglMultMatrixf
-#define glClear psglClear
-#define glEnableClientState psglEnableClientState
-#define glLoadMatrixf psglLoadMatrixf
-#define glVertexPointer psglVertexPointer
-#define glTexCoordPointer psglTexCoordPointer
-#define glDisableClientState psglDisableClientState
-#define glColorPointer psglColorPointer
-#define glNormalPointer psglNormalPointer
-#define glDrawElements psglDrawElements
-
-#define ov_pcm_tell psgl_ov_pcm_tell
-#define ov_open_callbacks psgl_ov_open_callbacks
-#define ov_info psgl_ov_info
-#define ov_pcm_total psgl_ov_pcm_total
-#define ov_pcm_seek psgl_ov_pcm_seek
-#define ov_clear psgl_ov_clear
-#define ov_read psgl_ov_read
-#endif
-
 // Some SDK versions might have these with a slightly different name or in different paths
 #ifndef SCE_PS3_SDK
 #define SCE_PS3_SDK "C:/usr/local/cell"

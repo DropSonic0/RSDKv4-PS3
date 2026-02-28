@@ -215,13 +215,13 @@ void ProcessMusicStream(Sint32 *stream, size_t bytes_wanted)
 #if RETRO_USING_SDL2
             while (musicStatus == MUSIC_PLAYING && streamInfoPtr->stream && SDL_AudioStreamAvailable(streamInfoPtr->stream) < bytes_wanted) {
                 // We need more samples: get some
-                long bytes_read = ov_read(&streamInfoPtr->vorbisFile, (char *)streamInfoPtr->buffer, sizeof(streamInfoPtr->buffer), 0, 2, 1,
+                long bytes_read = psgl_ov_read(&streamInfoPtr->vorbisFile, (char *)streamInfoPtr->buffer, sizeof(streamInfoPtr->buffer), 0, 2, 1,
                                           &streamInfoPtr->vorbBitstream);
 
                 if (bytes_read == 0) {
                     // We've reached the end of the file
                     if (streamInfoPtr->trackLoop) {
-                        ov_pcm_seek(&streamInfoPtr->vorbisFile, streamInfoPtr->loopPoint);
+                        psgl_ov_pcm_seek(&streamInfoPtr->vorbisFile, streamInfoPtr->loopPoint);
                         continue;
                     }
                     else {
@@ -251,14 +251,14 @@ void ProcessMusicStream(Sint32 *stream, size_t bytes_wanted)
             while (bytes_gotten < bytes_wanted) {
                 // We need more samples: get some
                 long bytes_read =
-                    ov_read(&oggFilePtr->vorbisFile, (char *)oggFilePtr->buffer,
+                    psgl_ov_read(&oggFilePtr->vorbisFile, (char *)oggFilePtr->buffer,
                             sizeof(oggFilePtr->buffer) > (bytes_wanted - bytes_gotten) ? (bytes_wanted - bytes_gotten) : sizeof(oggFilePtr->buffer),
                             0, 2, 1, &oggFilePtr->vorbBitstream);
 
                 if (bytes_read == 0) {
                     // We've reached the end of the file
                     if (oggFilePtr->trackLoop) {
-                        ov_pcm_seek(&oggFilePtr->vorbisFile, oggFilePtr->loopPoint);
+                        psgl_ov_pcm_seek(&oggFilePtr->vorbisFile, oggFilePtr->loopPoint);
                         continue;
                     }
                     else {
@@ -307,7 +307,7 @@ void ProcessMusicStream(Sint32 *stream, size_t bytes_wanted)
                 free(buffer);
 #endif
 
-            musicPosition = ov_pcm_tell(&streamInfoPtr->vorbisFile);
+            musicPosition = psgl_ov_pcm_tell(&streamInfoPtr->vorbisFile);
             break;
         }
         case MUSIC_STOPPED:
@@ -471,12 +471,12 @@ void LoadMusic(void *userdata)
         callbacks.tell_func  = tellVorbis;
         callbacks.close_func = closeVorbis;
 
-        int error = ov_open_callbacks(musFile, &strmInfo->vorbisFile, NULL, 0, callbacks);
+        int error = psgl_ov_open_callbacks(musFile, &strmInfo->vorbisFile, NULL, 0, callbacks);
         if (error == 0) {
             strmInfo->vorbBitstream = -1;
-            strmInfo->vorbisFile.vi = ov_info(&strmInfo->vorbisFile, -1);
+            strmInfo->vorbisFile.vi = psgl_ov_info(&strmInfo->vorbisFile, -1);
 
-            samples = (unsigned long long)ov_pcm_total(&strmInfo->vorbisFile, -1);
+            samples = (unsigned long long)psgl_ov_pcm_total(&strmInfo->vorbisFile, -1);
 
 #if RETRO_USING_SDL2
             strmInfo->stream = SDL_NewAudioStream(AUDIO_S16, strmInfo->vorbisFile.vi->channels, (int)strmInfo->vorbisFile.vi->rate,
@@ -492,12 +492,12 @@ void LoadMusic(void *userdata)
 #endif
 
             if (musicStartPos) {
-                uint oldPos = (uint)ov_pcm_tell(&streamInfo[oldStreamID].vorbisFile);
+                uint oldPos = (uint)psgl_ov_pcm_tell(&streamInfo[oldStreamID].vorbisFile);
 
                 float newPos  = oldPos * ((float)musicRatio * 0.0001); // 8,000 == 0.8, 10,000 == 1.0 (ratio / 10,000)
                 musicStartPos = fmod(newPos, samples);
 
-                ov_pcm_seek(&strmInfo->vorbisFile, musicStartPos);
+                psgl_ov_pcm_seek(&strmInfo->vorbisFile, musicStartPos);
             }
             musicStartPos = 0;
 
@@ -696,30 +696,30 @@ void LoadSfx(char *filePath, byte sfxID)
             callbacks.tell_func  = tellVorbis;
             callbacks.close_func = closeVorbis;
 
-            int error = ov_open_callbacks(sfxFile, &vf, NULL, 0, callbacks);
+            int error = psgl_ov_open_callbacks(sfxFile, &vf, NULL, 0, callbacks);
             if (error != 0) {
-                ov_clear(&vf);
+                psgl_ov_clear(&vf);
                 PrintLog("failed to load ogg sfx!");
                 return;
             }
 
-            vinfo = ov_info(&vf, -1);
+            vinfo = psgl_ov_info(&vf, -1);
 
             byte *audioBuf = NULL;
             uint audioLen  = 0;
 
-            samples = (long)ov_pcm_total(&vf, -1);
+            samples = (long)psgl_ov_pcm_total(&vf, -1);
 
             audioLen = (Uint32)(samples * vinfo->channels * 2);
             audioBuf             = (byte *)malloc(audioLen);
             buf                  = audioBuf;
             toRead               = audioLen;
 
-            for (read = (int)ov_read(&vf, (char *)buf, toRead, 0, 2, 1, &bitstream); read > 0;
-                 read = (int)ov_read(&vf, (char *)buf, toRead, 0, 2, 1, &bitstream)) {
+            for (read = (int)psgl_ov_read(&vf, (char *)buf, toRead, 0, 2, 1, &bitstream); read > 0;
+                 read = (int)psgl_ov_read(&vf, (char *)buf, toRead, 0, 2, 1, &bitstream)) {
                 if (read < 0) {
                     free(audioBuf);
-                    ov_clear(&vf);
+                    psgl_ov_clear(&vf);
                     PrintLog("failed to read ogg sfx!");
                     return;
                 }
@@ -727,7 +727,7 @@ void LoadSfx(char *filePath, byte sfxID)
                 buf += read;
             }
 
-            ov_clear(&vf); // clears & closes vorbis file
+            psgl_ov_clear(&vf); // clears & closes vorbis file
 
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2
             /* Don't return a buffer that isn't a multiple of samplesize */

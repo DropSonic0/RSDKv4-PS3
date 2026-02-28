@@ -106,6 +106,8 @@ static inline int strncasecmp_ps3(const char *s1, const char *s2, size_t n) {
 #define OV_ENOSEEK    -135
 #endif
 
+#define _OGG_CONFIG_TYPES_H
+
 #endif // PS3
 
 #endif // PS3_COMPAT_H

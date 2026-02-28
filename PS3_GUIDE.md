@@ -78,7 +78,15 @@ Una vez que tengas instalado el SDK 4.75 y Visual Studio (2012 o 2015), sigue es
 1.  **Renderer**: El motor usa OpenGL. En PS3 deberás usar **PSGL** (incluido en el SDK). Se han añadido los includes necesarios, pero es posible que debas ajustar algunas llamadas de OpenGL que no sean compatibles con el perfil ES 1.1/2.0 de PSGL.
 2.  **Audio**: Actualmente el motor usa SDL. PS3 usa `libaudio`. Deberás implementar un backend en `Audio.cpp` que use `cellAudio`.
 3.  **Input**: Deberás mapear los mandos de PS3 usando `libio` (`cellPad`).
-4.  **Dependencies**: Necesitarás compilar `libogg` y `libvorbis` para PS3.
+4.  **Dependencies**: Necesitarás descargar el código fuente de `libogg` y `libvorbis` y colocarlos en la carpeta `dependencies/`.
+
+### Cómo solucionar errores de "Cannot find source file" (libogg/libvorbis)
+Si CMake te da errores diciendo que no encuentra archivos en `dependencies/libogg` o `dependencies/libvorbis`:
+1. Descarga **libogg** de [xiph.org](https://xiph.org/downloads/). Extrae el contenido en una carpeta llamada `libogg` dentro de `dependencies/`.
+2. Descarga **libvorbis** de [xiph.org](https://xiph.org/downloads/). Extrae el contenido en una carpeta llamada `libvorbis` dentro de `dependencies/`.
+3. La estructura debe ser:
+    - `dependencies/libogg/src/bitwise.c`
+    - `dependencies/libvorbis/lib/analysis.c`
 
 ## Compilación con CMake
 Si prefieres usar CMake, puedes intentar generar un proyecto de Visual Studio 10 usando:

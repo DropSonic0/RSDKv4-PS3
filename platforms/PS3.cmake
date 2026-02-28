@@ -12,6 +12,7 @@ add_executable(RetroEngine ${RETRO_FILES})
 
 set(COMPILE_OGG TRUE)
 set(COMPILE_VORBIS TRUE)
+set(DEP_PATH .)
 
 if(RETRO_USE_HW_RENDER)
     target_compile_definitions(RetroEngine PRIVATE RETRO_USING_OPENGL=1)

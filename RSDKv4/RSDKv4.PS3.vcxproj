@@ -37,7 +37,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|PS3'">
     <ClCompile>
       <PreprocessorDefinitions>PS3;RETRO_USE_HAPTICS=0;RETRO_USE_NETWORKING=0;RETRO_USE_MOD_LOADER=0;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)NativeObjects;$(SolutionDir)dependencies/all/tinyxml2;$(SolutionDir)dependencies/all/stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)NativeObjects;$(SolutionDir)dependencies/all/tinyxml2;$(SolutionDir)dependencies/all/stb-image;$(SCE_PS3_SDK)/target/common/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </ClCompile>
     <Link>
@@ -47,7 +47,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|PS3'">
     <ClCompile>
       <PreprocessorDefinitions>PS3;RETRO_USE_HAPTICS=0;RETRO_USE_NETWORKING=0;RETRO_USE_MOD_LOADER=0;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)NativeObjects;$(SolutionDir)dependencies/all/tinyxml2;$(SolutionDir)dependencies/all/stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)NativeObjects;$(SolutionDir)dependencies/all/tinyxml2;$(SolutionDir)dependencies/all/stb-image;$(SCE_PS3_SDK)/target/common/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>MaxSpeed</Optimization>
     </ClCompile>
     <Link>

@@ -9,6 +9,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <stddef.h>
+#include <malloc.h>
 
 #ifndef BYTE_DEFINED
 #define BYTE_DEFINED
@@ -17,6 +18,11 @@ typedef unsigned char byte;
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#if defined(__PS3__) || defined(PS3) || defined(__CELLOS_LV2__)
+#undef strcasecmp
+#undef strncasecmp
 #endif
 
 #ifndef _SNPRINTF_DEFINED
@@ -72,6 +78,15 @@ typedef unsigned int Uint32;
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+
+#define OV_EREAD      -128
+#define OV_EFAULT     -129
+#define OV_EVERSION   -130
+#define OV_EBADHEADER -131
+#define OV_ENOTVORBIS -132
+#define OV_EBADPACKET -133
+#define OV_EBADLINK   -134
+#define OV_ENOSEEK    -135
 
 #endif // PS3
 

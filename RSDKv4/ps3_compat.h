@@ -81,31 +81,6 @@ static inline int strncasecmp_ps3(const char *s1, const char *s2, size_t n) {
 #define M_PI 3.14159265358979323846
 #endif
 
-#ifndef OV_EREAD
-#define OV_EREAD      -128
-#endif
-#ifndef OV_EFAULT
-#define OV_EFAULT     -129
-#endif
-#ifndef OV_EVERSION
-#define OV_EVERSION   -130
-#endif
-#ifndef OV_EBADHEADER
-#define OV_EBADHEADER -131
-#endif
-#ifndef OV_ENOTVORBIS
-#define OV_ENOTVORBIS -132
-#endif
-#ifndef OV_EBADPACKET
-#define OV_EBADPACKET -133
-#endif
-#ifndef OV_EBADLINK
-#define OV_EBADLINK   -134
-#endif
-#ifndef OV_ENOSEEK
-#define OV_ENOSEEK    -135
-#endif
-
 #define _OGG_CONFIG_TYPES_H
 
 #endif // PS3

@@ -380,12 +380,12 @@ public:
     }
 
 #if !RETRO_USE_ORIGINAL_CODE
-    bool usingDataFile_Config = false;
+    bool usingDataFile_Config;
 #endif
-    bool usingDataFile = false;
-    bool usingBytecode = false;
+    bool usingDataFile;
+    bool usingBytecode;
 #if RETRO_REV03 && !RETRO_USE_ORIGINAL_CODE
-    bool usingOrigins = false;
+    bool usingOrigins;
 #endif
 
     char dataFile[RETRO_PACKFILE_COUNT][0x80];
@@ -504,12 +504,12 @@ public:
 
 #if !RETRO_USE_ORIGINAL_CODE
 #if RETRO_USING_SDL2
-    SDL_Window *window = nullptr;
+    SDL_Window *window;
 #if !RETRO_USING_OPENGL
-    SDL_Renderer *renderer = nullptr;
+    SDL_Renderer *renderer;
 #if RETRO_SOFTWARE_RENDER
-    SDL_Texture *screenBuffer   = nullptr;
-    SDL_Texture *screenBuffer2x = nullptr;
+    SDL_Texture *screenBuffer;
+    SDL_Texture *screenBuffer2x;
 #endif // RETRO_SOFTWARE_RENDERER
 #endif
 
@@ -521,10 +521,10 @@ public:
 #endif // RETRO_USING_SDL2
 
 #if RETRO_USING_SDL1
-    SDL_Surface *windowSurface = nullptr;
+    SDL_Surface *windowSurface;
 
-    SDL_Surface *screenBuffer   = nullptr;
-    SDL_Surface *screenBuffer2x = nullptr;
+    SDL_Surface *screenBuffer;
+    SDL_Surface *screenBuffer2x;
 
     SDL_Event sdlEvents;
 #endif // RETRO_USING_SDL1

@@ -621,7 +621,7 @@ void RetroEngine::Run()
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2
             curTicks = SDL_GetPerformanceCounter();
 #elif RETRO_PLATFORM == RETRO_PS3
-            curTicks = sys_time_get_system_time();
+            curTicks = sys_time_get_system_time() / 1000ULL;
 #endif
             if (curTicks < prevTicks + targetFreq)
                 continue;

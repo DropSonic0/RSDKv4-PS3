@@ -311,6 +311,9 @@ void RetroEngine::Init()
     StrCopy(dest, gamePath);
     StrAdd(dest, Engine.dataFile[0]);
     disableFocusPause = 0; // focus pause is ALWAYS enabled.
+#elif RETRO_PLATFORM == RETRO_PS3
+    StrCopy(dest, "SYS_APP_HOME/USRDIR/");
+    StrAdd(dest, Engine.dataFile[0]);
 #else
 
     StrCopy(dest, BASE_PATH);

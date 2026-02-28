@@ -101,6 +101,11 @@ static inline int strncasecmp_ps3(const char *s1, const char *s2, size_t n) {
 #define ov_read psgl_ov_read
 #endif
 
+// Some SDK versions might have these with a slightly different name or in different paths
+#ifndef SCE_PS3_SDK
+#define SCE_PS3_SDK "C:/usr/local/cell"
+#endif
+
 #ifndef __cplusplus
 #ifndef nullptr
 #define nullptr NULL

@@ -61,6 +61,8 @@ Una vez que tengas instalado el SDK 4.75 y Visual Studio (2012 o 2015), sigue es
       ```bash
       cmake -B build_ps3 -DPLATFORM=PS3 -G "Visual Studio 14 2015"
       ```
+
+    > **ADVERTENCIA IMPORTANTE**: No uses `-DCMAKE_TOOLCHAIN_FILE`. Esto causará errores. Solo usa `-DPLATFORM=PS3`.
 3.  **Abrir el Proyecto**:
     - Ve a la carpeta `build_ps3` que se acaba de crear.
     - Abre el archivo `RetroEngine.sln`.

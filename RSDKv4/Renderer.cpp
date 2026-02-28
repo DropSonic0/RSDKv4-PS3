@@ -368,7 +368,7 @@ void RenderScene()
 #endif
 
 #if RETRO_USING_OPENGL
-    pspsglEnableClientState(GL_VERTEX_ARRAY);
+    psglEnableClientState(GL_VERTEX_ARRAY);
     psglLoadIdentity();
 #endif
     if (currentRenderState.indexCount) {
@@ -414,7 +414,7 @@ void RenderScene()
             if (!prevTextures) {
 #if RETRO_USING_OPENGL
                 psglEnable(GL_TEXTURE_2D);
-                pspsglEnableClientState(GL_TEXTURE_COORD_ARRAY);
+                psglEnableClientState(GL_TEXTURE_COORD_ARRAY);
 #endif
             }
 #if RETRO_USING_OPENGL
@@ -432,7 +432,7 @@ void RenderScene()
             if (prevTextures) {
 #if RETRO_USING_OPENGL
                 psglDisable(GL_TEXTURE_2D);
-                pspsglDisableClientState(GL_TEXTURE_COORD_ARRAY);
+                psglDisableClientState(GL_TEXTURE_COORD_ARRAY);
 #endif
             }
             prevTextures = false;
@@ -441,7 +441,7 @@ void RenderScene()
         if (state->useColors) {
 #if RETRO_USING_OPENGL
             if (!prevColors)
-                pspsglEnableClientState(GL_COLOR_ARRAY);
+                psglEnableClientState(GL_COLOR_ARRAY);
             psglColorPointer(4, GL_UNSIGNED_BYTE, sizeof(DrawVertex), &state->vertPtr->r);
 #endif
             prevColors = true;
@@ -449,7 +449,7 @@ void RenderScene()
         else {
 #if RETRO_USING_OPENGL
             if (prevColors)
-                pspsglDisableClientState(GL_COLOR_ARRAY);
+                psglDisableClientState(GL_COLOR_ARRAY);
 #endif
             prevColors = false;
         }
@@ -457,7 +457,7 @@ void RenderScene()
         if (state->useNormals) {
             if (!prevNormals) {
 #if RETRO_USING_OPENGL
-                pspsglEnableClientState(GL_NORMAL_ARRAY);
+                psglEnableClientState(GL_NORMAL_ARRAY);
                 psglEnable(GL_LIGHTING);
 #endif
             }
@@ -469,7 +469,7 @@ void RenderScene()
         else {
             if (prevNormals) {
 #if RETRO_USING_OPENGL
-                pspsglDisableClientState(GL_NORMAL_ARRAY);
+                psglDisableClientState(GL_NORMAL_ARRAY);
                 psglDisable(GL_LIGHTING);
 #endif
             }
@@ -560,11 +560,11 @@ void RenderScene()
     }
 
 #if RETRO_USING_OPENGL
-    pspsglDisableClientState(GL_VERTEX_ARRAY);
+    psglDisableClientState(GL_VERTEX_ARRAY);
     if (prevTextures)
-        pspsglDisableClientState(GL_TEXTURE_COORD_ARRAY);
+        psglDisableClientState(GL_TEXTURE_COORD_ARRAY);
     if (prevColors)
-        pspsglDisableClientState(GL_COLOR_ARRAY);
+        psglDisableClientState(GL_COLOR_ARRAY);
 #endif
 }
 

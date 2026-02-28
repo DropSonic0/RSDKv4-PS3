@@ -860,8 +860,10 @@ void SetupViewport()
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth << 1, texHeight << 1, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, 0);
+#if RETRO_PLATFORM != RETRO_PS3
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderbufferHiRes, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+#endif
         glBindTexture(GL_TEXTURE_2D, 0);
 #endif
 

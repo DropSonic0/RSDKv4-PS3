@@ -36,7 +36,10 @@
 // ================
 // STANDARD TYPES
 // ================
+#ifndef BYTE_DEFINED
+#define BYTE_DEFINED
 typedef unsigned char byte;
+#endif
 typedef signed char sbyte;
 typedef unsigned short ushort;
 typedef unsigned int uint;
@@ -203,6 +206,9 @@ typedef unsigned int uint;
 #define GL_FRAMEBUFFER         GL_FRAMEBUFFER_EXT
 #define GL_COLOR_ATTACHMENT0   GL_COLOR_ATTACHMENT0_EXT
 #define GL_FRAMEBUFFER_BINDING GL_FRAMEBUFFER_BINDING_EXT
+#elif RETRO_PLATFORM == RETRO_PS3
+#include <PSGL/psgl.h>
+#include <PSGL/psglu.h>
 #else
 #include <GL/glew.h>
 #endif
@@ -305,6 +311,9 @@ enum RetroGameType {
 #include <SDL.h>
 #endif
 #include <vorbis/vorbisfile.h>
+#elif RETRO_PLATFORM == RETRO_PS3
+#include <vorbis/vorbisfile.h>
+#include <vorbis/codec.h>
 #elif RETRO_PLATFORM == RETRO_OSX
 #include <SDL2/SDL.h>
 #include <Vorbis/vorbisfile.h>
@@ -378,57 +387,57 @@ public:
 
     char dataFile[RETRO_PACKFILE_COUNT][0x80];
 
-    bool initialised = false;
-    bool running     = false;
-    double deltaTime = 0;
+    bool initialised;
+    bool running;
+    double deltaTime;
 
-    int gameMode = ENGINE_MAINGAME;
-    int language = RETRO_EN;
+    int gameMode;
+    int language;
 #if RETRO_REV00
-    int message = 0;
+    int message;
 #endif
-    int gameDeviceType    = RETRO_STANDARD;
-    int globalBoxRegion   = REGION_JP;
-    bool nativeMenuFadeIn = false;
+    int gameDeviceType;
+    int globalBoxRegion;
+    bool nativeMenuFadeIn;
 
-    bool trialMode        = false;
-    bool onlineActive     = true;
-    bool useHighResAssets = false;
+    bool trialMode;
+    bool onlineActive;
+    bool useHighResAssets;
 #if RETRO_USE_HAPTICS
-    bool hapticsEnabled = true;
+    bool hapticsEnabled;
 #endif
 
-    int frameSkipSetting = 0;
-    int frameSkipTimer   = 0;
+    int frameSkipSetting;
+    int frameSkipTimer;
 
 #if !RETRO_USE_ORIGINAL_CODE
     // Ported from RSDKv5
-    int startList_Game  = -1;
-    int startStage_Game = -1;
+    int startList_Game;
+    int startStage_Game;
 
-    bool consoleEnabled  = false;
-    bool devMenu         = false;
-    int startList        = -1;
-    int startStage       = -1;
-    int startPlayer      = -1;
-    int startSave        = -1;
-    int gameSpeed        = 1;
-    int fastForwardSpeed = 8;
-    bool masterPaused    = false;
-    bool frameStep       = false;
-    int dimTimer         = 0;
-    int dimLimit         = 0;
-    float dimPercent     = 1.0;
-    float dimMax         = 1.0;
+    bool consoleEnabled;
+    bool devMenu;
+    int startList;
+    int startStage;
+    int startPlayer;
+    int startSave;
+    int gameSpeed;
+    int fastForwardSpeed;
+    bool masterPaused;
+    bool frameStep;
+    int dimTimer;
+    int dimLimit;
+    float dimPercent;
+    float dimMax;
 
     char startSceneFolder[0x10];
     char startSceneID[0x10];
 
-    bool showPaletteOverlay = false;
-    bool useHQModes         = true;
+    bool showPaletteOverlay;
+    bool useHQModes;
 
-    bool hasFocus  = true;
-    int focusState = 0;
+    bool hasFocus;
+    int focusState;
 #endif
 
     void Init();

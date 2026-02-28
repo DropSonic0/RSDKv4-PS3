@@ -9,7 +9,7 @@ bool engineDebugMode = false;
 #include <unistd.h>
 #endif
 
-RetroEngine Engine = RetroEngine();
+RetroEngine Engine;
 
 #if !RETRO_USE_ORIGINAL_CODE
 inline int GetLowerRate(int intendRate, int targetRate)
@@ -276,6 +276,51 @@ bool ProcessEvents()
 
 void RetroEngine::Init()
 {
+    initialised      = false;
+    running          = false;
+    deltaTime        = 0;
+    gameMode         = ENGINE_MAINGAME;
+    language         = RETRO_EN;
+#if RETRO_REV00
+    message = 0;
+#endif
+    gameDeviceType   = RETRO_STANDARD;
+    globalBoxRegion  = REGION_JP;
+    nativeMenuFadeIn = false;
+    trialMode        = false;
+    onlineActive     = true;
+    useHighResAssets = false;
+#if RETRO_USE_HAPTICS
+    hapticsEnabled = true;
+#endif
+    frameSkipSetting = 0;
+    frameSkipTimer   = 0;
+
+#if !RETRO_USE_ORIGINAL_CODE
+    startList_Game      = -1;
+    startStage_Game     = -1;
+    consoleEnabled      = false;
+    devMenu             = false;
+    startList           = -1;
+    startStage          = -1;
+    startPlayer         = -1;
+    startSave           = -1;
+    gameSpeed           = 1;
+    fastForwardSpeed    = 8;
+    masterPaused        = false;
+    frameStep           = false;
+    dimTimer            = 0;
+    dimLimit            = 0;
+    dimPercent          = 1.0;
+    dimMax              = 1.0;
+    showPaletteOverlay  = false;
+    useHQModes          = true;
+    hasFocus            = true;
+    focusState          = 0;
+    startSceneFolder[0] = 0;
+    startSceneID[0]     = 0;
+#endif
+
     CalculateTrigAngles();
     GenerateBlendLookupTable();
 

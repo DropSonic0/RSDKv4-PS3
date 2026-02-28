@@ -17,6 +17,23 @@ Esta guía detalla los pasos necesarios para portar y compilar este motor en una
 - **Integración**: Debes instalar el "Sony PlayStation(R)3 Integration" que viene con el SDK. Esto añadirá la plataforma "PS3" a Visual Studio.
 - **Variables de Entorno**: Asegúrate de que `CELL_SDK` y `SN_PPU_TOOLCHAIN` estén correctamente configuradas en tu sistema.
 
+## Inicio Rápido: ¿Qué ejecutar primero?
+
+Una vez que tengas instalado el SDK 4.75 y Visual Studio 2015 Professional, sigue estos pasos para generar el proyecto:
+
+1.  **Abrir una Terminal** (PowerShell o CMD).
+2.  **Generar el Proyecto con CMake**: Ejecuta el siguiente comando en la carpeta raíz del motor:
+    ```bash
+    cmake -B build_ps3 -DPLATFORM=PS3 -G "Visual Studio 14 2015"
+    ```
+3.  **Abrir el Proyecto**:
+    - Ve a la carpeta `build_ps3` que se acaba de crear.
+    - Abre el archivo `RetroEngine.sln`.
+4.  **Configurar la Plataforma en Visual Studio**:
+    - En la barra superior, asegúrate de que la plataforma seleccionada sea **PS3** (esto es fundamental, no uses x64 o Win32).
+    - Selecciona la configuración **Release** o **Debug**.
+5.  **Compilar**: Haz clic derecho en el proyecto `RetroEngine` y selecciona **Build**.
+
 ### Cambios en el Código (Ya aplicados en esta rama)
 - Se ha actualizado `RSDKv4/RetroEngine.hpp` para detectar la plataforma PS3.
 - Se ha incluido `ps3_compat.h` para manejar funciones faltantes como `snprintf`.

@@ -297,7 +297,7 @@ void SetPerspectiveMatrix(float w, float h, float near, float far)
     m[10]     = (far + near) / (far - near);
     m[14]     = -((far + far) * near) / (far - near);
 #if RETRO_USING_OPENGL
-    psglMultMatrixf(m);
+    glMultMatrixf(m);
 #endif
 }
 void SetupDrawIndexList()
@@ -333,12 +333,12 @@ void NewRenderState()
 void RenderScene()
 {
 #if RETRO_USING_OPENGL
-    psglDisable(GL_TEXTURE_2D);
-    psglDisable(GL_DEPTH_TEST);
-    psglDisable(GL_LIGHTING);
-    psglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    psglDisable(GL_BLEND);
-    psglClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_BLEND);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 #endif
     if (renderStateCount == -1)
         return;
@@ -368,8 +368,8 @@ void RenderScene()
 #endif
 
 #if RETRO_USING_OPENGL
-    psglEnableClientState(GL_VERTEX_ARRAY);
-    psglLoadIdentity();
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glLoadIdentity();
 #endif
     if (currentRenderState.indexCount) {
         RenderState *state = &renderStateList[renderStateCount];
@@ -395,35 +395,35 @@ void RenderScene()
         if (state->renderMatrix != prevMat) {
             if (state->renderMatrix) {
 #if RETRO_USING_OPENGL
-                psglLoadMatrixf((const GLfloat *)state->renderMatrix);
+                glLoadMatrixf((const GLfloat *)state->renderMatrix);
 #endif
                 prevMat = state->renderMatrix;
             }
             else {
 #if RETRO_USING_OPENGL
-                psglLoadIdentity();
+                glLoadIdentity();
 #endif
                 prevMat = NULL;
             }
         }
 
 #if RETRO_USING_OPENGL
-        psglVertexPointer(3, GL_FLOAT, sizeof(DrawVertex), &state->vertPtr->vertX);
+        glVertexPointer(3, GL_FLOAT, sizeof(DrawVertex), &state->vertPtr->vertX);
 #endif
         if (state->useTexture) {
             if (!prevTextures) {
 #if RETRO_USING_OPENGL
-                psglEnable(GL_TEXTURE_2D);
-                psglEnableClientState(GL_TEXTURE_COORD_ARRAY);
+                glEnable(GL_TEXTURE_2D);
+                glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 #endif
             }
 #if RETRO_USING_OPENGL
-            psglTexCoordPointer(2, GL_FLOAT, sizeof(DrawVertex), &state->vertPtr->texCoordX);
+            glTexCoordPointer(2, GL_FLOAT, sizeof(DrawVertex), &state->vertPtr->texCoordX);
 #endif
             prevTextures = true;
             if (state->id != prevTexID) {
 #if RETRO_USING_OPENGL
-                psglBindTexture(GL_TEXTURE_2D, state->id);
+                glBindTexture(GL_TEXTURE_2D, state->id);
 #endif
                 prevTexID = state->id;
             }
@@ -431,8 +431,8 @@ void RenderScene()
         else {
             if (prevTextures) {
 #if RETRO_USING_OPENGL
-                psglDisable(GL_TEXTURE_2D);
-                psglDisableClientState(GL_TEXTURE_COORD_ARRAY);
+                glDisable(GL_TEXTURE_2D);
+                glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 #endif
             }
             prevTextures = false;
@@ -441,15 +441,15 @@ void RenderScene()
         if (state->useColors) {
 #if RETRO_USING_OPENGL
             if (!prevColors)
-                psglEnableClientState(GL_COLOR_ARRAY);
-            psglColorPointer(4, GL_UNSIGNED_BYTE, sizeof(DrawVertex), &state->vertPtr->r);
+                glEnableClientState(GL_COLOR_ARRAY);
+            glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(DrawVertex), &state->vertPtr->r);
 #endif
             prevColors = true;
         }
         else {
 #if RETRO_USING_OPENGL
             if (prevColors)
-                psglDisableClientState(GL_COLOR_ARRAY);
+                glDisableClientState(GL_COLOR_ARRAY);
 #endif
             prevColors = false;
         }
@@ -457,20 +457,20 @@ void RenderScene()
         if (state->useNormals) {
             if (!prevNormals) {
 #if RETRO_USING_OPENGL
-                psglEnableClientState(GL_NORMAL_ARRAY);
-                psglEnable(GL_LIGHTING);
+                glEnableClientState(GL_NORMAL_ARRAY);
+                glEnable(GL_LIGHTING);
 #endif
             }
 #if RETRO_USING_OPENGL
-            psglNormalPointer(GL_FLOAT, sizeof(DrawVertex), &state->vertPtr->normalX);
+            glNormalPointer(GL_FLOAT, sizeof(DrawVertex), &state->vertPtr->normalX);
 #endif
             prevNormals = true;
         }
         else {
             if (prevNormals) {
 #if RETRO_USING_OPENGL
-                psglDisableClientState(GL_NORMAL_ARRAY);
-                psglDisable(GL_LIGHTING);
+                glDisableClientState(GL_NORMAL_ARRAY);
+                glDisable(GL_LIGHTING);
 #endif
             }
             prevNormals = false;
@@ -479,14 +479,14 @@ void RenderScene()
         if (state->depthTest) {
 #if RETRO_USING_OPENGL
             if (!prevDepth)
-                psglEnable(GL_DEPTH_TEST);
+                glEnable(GL_DEPTH_TEST);
 #endif
             prevDepth = true;
         }
         else {
 #if RETRO_USING_OPENGL
             if (prevDepth)
-                psglDisable(GL_DEPTH_TEST);
+                glDisable(GL_DEPTH_TEST);
 #endif
             prevDepth = false;
         }
@@ -496,29 +496,29 @@ void RenderScene()
                 default: prevBlendMode = state->blendMode; break;
                 case 0:
 #if RETRO_USING_OPENGL
-                    psglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                    psglDisable(GL_BLEND);
+                    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                    glDisable(GL_BLEND);
 #endif
                     prevBlendMode = 0;
                     break;
                 case 1:
 #if RETRO_USING_OPENGL
-                    psglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                    psglEnable(GL_BLEND);
+                    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                    glEnable(GL_BLEND);
 #endif
                     prevBlendMode = 1;
                     break;
                 case 2:
 #if RETRO_USING_OPENGL
-                    psglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                    psglEnable(GL_BLEND);
+                    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                    glEnable(GL_BLEND);
 #endif
                     prevBlendMode = 2;
                     break;
                 case 3:
 #if RETRO_USING_OPENGL
-                    psglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                    psglEnable(GL_BLEND);
+                    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                    glEnable(GL_BLEND);
 #endif
                     prevBlendMode = 3;
                     break;
@@ -529,42 +529,42 @@ void RenderScene()
 #if RETRO_USING_OPENGL && RETRO_PLATFORM != RETRO_PS3
             glGetIntegerv(GL_FRAMEBUFFER_BINDING, &defaultFramebuffer);
             glBindFramebuffer(GL_FRAMEBUFFER, framebufferHiRes);
-            psglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, Engine.scalingMode ? GL_LINEAR : GL_NEAREST);
-            psglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, Engine.scalingMode ? GL_LINEAR : GL_NEAREST);
-            psglVertexPointer(3, GL_FLOAT, sizeof(DrawVertex), screenBufferVertexList);
-            psglTexCoordPointer(2, GL_FLOAT, sizeof(DrawVertex), &screenBufferVertexList[6]);
-            psglViewport(0, 0, GFX_LINESIZE_DOUBLE, SCREEN_YSIZE * 2);
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, Engine.scalingMode ? GL_LINEAR : GL_NEAREST);
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, Engine.scalingMode ? GL_LINEAR : GL_NEAREST);
+            glVertexPointer(3, GL_FLOAT, sizeof(DrawVertex), screenBufferVertexList);
+            glTexCoordPointer(2, GL_FLOAT, sizeof(DrawVertex), &screenBufferVertexList[6]);
+            glViewport(0, 0, GFX_LINESIZE_DOUBLE, SCREEN_YSIZE * 2);
             glPushMatrix();
-            psglLoadIdentity();
-            psglMatrixMode(GL_PROJECTION);
+            glLoadIdentity();
+            glMatrixMode(GL_PROJECTION);
             glPushMatrix();
-            psglLoadIdentity();
-            psglDrawElements(GL_TRIANGLES, state->indexCount, GL_UNSIGNED_SHORT, state->indexPtr);
+            glLoadIdentity();
+            glDrawElements(GL_TRIANGLES, state->indexCount, GL_UNSIGNED_SHORT, state->indexPtr);
 
-            psglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            psglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
-            psglBindTexture(GL_TEXTURE_2D, renderbufferHiRes);
-            psglVertexPointer(3, GL_FLOAT, sizeof(DrawVertex), state->vertPtr);
-            psglTexCoordPointer(2, GL_FLOAT, sizeof(DrawVertex), &state->vertPtr->texCoordX);
-            psglViewport(displaySettings.offsetX, 0, displaySettings.width, displaySettings.height);
+            glBindTexture(GL_TEXTURE_2D, renderbufferHiRes);
+            glVertexPointer(3, GL_FLOAT, sizeof(DrawVertex), state->vertPtr);
+            glTexCoordPointer(2, GL_FLOAT, sizeof(DrawVertex), &state->vertPtr->texCoordX);
+            glViewport(displaySettings.offsetX, 0, displaySettings.width, displaySettings.height);
             glPopMatrix();
-            psglMatrixMode(GL_MODELVIEW);
+            glMatrixMode(GL_MODELVIEW);
             glPopMatrix();
 #endif
         }
 
 #if RETRO_USING_OPENGL
-        psglDrawElements(GL_TRIANGLES, state->indexCount, GL_UNSIGNED_SHORT, state->indexPtr);
+        glDrawElements(GL_TRIANGLES, state->indexCount, GL_UNSIGNED_SHORT, state->indexPtr);
 #endif
     }
 
 #if RETRO_USING_OPENGL
-    psglDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_VERTEX_ARRAY);
     if (prevTextures)
-        psglDisableClientState(GL_TEXTURE_COORD_ARRAY);
+        glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     if (prevColors)
-        psglDisableClientState(GL_COLOR_ARRAY);
+        glDisableClientState(GL_COLOR_ARRAY);
 #endif
 }
 
@@ -621,8 +621,8 @@ int LoadTexture(const char *filePath, int format)
             texture->heightN = normalize / height;
 
 #if RETRO_USING_OPENGL
-            psglGenTextures(1, &texture->id);
-            psglBindTexture(GL_TEXTURE_2D, texture->id);
+            glGenTextures(1, &texture->id);
+            glBindTexture(GL_TEXTURE_2D, texture->id);
 #endif
 
             int id = 0;
@@ -642,10 +642,10 @@ int LoadTexture(const char *filePath, int format)
                     }
 
 #if RETRO_USING_OPENGL
-                    psglTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture->width, texture->height, 0, GL_RGBA, GL_UNSIGNED_SHORT_4_4_4_4, pixels);
-                    psglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                    psglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                    psglBindTexture(GL_TEXTURE_2D, 0);
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture->width, texture->height, 0, GL_RGBA, GL_UNSIGNED_SHORT_4_4_4_4, pixels);
+                    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                    glBindTexture(GL_TEXTURE_2D, 0);
 #endif
 
                     free(pixels);
@@ -665,10 +665,10 @@ int LoadTexture(const char *filePath, int format)
                     }
 
 #if RETRO_USING_OPENGL
-                    psglTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture->width, texture->height, 0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, pixels);
-                    psglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                    psglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                    psglBindTexture(GL_TEXTURE_2D, 0);
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture->width, texture->height, 0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, pixels);
+                    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                    glBindTexture(GL_TEXTURE_2D, 0);
 #endif
 
                     free(pixels);
@@ -688,10 +688,10 @@ int LoadTexture(const char *filePath, int format)
                     }
 
 #if RETRO_USING_OPENGL
-                    psglTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture->width, texture->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-                    psglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                    psglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                    psglBindTexture(GL_TEXTURE_2D, 0);
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture->width, texture->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+                    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                    glBindTexture(GL_TEXTURE_2D, 0);
 #endif
 
                     free(pixels);
@@ -737,7 +737,7 @@ void ReplaceTexture(const char *filePath, int texID)
             texture->heightN = normalize / height;
 
 #if RETRO_USING_OPENGL
-            psglBindTexture(GL_TEXTURE_2D, texture->id);
+            glBindTexture(GL_TEXTURE_2D, texture->id);
 #endif
 
             int id = 0;
@@ -757,8 +757,8 @@ void ReplaceTexture(const char *filePath, int texID)
                     }
 
 #if RETRO_USING_OPENGL
-                    psglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texture->width, texture->height, GL_RGBA, GL_UNSIGNED_SHORT_4_4_4_4, pixels);
-                    psglBindTexture(GL_TEXTURE_2D, 0);
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texture->width, texture->height, GL_RGBA, GL_UNSIGNED_SHORT_4_4_4_4, pixels);
+                    glBindTexture(GL_TEXTURE_2D, 0);
 #endif
 
                     free(pixels);
@@ -777,8 +777,8 @@ void ReplaceTexture(const char *filePath, int texID)
                         }
                     }
 #if RETRO_USING_OPENGL
-                    psglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texture->width, texture->height, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, pixels);
-                    psglBindTexture(GL_TEXTURE_2D, 0);
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texture->width, texture->height, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, pixels);
+                    glBindTexture(GL_TEXTURE_2D, 0);
 #endif
 
                     free(pixels);
@@ -798,8 +798,8 @@ void ReplaceTexture(const char *filePath, int texID)
                     }
 
 #if RETRO_USING_OPENGL
-                    psglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texture->width, texture->height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-                    psglBindTexture(GL_TEXTURE_2D, 0);
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texture->width, texture->height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+                    glBindTexture(GL_TEXTURE_2D, 0);
 #endif
 
                     free(pixels);
@@ -816,7 +816,7 @@ void ClearTextures(bool keepBuffer)
 {
     for (int i = (keepBuffer ? 1 : 0); i < TEXTURE_COUNT; ++i) {
 #if RETRO_USING_OPENGL
-        psglDeleteTextures(1, &textureList[i].id);
+        glDeleteTextures(1, &textureList[i].id);
 #endif
         StrCopy(textureList[i].fileName, "");
     }
@@ -1057,7 +1057,7 @@ void SetMeshVertexColors(MeshInfo *mesh, byte r, byte g, byte b, byte a)
 void TransferRetroBuffer()
 {
 #if RETRO_USING_OPENGL
-    psglBindTexture(GL_TEXTURE_2D, textureList[0].id);
+    glBindTexture(GL_TEXTURE_2D, textureList[0].id);
     if (convertTo32Bit) {
         ushort *frameBufferPtr = Engine.frameBuffer;
         uint *texBufferPtr     = Engine.texBuffer;
@@ -1069,12 +1069,12 @@ void TransferRetroBuffer()
             frameBufferPtr += GFX_LINESIZE;
         }
 
-        psglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, GFX_LINESIZE, SCREEN_YSIZE, GL_RGBA, GL_UNSIGNED_BYTE, Engine.texBuffer);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, GFX_LINESIZE, SCREEN_YSIZE, GL_RGBA, GL_UNSIGNED_BYTE, Engine.texBuffer);
     }
     else {
-        psglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, GFX_LINESIZE, SCREEN_YSIZE, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, Engine.frameBuffer);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, GFX_LINESIZE, SCREEN_YSIZE, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, Engine.frameBuffer);
     }
-    psglBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
 #endif
 }
 void RenderRetroBuffer(int alpha, float z)

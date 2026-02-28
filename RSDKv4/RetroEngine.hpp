@@ -314,9 +314,9 @@ enum RetroGameType {
 #endif
 #include <vorbis/vorbisfile.h>
 #elif RETRO_PLATFORM == RETRO_PS3
+#include "ogg/ogg.h"
 #include "vorbis/codec.h"
 #include "vorbis/vorbisfile.h"
-#include "ogg/ogg.h"
 #elif RETRO_PLATFORM == RETRO_OSX
 #include <SDL2/SDL.h>
 #include <Vorbis/vorbisfile.h>

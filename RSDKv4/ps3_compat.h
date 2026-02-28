@@ -24,12 +24,6 @@ typedef unsigned short Uint16;
 typedef unsigned int Uint32;
 typedef unsigned long long Uint64;
 
-typedef Sint64 ogg_int64_t;
-typedef Sint32 ogg_int32_t;
-typedef Uint32 ogg_uint32_t;
-typedef Sint16 ogg_int16_t;
-typedef Uint16 ogg_uint16_t;
-
 #ifdef __cplusplus
 extern "C" {
 #endif

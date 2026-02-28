@@ -16,6 +16,20 @@
 typedef unsigned char byte;
 #endif
 
+typedef signed short Sint16;
+typedef signed int Sint32;
+typedef signed long long Sint64;
+typedef unsigned char Uint8;
+typedef unsigned short Uint16;
+typedef unsigned int Uint32;
+typedef unsigned long long Uint64;
+
+typedef Sint64 ogg_int64_t;
+typedef Sint32 ogg_int32_t;
+typedef Uint32 ogg_uint32_t;
+typedef Sint16 ogg_int16_t;
+typedef Uint16 ogg_uint16_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -56,12 +70,6 @@ static inline int strncasecmp_ps3(const char *s1, const char *s2, size_t n) {
 }
 #endif
 
-typedef Sint64 ogg_int64_t;
-typedef Sint32 ogg_int32_t;
-typedef Uint32 ogg_uint32_t;
-typedef Sint16 ogg_int16_t;
-typedef Uint16 ogg_uint16_t;
-
 #ifndef __cplusplus
 #ifndef nullptr
 #define nullptr NULL
@@ -73,14 +81,6 @@ typedef Uint16 ogg_uint16_t;
 #define nullptr 0
 #endif
 #endif
-
-typedef signed short Sint16;
-typedef signed int Sint32;
-typedef signed long long Sint64;
-typedef unsigned char Uint8;
-typedef unsigned short Uint16;
-typedef unsigned int Uint32;
-typedef unsigned long long Uint64;
 
 // Missing from some PS3 SDK versions or need specific includes
 #ifndef M_PI

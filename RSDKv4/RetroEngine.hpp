@@ -33,6 +33,11 @@
 #include <regex>
 #endif
 
+#if defined(PS3) || defined(__CELLOS_LV2__)
+#include "ps3_compat.h"
+#define RETRO_BIG_ENDIAN (1)
+#endif
+
 // ================
 // STANDARD TYPES
 // ================
@@ -90,6 +95,9 @@ typedef unsigned int uint;
 #elif defined(__linux__)
 #define RETRO_PLATFORM   (RETRO_LINUX)
 #define RETRO_DEVICETYPE (RETRO_STANDARD)
+#elif defined(__CELLOS_LV2__)
+#define RETRO_PLATFORM   (RETRO_PS3)
+#define RETRO_DEVICETYPE (RETRO_STANDARD)
 #else
 //#error "No Platform was defined"
 #define RETRO_PLATFORM   (RETRO_LINUX)
@@ -110,7 +118,7 @@ typedef unsigned int uint;
 #endif
 
 #if RETRO_PLATFORM == RETRO_WIN || RETRO_PLATFORM == RETRO_OSX || RETRO_PLATFORM == RETRO_LINUX || RETRO_PLATFORM == RETRO_UWP                       \
-    || RETRO_PLATFORM == RETRO_ANDROID
+    || RETRO_PLATFORM == RETRO_ANDROID || RETRO_PLATFORM == RETRO_PS3
 #ifdef RETRO_USE_SDL2
 #define RETRO_USING_SDL1 (0)
 #define RETRO_USING_SDL2 (1)
@@ -197,6 +205,9 @@ typedef unsigned int uint;
 #define GL_FRAMEBUFFER         GL_FRAMEBUFFER_EXT
 #define GL_COLOR_ATTACHMENT0   GL_COLOR_ATTACHMENT0_EXT
 #define GL_FRAMEBUFFER_BINDING GL_FRAMEBUFFER_BINDING_EXT
+#elif RETRO_PLATFORM == RETRO_PS3
+#include <PSGL/psgl.h>
+#include <PSGL/psglu.h>
 #else
 #include <GL/glew.h>
 #endif

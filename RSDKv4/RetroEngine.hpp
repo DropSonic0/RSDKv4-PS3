@@ -458,56 +458,44 @@ public:
 
     char gameWindowText[0x40];
     char gameDescriptionText[0x100];
-#ifdef DECOMP_VERSION
-    const char *gameVersion = DECOMP_VERSION;
-#else
-    const char *gameVersion  = "1.3.3";
-#endif
-    const char *gamePlatform = nullptr;
+    const char *gameVersion;
+    const char *gamePlatform;
 
-    int gameTypeID       = 0;
-    const char *releaseType = "USE_STANDALONE";
+    int gameTypeID;
+    const char *releaseType;
 
-#if RETRO_RENDERTYPE == RETRO_SW_RENDER
-    const char *gameRenderType = "SW_RENDERING";
-#elif RETRO_RENDERTYPE == RETRO_HW_RENDER
-    const char *gameRenderType = "HW_RENDERING";
-#endif
+    const char *gameRenderType;
 
-#if RETRO_USE_HAPTICS
-    const char *gameHapticSetting = "USE_F_FEEDBACK"; // None is default, but people with controllers exist
-#else
-    const char *gameHapticSetting = "NO_F_FEEDBACK";
-#endif
+    const char *gameHapticSetting;
 
 #if !RETRO_USE_ORIGINAL_CODE
-    byte gameType = GAME_UNKNOWN;
+    byte gameType;
 #if RETRO_USE_MOD_LOADER
-    bool modMenuCalled = false;
-    bool forceSonic1   = false;
+    bool modMenuCalled;
+    bool forceSonic1;
 #endif
 #endif
 
 #if RETRO_SOFTWARE_RENDER
-    ushort *frameBuffer   = nullptr;
-    ushort *frameBuffer2x = nullptr;
+    ushort *frameBuffer;
+    ushort *frameBuffer2x;
 #endif
-    uint *texBuffer = nullptr;
+    uint *texBuffer;
 
 #if !RETRO_USE_ORIGINAL_CODE
-    bool isFullScreen = false;
+    bool isFullScreen;
 
-    bool startFullScreen  = false; // if should start as fullscreen
-    bool borderless       = false;
-    bool vsync            = false;
-    int scalingMode       = 0;
-    int windowScale       = 2;
-    int refreshRate       = 60; // user-picked screen update rate
-    int screenRefreshRate = 60; // hardware screen update rate
-    int targetRefreshRate = 60; // game logic update rate
+    bool startFullScreen; // if should start as fullscreen
+    bool borderless;
+    bool vsync;
+    int scalingMode;
+    int windowScale;
+    int refreshRate; // user-picked screen update rate
+    int screenRefreshRate; // hardware screen update rate
+    int targetRefreshRate; // game logic update rate
 
-    int renderFrameIndex = 0;
-    int skipFrameIndex   = 0;
+    int renderFrameIndex;
+    int skipFrameIndex;
 
     int windowXSize; // width of window/screen in the previous frame
     int windowYSize; // height of window/screen in the previous frame

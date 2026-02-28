@@ -321,6 +321,37 @@ void RetroEngine::Init()
     startSceneID[0]     = 0;
 #endif
 
+#ifdef DECOMP_VERSION
+    gameVersion = DECOMP_VERSION;
+#else
+    gameVersion = "1.3.3";
+#endif
+
+    gameTypeID  = 0;
+    releaseType = "USE_STANDALONE";
+
+#if RETRO_RENDERTYPE == RETRO_SW_RENDER
+    gameRenderType = "SW_RENDERING";
+#elif RETRO_RENDERTYPE == RETRO_HW_RENDER
+    gameRenderType = "HW_RENDERING";
+#endif
+
+#if RETRO_USE_HAPTICS
+    gameHapticSetting = "USE_F_FEEDBACK";
+#else
+    gameHapticSetting = "NO_F_FEEDBACK";
+#endif
+
+#if !RETRO_USE_ORIGINAL_CODE
+    gameType      = GAME_UNKNOWN;
+    modMenuCalled = false;
+    forceSonic1   = false;
+#endif
+
+    frameBuffer   = nullptr;
+    frameBuffer2x = nullptr;
+    texBuffer     = nullptr;
+
     CalculateTrigAngles();
     GenerateBlendLookupTable();
 

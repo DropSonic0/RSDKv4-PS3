@@ -56,6 +56,12 @@ static inline int strncasecmp_ps3(const char *s1, const char *s2, size_t n) {
 }
 #endif
 
+typedef Sint64 ogg_int64_t;
+typedef Sint32 ogg_int32_t;
+typedef Uint32 ogg_uint32_t;
+typedef Sint16 ogg_int16_t;
+typedef Uint16 ogg_uint16_t;
+
 #ifndef __cplusplus
 #ifndef nullptr
 #define nullptr NULL
@@ -70,15 +76,11 @@ static inline int strncasecmp_ps3(const char *s1, const char *s2, size_t n) {
 
 typedef signed short Sint16;
 typedef signed int Sint32;
+typedef signed long long Sint64;
 typedef unsigned char Uint8;
 typedef unsigned short Uint16;
 typedef unsigned int Uint32;
-
-typedef int16_t ogg_int16_t;
-typedef uint16_t ogg_uint16_t;
-typedef int32_t ogg_int32_t;
-typedef uint32_t ogg_uint32_t;
-typedef int64_t ogg_int64_t;
+typedef unsigned long long Uint64;
 
 // Missing from some PS3 SDK versions or need specific includes
 #ifndef M_PI

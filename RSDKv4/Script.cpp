@@ -2538,7 +2538,7 @@ void AppendIntegerToString(char *text, int value)
 
     v = 0;
     for (int i = cnt - 1; i >= 0; --i) {
-        v = value / pow(10, i);
+        v = value / (int)std::pow(10.0, (double)i);
         v %= 10;
 
         int strValue = v + '0';
@@ -2569,7 +2569,7 @@ void AppendIntegerToStringW(ushort *text, int value)
 
     v = 0;
     for (int i = cnt - 1; i >= 0; --i) {
-        v = value / pow(10, i);
+        v = value / (int)std::pow(10.0, (double)i);
         v %= 10;
 
         int strValue = v + '0';
@@ -2609,9 +2609,9 @@ bool ConvertStringToInteger(const char *text, int *value)
             base = 0x10;
 #if !RETRO_USE_ORIGINAL_CODE
         else if (text[charID + 1] == 'b' || text[charID + 1] == 'B')
-            base = 0b10;
+            base = 2;
         else if (text[charID + 1] == 'o' || text[charID + 1] == 'O')
-            base = 0010; // base 8
+            base = 8;
 #endif
 
         if (base != 10) {
@@ -2626,9 +2626,9 @@ bool ConvertStringToInteger(const char *text, int *value)
             if (base == 0x10 && text[charID] > 'f')
                 flag = true;
 #if !RETRO_USE_ORIGINAL_CODE
-            if (base == 0010 && text[charID] > '7')
+            if (base == 8 && text[charID] > '7')
                 flag = true;
-            if (base == 0b10 && text[charID] > '1')
+            if (base == 2 && text[charID] > '1')
                 flag = true;
 #endif
         }

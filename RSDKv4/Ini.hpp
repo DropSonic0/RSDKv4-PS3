@@ -24,10 +24,10 @@ public:
             type       = INI_ITEM_STRING;
         }
         char section[0x20];
-        bool hasSection = false;
+        bool hasSection;
         char key[0x40];
         char value[0x100];
-        byte type = INI_ITEM_STRING;
+        byte type;
     };
 
     IniParser() { items.clear(); }

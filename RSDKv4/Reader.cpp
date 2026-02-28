@@ -1,5 +1,6 @@
 #include "RetroEngine.hpp"
 #include <string>
+#include <algorithm>
 
 RSDKContainer rsdkContainer;
 

@@ -9,7 +9,7 @@ bool engineDebugMode = false;
 #include <unistd.h>
 #endif
 
-RetroEngine Engine = RetroEngine();
+RetroEngine Engine;
 
 #if !RETRO_USE_ORIGINAL_CODE
 inline int GetLowerRate(int intendRate, int targetRate)
@@ -276,6 +276,84 @@ bool ProcessEvents()
 
 void RetroEngine::Init()
 {
+    initialised      = false;
+    running          = false;
+    deltaTime        = 0;
+    gameMode         = ENGINE_MAINGAME;
+    language         = RETRO_EN;
+#if RETRO_REV00
+    message = 0;
+#endif
+    gameDeviceType   = RETRO_STANDARD;
+    globalBoxRegion  = REGION_JP;
+    nativeMenuFadeIn = false;
+    trialMode        = false;
+    onlineActive     = true;
+    useHighResAssets = false;
+#if RETRO_USE_HAPTICS
+    hapticsEnabled = true;
+#endif
+    frameSkipSetting = 0;
+    frameSkipTimer   = 0;
+
+#if !RETRO_USE_ORIGINAL_CODE
+    startList_Game      = -1;
+    startStage_Game     = -1;
+    consoleEnabled      = false;
+    devMenu             = false;
+    startList           = -1;
+    startStage          = -1;
+    startPlayer         = -1;
+    startSave           = -1;
+    gameSpeed           = 1;
+    fastForwardSpeed    = 8;
+    masterPaused        = false;
+    frameStep           = false;
+    dimTimer            = 0;
+    dimLimit            = 0;
+    dimPercent          = 1.0;
+    dimMax              = 1.0;
+    showPaletteOverlay  = false;
+    useHQModes          = true;
+    hasFocus            = true;
+    focusState          = 0;
+    startSceneFolder[0] = 0;
+    startSceneID[0]     = 0;
+#endif
+
+#ifdef DECOMP_VERSION
+    gameVersion = DECOMP_VERSION;
+#else
+    gameVersion = "1.3.3";
+#endif
+
+    gameTypeID  = 0;
+    releaseType = "USE_STANDALONE";
+
+#if RETRO_RENDERTYPE == RETRO_SW_RENDER
+    gameRenderType = "SW_RENDERING";
+#elif RETRO_RENDERTYPE == RETRO_HW_RENDER
+    gameRenderType = "HW_RENDERING";
+#endif
+
+#if RETRO_USE_HAPTICS
+    gameHapticSetting = "USE_F_FEEDBACK";
+#else
+    gameHapticSetting = "NO_F_FEEDBACK";
+#endif
+
+#if !RETRO_USE_ORIGINAL_CODE
+    gameType      = GAME_UNKNOWN;
+#if RETRO_USE_MOD_LOADER
+    modMenuCalled = false;
+    forceSonic1   = false;
+#endif
+#endif
+
+    frameBuffer   = nullptr;
+    frameBuffer2x = nullptr;
+    texBuffer     = nullptr;
+
     CalculateTrigAngles();
     GenerateBlendLookupTable();
 
@@ -526,14 +604,28 @@ void RetroEngine::Run()
 {
     Engine.deltaTime = 0.0f;
 
+#if RETRO_USING_SDL1 || RETRO_USING_SDL2
     unsigned long long targetFreq = SDL_GetPerformanceFrequency() / Engine.refreshRate;
     unsigned long long curTicks   = 0;
     unsigned long long prevTicks  = 0;
+#elif RETRO_PLATFORM == RETRO_PS3
+    // PS3 uses microseconds for its time base in many APIs
+    unsigned long long targetFreq = 1000000 / Engine.refreshRate;
+    unsigned long long curTicks   = 0;
+    unsigned long long prevTicks  = 0;
+    sys_time_sec_t sec;
+    sys_time_nsec_t nsec;
+#endif
 
     while (running) {
 #if !RETRO_USE_ORIGINAL_CODE
         if (!vsync) {
+#if RETRO_USING_SDL1 || RETRO_USING_SDL2
             curTicks = SDL_GetPerformanceCounter();
+#elif RETRO_PLATFORM == RETRO_PS3
+            sys_time_get_system_time(&sec, &nsec);
+            curTicks = (unsigned long long)sec * 1000000ULL + (unsigned long long)nsec / 1000ULL;
+#endif
             if (curTicks < prevTicks + targetFreq)
                 continue;
             prevTicks = curTicks;
@@ -577,8 +669,12 @@ void RetroEngine::Run()
                 FlipScreen();
 
 #if !RETRO_USE_ORIGINAL_CODE
-#if RETRO_USING_OPENGL && RETRO_USING_SDL2
+#if RETRO_USING_OPENGL
+#if RETRO_PLATFORM == RETRO_PS3
+                psglSwap();
+#elif RETRO_USING_SDL2
                 SDL_GL_SwapWindow(Engine.window);
+#endif
 #endif
                 frameStep = false;
             }

@@ -139,9 +139,11 @@ inline void FreeMusInfo()
 }
 #endif
 #else
-void ProcessMusicStream() {}
-void ProcessAudioPlayback() {}
-void ProcessAudioMixing() {}
+#if !RETRO_USE_ORIGINAL_CODE
+void ProcessMusicStream(Sint32 *stream, size_t bytes_wanted);
+void ProcessAudioPlayback(void *data, Uint8 *stream, int len);
+void ProcessAudioMixing(Sint32 *dst, const Sint16 *src, int len, int volume, sbyte pan);
+#endif
 
 #if !RETRO_USE_ORIGINAL_CODE
 inline void FreeMusInfo() { ov_clear(&streamInfo[currentStreamIndex].vorbisFile); }

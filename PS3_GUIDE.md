@@ -5,7 +5,7 @@ Esta guía detalla los pasos necesarios para portar y compilar este motor en una
 ## Requisitos de Software
 
 1.  **Sony PS3 SDK 4.75**: Ya lo tienes instalado.
-2.  **Visual Studio 2013 o 2015**: El instalador del SDK 4.75 requiere una de estas versiones (2012, 2013 o 2015). Se recomienda **Visual Studio 2015 Professional** por su mejor soporte de estándares modernos de C++.
+2.  **Visual Studio 2012, 2013 o 2015**: El instalador del SDK 4.75 requiere una de estas versiones. Se recomienda **Visual Studio 2012 Ultimate** o **Visual Studio 2015 Professional**.
 3. **Cygwin**: Requerido por el SDK de PS3 para las herramientas de compilación basadas en GCC/SN.
     - Al instalar, busca y selecciona:
         - `make` (en la categoría **Devel**).
@@ -19,18 +19,18 @@ Esta guía detalla los pasos necesarios para portar y compilar este motor en una
 ## Solución de Problemas (Troubleshooting)
 
 ### Error MSB8036: The Windows SDK version 8.1 was not found
-Este error ocurre porque Visual Studio 2015 necesita el SDK de Windows 8.1 para funcionar correctamente con CMake.
-- **Solución**: Abre el "Panel de Control" -> "Programas y características", busca **Microsoft Visual Studio 2015**, haz clic en **Cambiar** (o Modificar) y asegúrate de marcar **Windows 8.1 SDK** en la lista de componentes a instalar.
+Este error suele ocurrir en Visual Studio 2015.
+- **Solución**: Abre el "Panel de Control" -> "Programas y características", busca tu instalación de Visual Studio, haz clic en **Cambiar** (o Modificar) y asegúrate de marcar **Windows 8.1 SDK** en la lista de componentes a instalar.
 
 ### Error: No CMAKE_C_COMPILER could be found
-Este error indica que CMake no puede encontrar el compilador de C++ de Visual Studio. **Por defecto, Visual Studio 2015 NO instala el soporte para C++.**
+Este error indica que CMake no puede encontrar el compilador de C++ de Visual Studio. **Por defecto, algunas versiones de Visual Studio NO instalan el soporte para C++.**
 - **Solución detallada**:
     1. Ve al **Panel de Control** -> **Programas y características**.
-    2. Busca **Microsoft Visual Studio 2015**, haz clic derecho y selecciona **Cambiar**.
+    2. Busca tu versión de Visual Studio, haz clic derecho y selecciona **Cambiar**.
     3. En el instalador, selecciona **Modificar**.
-    4. En la lista de características, despliega **Lenguajes de programación** y marca **Visual C++** (y todos sus componentes, como "Common Tools").
+    4. Asegúrate de que **Visual C++** esté marcado para instalar.
     5. Haz clic en **Actualizar** y espera a que termine.
-    6. **MUY IMPORTANTE**: Para ejecutar CMake, no uses el CMD normal. Busca en el menú inicio "**Developer Command Prompt for VS2015**" y ejecútalo como administrador. Luego navega hasta la carpeta del motor y reintenta el comando.
+    6. **MUY IMPORTANTE**: Para ejecutar CMake, no uses el CMD normal. Busca en el menú inicio el "**Developer Command Prompt**" correspondiente a tu versión de Visual Studio y ejecútalo como administrador. Luego navega hasta la carpeta del motor y reintenta el comando.
 
 ### Verificación del Compilador
 Para confirmar si Visual Studio tiene instalado C++, escribe lo siguiente en el **Developer Command Prompt**:
@@ -43,19 +43,24 @@ cl
 ## Configuración del Proyecto
 
 ### Visual Studio
-- **Versión**: Se recomienda **Visual Studio 2015 Professional**. La versión Express no soporta plugins de terceros como el de Sony (ProDG).
+- **Versión**: Se recomienda **Visual Studio 2012 Ultimate** o **Visual Studio 2015 Professional**. La versión Express no soporta plugins de terceros como el de Sony (ProDG).
 - **Integración**: Debes instalar el "Sony PlayStation(R)3 Integration" que viene con el SDK. Esto añadirá la plataforma "PS3" a Visual Studio.
 - **Variables de Entorno**: Asegúrate de que `CELL_SDK` y `SN_PPU_TOOLCHAIN` estén correctamente configuradas en tu sistema.
 
 ## Inicio Rápido: ¿Qué ejecutar primero?
 
-Una vez que tengas instalado el SDK 4.75 y Visual Studio 2015 Professional, sigue estos pasos para generar el proyecto:
+Una vez que tengas instalado el SDK 4.75 y Visual Studio (2012 o 2015), sigue estos pasos para generar el proyecto:
 
 1.  **Abrir una Terminal** (PowerShell o CMD).
-2.  **Generar el Proyecto con CMake**: Ejecuta el siguiente comando en la carpeta raíz del motor (**NO** uses `-DCMAKE_TOOLCHAIN_FILE`, ya que esto puede causar errores):
-    ```bash
-    cmake -B build_ps3 -DPLATFORM=PS3 -G "Visual Studio 14 2015"
-    ```
+2.  **Generar el Proyecto con CMake**: Ejecuta el comando correspondiente a tu versión:
+    - **Para Visual Studio 2012**:
+      ```bash
+      cmake -B build_ps3 -DPLATFORM=PS3 -G "Visual Studio 11 2012"
+      ```
+    - **Para Visual Studio 2015**:
+      ```bash
+      cmake -B build_ps3 -DPLATFORM=PS3 -G "Visual Studio 14 2015"
+      ```
 3.  **Abrir el Proyecto**:
     - Ve a la carpeta `build_ps3` que se acaba de crear.
     - Abre el archivo `RetroEngine.sln`.

@@ -14,6 +14,13 @@ Esta guía detalla los pasos necesarios para portar y compilar este motor en una
 4. **SN Systems / ProDG**: Estas herramientas suelen venir con el SDK y son las que permiten la depuración y comunicación con la consola (Target Manager).
 5. **Python 2.7**: Muchos scripts de automatización del SDK oficial todavía dependen de Python 2.x.
 6. **CMake**: Necesario para generar los archivos de proyecto de Visual Studio. Puedes descargarlo en [cmake.org](https://cmake.org/download/). **Asegúrate de marcar la opción "Add CMake to the system PATH" durante la instalación.**
+7. **Windows 8.1 SDK**: Requerido por Visual Studio 2015 para que CMake pueda realizar las pruebas de compilación iniciales. Suele estar disponible como componente opcional en el instalador de Visual Studio.
+
+## Solución de Problemas (Troubleshooting)
+
+### Error MSB8036: The Windows SDK version 8.1 was not found
+Este error ocurre porque Visual Studio 2015 necesita el SDK de Windows 8.1 para funcionar correctamente con CMake.
+- **Solución**: Abre el "Panel de Control" -> "Programas y características", busca **Microsoft Visual Studio 2015**, haz clic en **Cambiar** (o Modificar) y asegúrate de marcar **Windows 8.1 SDK** en la lista de componentes a instalar.
 
 ## Configuración del Proyecto
 

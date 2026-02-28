@@ -41,6 +41,9 @@ struct InputDevice {
     SDL_Joystick *devicePtr;
 #endif
     int id;
+#if RETRO_PLATFORM == RETRO_PS3
+    int index;
+#endif
 };
 
 std::vector<InputDevice> controllers;

@@ -11,6 +11,16 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <math.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include <cell/sysmodule.h>
+#include <cell/resc.h>
+#include <cell/video_out.h>
+#ifdef __cplusplus
+}
+#endif
+
 
 #ifndef BYTE_DEFINED
 #define BYTE_DEFINED

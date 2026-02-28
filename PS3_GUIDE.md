@@ -13,6 +13,7 @@ Esta guía detalla los pasos necesarios para portar y compilar este motor en una
     - **Nota**: Solo selecciona los binarios, no necesitas los paquetes que dicen "-src" o "-debuginfo" a menos que sepas lo que haces.
 4. **SN Systems / ProDG**: Estas herramientas suelen venir con el SDK y son las que permiten la depuración y comunicación con la consola (Target Manager).
 5. **Python 2.7**: Muchos scripts de automatización del SDK oficial todavía dependen de Python 2.x.
+6. **CMake**: Necesario para generar los archivos de proyecto de Visual Studio. Puedes descargarlo en [cmake.org](https://cmake.org/download/). **Asegúrate de marcar la opción "Add CMake to the system PATH" durante la instalación.**
 
 ## Configuración del Proyecto
 

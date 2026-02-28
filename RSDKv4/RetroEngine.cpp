@@ -611,10 +611,8 @@ void RetroEngine::Run()
 #elif RETRO_PLATFORM == RETRO_PS3
     // PS3 uses microseconds for its time base in many APIs
     unsigned long long targetFreq = 1000000 / Engine.refreshRate;
-    unsigned long long curTicks   = 0;
-    unsigned long long prevTicks  = 0;
-    sys_time_sec_t sec;
-    sys_time_nsec_t nsec;
+    system_time_t curTicks        = 0;
+    system_time_t prevTicks       = 0;
 #endif
 
     while (running) {
@@ -623,8 +621,7 @@ void RetroEngine::Run()
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2
             curTicks = SDL_GetPerformanceCounter();
 #elif RETRO_PLATFORM == RETRO_PS3
-            sys_time_get_system_time(&sec, &nsec);
-            curTicks = (unsigned long long)sec * 1000000ULL + (unsigned long long)nsec / 1000ULL;
+            sys_time_get_system_time(&curTicks);
 #endif
             if (curTicks < prevTicks + targetFreq)
                 continue;
@@ -1226,7 +1223,7 @@ bool RetroEngine::LoadGameConfig(const char *filePath)
         byte buf[3];
         for (int c = 0; c < 0x60; ++c) {
             FileRead(buf, 3);
-            SetPaletteEntry(-1, c, buf[0], buf[1], buf[2]);
+            SetPaletteEntry(0xFF, c, buf[0], buf[1], buf[2]);
         }
 
         // Read Obect Names

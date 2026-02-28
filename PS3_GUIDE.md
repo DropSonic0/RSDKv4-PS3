@@ -32,6 +32,14 @@ Este error indica que CMake no puede encontrar el compilador de C++ de Visual St
     5. Haz clic en **Actualizar** y espera a que termine.
     6. **MUY IMPORTANTE**: Para ejecutar CMake, no uses el CMD normal. Busca en el menú inicio "**Developer Command Prompt for VS2015**" y ejecútalo como administrador. Luego navega hasta la carpeta del motor y reintenta el comando.
 
+### Verificación del Compilador
+Para confirmar si Visual Studio tiene instalado C++, escribe lo siguiente en el **Developer Command Prompt**:
+```cmd
+cl
+```
+- **Si sale un mensaje de error** como "'cl' no se reconoce...": Significa que el componente de C++ **NO** se instaló correctamente. Vuelve al instalador (paso 4 de la sección anterior) y asegúrate de marcar absolutamente todo lo que esté bajo "Visual C++".
+- **Si sale un mensaje con la versión del compilador** (ej: "Microsoft (R) C/C++ Optimizing Compiler..."): Entonces el problema es de CMake. Intenta borrar la carpeta `build_ps3` por completo antes de reintentar.
+
 ## Configuración del Proyecto
 
 ### Visual Studio

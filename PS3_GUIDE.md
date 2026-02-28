@@ -34,7 +34,7 @@ Este error ocurre porque Visual Studio 2015 necesita el SDK de Windows 8.1 para 
 Una vez que tengas instalado el SDK 4.75 y Visual Studio 2015 Professional, sigue estos pasos para generar el proyecto:
 
 1.  **Abrir una Terminal** (PowerShell o CMD).
-2.  **Generar el Proyecto con CMake**: Ejecuta el siguiente comando en la carpeta raíz del motor:
+2.  **Generar el Proyecto con CMake**: Ejecuta el siguiente comando en la carpeta raíz del motor (**NO** uses `-DCMAKE_TOOLCHAIN_FILE`, ya que esto puede causar errores):
     ```bash
     cmake -B build_ps3 -DPLATFORM=PS3 -G "Visual Studio 14 2015"
     ```

@@ -1,4 +1,4 @@
-project(RetroEngine)
+# PS3 platform configuration for RSDKv4
 
 add_executable(RetroEngine ${RETRO_FILES})
 

@@ -294,7 +294,14 @@ void IniParser::Write(const char *filename, bool addPath)
     int c = 0;
     sprintf(past, "");
     for (int i = 0; i < items.size(); ++i) {
-        if (std::find(std::begin(sections), std::end(sections), items[i].section) == std::end(sections) && strcmp(past, items[i].section) != 0) {
+        bool found = false;
+        for (int j = 0; j < c; ++j) {
+            if (strcmp(sections[j], items[i].section) == 0) {
+                found = true;
+                break;
+            }
+        }
+        if (!found && strcmp(past, items[i].section) != 0) {
             sprintf(past, "%s", items[i].section);
             sprintf(sections[c], "%s", items[i].section);
             c++;

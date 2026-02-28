@@ -78,6 +78,7 @@ static inline int strncasecmp_ps3(const char *s1, const char *s2, size_t n) {
 #endif
 
 #if defined(__PS3__) || defined(PS3) || defined(__CELLOS_LV2__)
+#define PSGL_USE_GL_NAMES
 #include <PSGL/psgl.h>
 #include <PSGL/psglu.h>
 

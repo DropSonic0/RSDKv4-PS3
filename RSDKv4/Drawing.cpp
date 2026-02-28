@@ -204,7 +204,7 @@ int InitRenderDevice()
     initOpts.initializeSPUs = GL_FALSE;
     psglInit(&initOpts);
 
-    PSGLdevice *psgl_device = psglCreateDevice();
+    PSGLdevice *psgl_device = psglCreateDeviceExtended(NULL);
     PSGLcontext *psgl_context = psglCreateContext();
     psglMakeCurrent(psgl_context, psgl_device);
 #elif RETRO_PLATFORM != RETRO_PS3

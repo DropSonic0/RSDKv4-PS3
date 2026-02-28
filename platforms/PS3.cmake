@@ -1,5 +1,10 @@
 # PS3 platform configuration for RSDKv4
 
+if(PS3_PLATFORM_GUARD)
+    return()
+endif()
+set(PS3_PLATFORM_GUARD TRUE)
+
 add_executable(RetroEngine ${RETRO_FILES})
 
 # PS3 SDK usually provides its own toolchain, so this is a template

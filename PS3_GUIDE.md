@@ -22,6 +22,13 @@ Esta guía detalla los pasos necesarios para portar y compilar este motor en una
 Este error ocurre porque Visual Studio 2015 necesita el SDK de Windows 8.1 para funcionar correctamente con CMake.
 - **Solución**: Abre el "Panel de Control" -> "Programas y características", busca **Microsoft Visual Studio 2015**, haz clic en **Cambiar** (o Modificar) y asegúrate de marcar **Windows 8.1 SDK** en la lista de componentes a instalar.
 
+### Error: No CMAKE_C_COMPILER could be found
+Este error indica que CMake no puede encontrar el compilador de C++ de Visual Studio.
+- **Solución**:
+    1. Asegúrate de que instalaste el componente **Common Tools for Visual C++ 2015** al instalar Visual Studio. Si no, agrégalo desde el instalador.
+    2. Asegúrate de ejecutar el comando de CMake desde un terminal limpio o, mejor aún, desde el **Developer Command Prompt for VS2015**.
+    3. Si el error persiste, intenta instalar también el **Windows 10 SDK** (cualquier versión), ya que a veces CMake lo requiere para inicializar el entorno.
+
 ## Configuración del Proyecto
 
 ### Visual Studio

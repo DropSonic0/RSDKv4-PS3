@@ -6,7 +6,11 @@ Esta guía detalla los pasos necesarios para portar y compilar este motor en una
 
 1.  **Sony PS3 SDK 4.75**: Ya lo tienes instalado.
 2.  **Visual Studio 2013 o 2015**: El instalador del SDK 4.75 requiere una de estas versiones (2012, 2013 o 2015). Se recomienda **Visual Studio 2015 Professional** por su mejor soporte de estándares modernos de C++.
-3. **Cygwin**: Requerido por el SDK de PS3 para las herramientas de compilación basadas en GCC/SN. Asegúrate de incluir los paquetes de `make` y `perl`.
+3. **Cygwin**: Requerido por el SDK de PS3 para las herramientas de compilación basadas en GCC/SN.
+    - Al instalar, busca y selecciona:
+        - `make` (en la categoría **Devel**).
+        - `perl` (en la categoría **Perl** o **Interpreters**).
+    - **Nota**: Solo selecciona los binarios, no necesitas los paquetes que dicen "-src" o "-debuginfo" a menos que sepas lo que haces.
 4. **SN Systems / ProDG**: Estas herramientas suelen venir con el SDK y son las que permiten la depuración y comunicación con la consola (Target Manager).
 5. **Python 2.7**: Muchos scripts de automatización del SDK oficial todavía dependen de Python 2.x.
 

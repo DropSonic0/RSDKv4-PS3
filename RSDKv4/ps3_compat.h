@@ -9,7 +9,6 @@
 #include <string.h>
 #include <ctype.h>
 #include <stddef.h>
-#include <malloc.h>
 
 #ifndef BYTE_DEFINED
 #define BYTE_DEFINED

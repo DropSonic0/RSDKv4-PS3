@@ -202,7 +202,7 @@ long tellVorbis(void *ptr)
 }
 int closeVorbis(void *ptr) { return 1; }
 
-#if !RETRO_USE_ORIGINAL_CODE
+#if !RETRO_USE_ORIGINAL_CODE && RETRO_PLATFORM != RETRO_PS3
 void ProcessMusicStream(Sint32 *stream, size_t bytes_wanted)
 {
     if (!streamFilePtr || !streamInfoPtr)
@@ -318,6 +318,7 @@ void ProcessMusicStream(Sint32 *stream, size_t bytes_wanted)
     }
 }
 
+#if RETRO_PLATFORM != RETRO_PS3
 void ProcessAudioPlayback(void *userdata, Uint8 *stream, int len)
 {
     (void)userdata; // Unused
@@ -395,6 +396,7 @@ void ProcessAudioPlayback(void *userdata, Uint8 *stream, int len)
         samples_remaining -= samples_to_do;
     }
 }
+#endif
 
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2
 void ProcessAudioMixing(Sint32 *dst, const Sint16 *src, int len, int volume, sbyte pan)
@@ -543,8 +545,8 @@ void LoadMusic(void *userdata)
             if (musicStartPos) {
                 uint oldPos = (uint)ov_pcm_tell(&streamInfo[oldStreamID].vorbisFile);
 
-                float newPos  = oldPos * ((float)musicRatio * 0.0001); // 8,000 == 0.8, 10,000 == 1.0 (ratio / 10,000)
-                musicStartPos = fmod(newPos, samples);
+                float newPos  = oldPos * ((float)musicRatio * 0.0001f); // 8,000 == 0.8, 10,000 == 1.0 (ratio / 10,000)
+                musicStartPos = (int)fmod(newPos, (float)samples);
 
                 ov_pcm_seek(&strmInfo->vorbisFile, musicStartPos);
             }

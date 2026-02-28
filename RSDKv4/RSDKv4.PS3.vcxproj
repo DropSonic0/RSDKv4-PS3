@@ -42,8 +42,8 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>PSGL;PSGLU;PSGLFX;PSGLcgc;gcm_cmd;gcm_sys_stub;vorbisfile;vorbis;ogg;sysmodule_stub;resc_stub;sysutil_stub;io_stub;audio_stub;pad_stub;dbgfont_stub;video_out_stub;m;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SCE_PS3_SDK)/target/ppu/lib;$(SCE_PS3_SDK)/target/ppu/lib/PSGL/RSX/debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libPSGL.a;libPSGLU.a;libPSGLFX.a;libPSGLcgc.a;libgcm_cmd.a;libgcm_sys_stub.a;libvorbisfile.a;libvorbis.a;libogg.a;libsysmodule_stub.a;libresc_stub.a;libsysutil_stub.a;libio_stub.a;libaudio_stub.a;libpad_stub.a;libdbgfont_stub.a;libvideoout_stub.a;libm.a;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SCE_PS3_SDK)\target\ppu\lib;$(SCE_PS3_SDK)\target\ppu\lib\PSGL\RSX\debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|PS3'">
@@ -54,8 +54,8 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>false</GenerateDebugInformation>
-      <AdditionalDependencies>PSGL;PSGLU;PSGLFX;PSGLcgc;gcm_cmd;gcm_sys_stub;vorbisfile;vorbis;ogg;sysmodule_stub;resc_stub;sysutil_stub;io_stub;audio_stub;pad_stub;dbgfont_stub;video_out_stub;m;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SCE_PS3_SDK)/target/ppu/lib;$(SCE_PS3_SDK)/target/ppu/lib/PSGL/RSX/opt;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libPSGL.a;libPSGLU.a;libPSGLFX.a;libPSGLcgc.a;libgcm_cmd.a;libgcm_sys_stub.a;libvorbisfile.a;libvorbis.a;libogg.a;libsysmodule_stub.a;libresc_stub.a;libsysutil_stub.a;libio_stub.a;libaudio_stub.a;libpad_stub.a;libdbgfont_stub.a;libvideoout_stub.a;libm.a;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SCE_PS3_SDK)\target\ppu\lib;$(SCE_PS3_SDK)\target\ppu\lib\PSGL\RSX\opt;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

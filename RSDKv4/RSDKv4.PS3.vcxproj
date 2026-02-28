@@ -43,7 +43,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>libPSGL.a;libPSGLU.a;libPSGLFX.a;libPSGLcgc.a;libgcm_cmd.a;libgcm_sys_stub.a;libvorbisfile.a;libvorbis.a;libogg.a;libsysmodule_stub.a;libresc_stub.a;libsysutil_stub.a;libio_stub.a;libaudio_stub.a;libpad_stub.a;libdbgfont_stub.a;libvideo_out_stub.a;libm.a;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SCE_PS3_SDK)/target/ppu/lib/PSGL/RSX/debug;$(SCE_PS3_SDK)/target/ppu/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\usr\local\cell\target\ppu\lib\PSGL\RSX\debug;C:\usr\local\cell\target\ppu\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|PS3'">
@@ -55,7 +55,7 @@
     <Link>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <AdditionalDependencies>libPSGL.a;libPSGLU.a;libPSGLFX.a;libPSGLcgc.a;libgcm_cmd.a;libgcm_sys_stub.a;libvorbisfile.a;libvorbis.a;libogg.a;libsysmodule_stub.a;libresc_stub.a;libsysutil_stub.a;libio_stub.a;libaudio_stub.a;libpad_stub.a;libdbgfont_stub.a;libvideo_out_stub.a;libm.a;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SCE_PS3_SDK)/target/ppu/lib/PSGL/RSX/opt;$(SCE_PS3_SDK)/target/ppu/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\usr\local\cell\target\ppu\lib\PSGL\RSX\opt;C:\usr\local\cell\target\ppu\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

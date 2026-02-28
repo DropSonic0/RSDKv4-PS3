@@ -101,7 +101,7 @@ if(NOT PLATFORM)
     endif()
 endif()
 
-include(platforms/${PLATFORM}.cmake)
+include("${CMAKE_CURRENT_SOURCE_DIR}/platforms/${PLATFORM}.cmake")
 
 set_target_properties(RetroEngine PROPERTIES OUTPUT_NAME ${RETRO_OUTPUT_NAME})
 

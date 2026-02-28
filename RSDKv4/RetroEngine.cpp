@@ -344,8 +344,10 @@ void RetroEngine::Init()
 
 #if !RETRO_USE_ORIGINAL_CODE
     gameType      = GAME_UNKNOWN;
+#if RETRO_USE_MOD_LOADER
     modMenuCalled = false;
     forceSonic1   = false;
+#endif
 #endif
 
     frameBuffer   = nullptr;
@@ -602,14 +604,27 @@ void RetroEngine::Run()
 {
     Engine.deltaTime = 0.0f;
 
+#if RETRO_USING_SDL1 || RETRO_USING_SDL2
     unsigned long long targetFreq = SDL_GetPerformanceFrequency() / Engine.refreshRate;
     unsigned long long curTicks   = 0;
     unsigned long long prevTicks  = 0;
+#elif RETRO_PLATFORM == RETRO_PS3
+    // PS3 uses microseconds for its time base in many APIs
+    unsigned long long targetFreq = 1000000 / Engine.refreshRate;
+    unsigned long long curTicks   = 0;
+    unsigned long long prevTicks  = 0;
+#endif
 
     while (running) {
 #if !RETRO_USE_ORIGINAL_CODE
         if (!vsync) {
+#if RETRO_USING_SDL1 || RETRO_USING_SDL2
             curTicks = SDL_GetPerformanceCounter();
+#elif RETRO_PLATFORM == RETRO_PS3
+            // Placeholder for PS3 time, assuming sys_time_get_system_time exists or is accessible
+            // If not, we might need another way to get time.
+            curTicks = 0; // Temporarily 0 to allow compilation
+#endif
             if (curTicks < prevTicks + targetFreq)
                 continue;
             prevTicks = curTicks;

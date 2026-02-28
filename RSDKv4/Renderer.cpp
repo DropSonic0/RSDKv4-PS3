@@ -526,7 +526,7 @@ void RenderScene()
         }
 
         if (state->useFilter && mixFiltersOnJekyll) {
-#if RETRO_USING_OPENGL
+#if RETRO_USING_OPENGL && RETRO_PLATFORM != RETRO_PS3
             glGetIntegerv(GL_FRAMEBUFFER_BINDING, &defaultFramebuffer);
             glBindFramebuffer(GL_FRAMEBUFFER, framebufferHiRes);
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, Engine.scalingMode ? GL_LINEAR : GL_NEAREST);

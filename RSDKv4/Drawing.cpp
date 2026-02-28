@@ -197,12 +197,25 @@ int InitRenderDevice()
 
 #if RETRO_USING_OPENGL
 
+#if RETRO_PLATFORM == RETRO_PS3
+    PSGLinitOptions initOpts;
+    initOpts.enable = PSGL_INIT_MAX_SPUS | PSGL_INIT_INITIALIZE_SPUS;
+    initOpts.maxSPUs = 1;
+    initOpts.initializeSPUs = GL_FALSE;
+    psglInit(&initOpts);
+
+    PSGLdevice *psgl_device = psglCreateDeviceExtended(1280, 720); // Default to 720p
+    PSGLcontext *psgl_context = psglCreateContext();
+    psglMakeCurrent(psgl_context, psgl_device);
+    psglResetCurrent();
+#elif RETRO_PLATFORM != RETRO_PS3
     // Init GL
     Engine.glContext = SDL_GL_CreateContext(Engine.window);
 
     SDL_GL_SetSwapInterval(Engine.vsync ? 1 : 0);
+#endif
 
-#if RETRO_PLATFORM != RETRO_ANDROID && RETRO_PLATFORM != RETRO_OSX
+#if RETRO_PLATFORM != RETRO_ANDROID && RETRO_PLATFORM != RETRO_OSX && RETRO_PLATFORM != RETRO_PS3
     GLenum err = glewInit();
     if (err != GLEW_OK && err != GLEW_ERROR_NO_GLX_DISPLAY) {
         PrintLog("glew init error:");
@@ -242,9 +255,9 @@ int InitRenderDevice()
     SetupDrawIndexList();
 
     for (int c = 0; c < 0x10000; ++c) {
-        int r               = (c & 0b1111100000000000) >> 8;
-        int g               = (c & 0b0000011111100000) >> 3;
-        int b               = (c & 0b0000000000011111) << 3;
+        int r               = (c & 0xF800) >> 8;
+        int g               = (c & 0x07E0) >> 3;
+        int b               = (c & 0x001F) << 3;
         gfxPalette16to32[c] = (0xFF << 24) | (b << 16) | (g << 8) | (r << 0);
     }
 
@@ -538,8 +551,10 @@ void ReleaseRenderDevice(bool refresh)
 #endif
 
 #if RETRO_USING_OPENGL
+#if RETRO_PLATFORM != RETRO_PS3
     if (Engine.glContext)
         SDL_GL_DeleteContext(Engine.glContext);
+#endif
 #endif
 
 #if RETRO_USING_SDL2
@@ -836,15 +851,19 @@ void SetupViewport()
 
     if (Engine.useHighResAssets) {
 #if RETRO_USING_OPENGL
+#if RETRO_PLATFORM != RETRO_PS3
         if (framebufferHiRes != -1)
             glDeleteFramebuffers(1, &framebufferHiRes);
+#endif
         if (renderbufferHiRes != -1)
             glDeleteTextures(1, &renderbufferHiRes);
         framebufferHiRes  = -1;
         renderbufferHiRes = -1;
 
+#if RETRO_PLATFORM != RETRO_PS3
         glGenFramebuffers(1, &framebufferHiRes);
         glBindFramebuffer(GL_FRAMEBUFFER, framebufferHiRes);
+#endif
         glGenTextures(1, &renderbufferHiRes);
         glBindTexture(GL_TEXTURE_2D, renderbufferHiRes);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, Engine.scalingMode ? GL_LINEAR : GL_NEAREST);
@@ -852,8 +871,10 @@ void SetupViewport()
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth << 1, texHeight << 1, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, 0);
+#if RETRO_PLATFORM != RETRO_PS3
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderbufferHiRes, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+#endif
         glBindTexture(GL_TEXTURE_2D, 0);
 #endif
 
@@ -882,11 +903,15 @@ void SetupViewport()
     }
     else {
 #if RETRO_USING_OPENGL
+#if RETRO_PLATFORM != RETRO_PS3
         if (framebufferHiRes != -1)
             glDeleteFramebuffers(1, &framebufferHiRes);
+#endif
         if (renderbufferHiRes != -1)
             glDeleteTextures(1, &renderbufferHiRes);
+#if RETRO_PLATFORM != RETRO_PS3
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+#endif
 
         framebufferHiRes  = -1;
         renderbufferHiRes = -1;

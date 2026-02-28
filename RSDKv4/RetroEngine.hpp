@@ -36,7 +36,10 @@
 // ================
 // STANDARD TYPES
 // ================
+#ifndef BYTE_DEFINED
+#define BYTE_DEFINED
 typedef unsigned char byte;
+#endif
 typedef signed char sbyte;
 typedef unsigned short ushort;
 typedef unsigned int uint;
@@ -53,12 +56,18 @@ typedef unsigned int uint;
 // Custom Platforms start here
 #define RETRO_UWP   (7)
 #define RETRO_LINUX (8)
+#define RETRO_SWITCH (9)
+#define RETRO_VITA   (10)
 
 // Platform types (Game manages platform-specific code such as HUD position using this rather than the above)
 #define RETRO_STANDARD (0)
 #define RETRO_MOBILE   (1)
 
-#if defined _WIN32
+#if defined(PS3) || defined(__PS3__) || defined(__CELLOS_LV2__)
+#include "ps3_compat.h"
+#define RETRO_PLATFORM   (RETRO_PS3)
+#define RETRO_DEVICETYPE (RETRO_STANDARD)
+#elif defined _WIN32
 
 #if defined WINAPI_FAMILY
 #if WINAPI_FAMILY != WINAPI_FAMILY_APP
@@ -197,12 +206,16 @@ typedef unsigned int uint;
 #define GL_FRAMEBUFFER         GL_FRAMEBUFFER_EXT
 #define GL_COLOR_ATTACHMENT0   GL_COLOR_ATTACHMENT0_EXT
 #define GL_FRAMEBUFFER_BINDING GL_FRAMEBUFFER_BINDING_EXT
+#elif RETRO_PLATFORM == RETRO_PS3
+// Handled in ps3_compat.h
 #else
 #include <GL/glew.h>
 #endif
 #endif
 
+#ifndef RETRO_USE_HAPTICS
 #define RETRO_USE_HAPTICS (1)
+#endif
 
 // NOTE: This is only used for rev00 stuff, it was removed in rev01 and later builds
 #if RETRO_PLATFORM <= RETRO_WP7
@@ -299,6 +312,10 @@ enum RetroGameType {
 #include <SDL.h>
 #endif
 #include <vorbis/vorbisfile.h>
+#elif RETRO_PLATFORM == RETRO_PS3
+#include "ogg/ogg.h"
+#include "vorbis/codec.h"
+#include "vorbis/vorbisfile.h"
 #elif RETRO_PLATFORM == RETRO_OSX
 #include <SDL2/SDL.h>
 #include <Vorbis/vorbisfile.h>
@@ -362,67 +379,67 @@ public:
     }
 
 #if !RETRO_USE_ORIGINAL_CODE
-    bool usingDataFile_Config = false;
+    bool usingDataFile_Config;
 #endif
-    bool usingDataFile = false;
-    bool usingBytecode = false;
+    bool usingDataFile;
+    bool usingBytecode;
 #if RETRO_REV03 && !RETRO_USE_ORIGINAL_CODE
-    bool usingOrigins = false;
+    bool usingOrigins;
 #endif
 
     char dataFile[RETRO_PACKFILE_COUNT][0x80];
 
-    bool initialised = false;
-    bool running     = false;
-    double deltaTime = 0;
+    bool initialised;
+    bool running;
+    double deltaTime;
 
-    int gameMode = ENGINE_MAINGAME;
-    int language = RETRO_EN;
+    int gameMode;
+    int language;
 #if RETRO_REV00
-    int message = 0;
+    int message;
 #endif
-    int gameDeviceType    = RETRO_STANDARD;
-    int globalBoxRegion   = REGION_JP;
-    bool nativeMenuFadeIn = false;
+    int gameDeviceType;
+    int globalBoxRegion;
+    bool nativeMenuFadeIn;
 
-    bool trialMode        = false;
-    bool onlineActive     = true;
-    bool useHighResAssets = false;
+    bool trialMode;
+    bool onlineActive;
+    bool useHighResAssets;
 #if RETRO_USE_HAPTICS
-    bool hapticsEnabled = true;
+    bool hapticsEnabled;
 #endif
 
-    int frameSkipSetting = 0;
-    int frameSkipTimer   = 0;
+    int frameSkipSetting;
+    int frameSkipTimer;
 
 #if !RETRO_USE_ORIGINAL_CODE
     // Ported from RSDKv5
-    int startList_Game  = -1;
-    int startStage_Game = -1;
+    int startList_Game;
+    int startStage_Game;
 
-    bool consoleEnabled  = false;
-    bool devMenu         = false;
-    int startList        = -1;
-    int startStage       = -1;
-    int startPlayer      = -1;
-    int startSave        = -1;
-    int gameSpeed        = 1;
-    int fastForwardSpeed = 8;
-    bool masterPaused    = false;
-    bool frameStep       = false;
-    int dimTimer         = 0;
-    int dimLimit         = 0;
-    float dimPercent     = 1.0;
-    float dimMax         = 1.0;
+    bool consoleEnabled;
+    bool devMenu;
+    int startList;
+    int startStage;
+    int startPlayer;
+    int startSave;
+    int gameSpeed;
+    int fastForwardSpeed;
+    bool masterPaused;
+    bool frameStep;
+    int dimTimer;
+    int dimLimit;
+    float dimPercent;
+    float dimMax;
 
     char startSceneFolder[0x10];
     char startSceneID[0x10];
 
-    bool showPaletteOverlay = false;
-    bool useHQModes         = true;
+    bool showPaletteOverlay;
+    bool useHQModes;
 
-    bool hasFocus  = true;
-    int focusState = 0;
+    bool hasFocus;
+    int focusState;
 #endif
 
     void Init();
@@ -441,56 +458,44 @@ public:
 
     char gameWindowText[0x40];
     char gameDescriptionText[0x100];
-#ifdef DECOMP_VERSION
-    const char *gameVersion = DECOMP_VERSION;
-#else
-    const char *gameVersion  = "1.3.3";
-#endif
-    const char *gamePlatform = nullptr;
+    const char *gameVersion;
+    const char *gamePlatform;
 
-    int gameTypeID       = 0;
-    const char *releaseType = "USE_STANDALONE";
+    int gameTypeID;
+    const char *releaseType;
 
-#if RETRO_RENDERTYPE == RETRO_SW_RENDER
-    const char *gameRenderType = "SW_RENDERING";
-#elif RETRO_RENDERTYPE == RETRO_HW_RENDER
-    const char *gameRenderType = "HW_RENDERING";
-#endif
+    const char *gameRenderType;
 
-#if RETRO_USE_HAPTICS
-    const char *gameHapticSetting = "USE_F_FEEDBACK"; // None is default, but people with controllers exist
-#else
-    const char *gameHapticSetting = "NO_F_FEEDBACK";
-#endif
+    const char *gameHapticSetting;
 
 #if !RETRO_USE_ORIGINAL_CODE
-    byte gameType = GAME_UNKNOWN;
+    byte gameType;
 #if RETRO_USE_MOD_LOADER
-    bool modMenuCalled = false;
-    bool forceSonic1   = false;
+    bool modMenuCalled;
+    bool forceSonic1;
 #endif
 #endif
 
 #if RETRO_SOFTWARE_RENDER
-    ushort *frameBuffer   = nullptr;
-    ushort *frameBuffer2x = nullptr;
+    ushort *frameBuffer;
+    ushort *frameBuffer2x;
 #endif
-    uint *texBuffer = nullptr;
+    uint *texBuffer;
 
 #if !RETRO_USE_ORIGINAL_CODE
-    bool isFullScreen = false;
+    bool isFullScreen;
 
-    bool startFullScreen  = false; // if should start as fullscreen
-    bool borderless       = false;
-    bool vsync            = false;
-    int scalingMode       = 0;
-    int windowScale       = 2;
-    int refreshRate       = 60; // user-picked screen update rate
-    int screenRefreshRate = 60; // hardware screen update rate
-    int targetRefreshRate = 60; // game logic update rate
+    bool startFullScreen; // if should start as fullscreen
+    bool borderless;
+    bool vsync;
+    int scalingMode;
+    int windowScale;
+    int refreshRate; // user-picked screen update rate
+    int screenRefreshRate; // hardware screen update rate
+    int targetRefreshRate; // game logic update rate
 
-    int renderFrameIndex = 0;
-    int skipFrameIndex   = 0;
+    int renderFrameIndex;
+    int skipFrameIndex;
 
     int windowXSize; // width of window/screen in the previous frame
     int windowYSize; // height of window/screen in the previous frame
@@ -498,12 +503,12 @@ public:
 
 #if !RETRO_USE_ORIGINAL_CODE
 #if RETRO_USING_SDL2
-    SDL_Window *window = nullptr;
+    SDL_Window *window;
 #if !RETRO_USING_OPENGL
-    SDL_Renderer *renderer = nullptr;
+    SDL_Renderer *renderer;
 #if RETRO_SOFTWARE_RENDER
-    SDL_Texture *screenBuffer   = nullptr;
-    SDL_Texture *screenBuffer2x = nullptr;
+    SDL_Texture *screenBuffer;
+    SDL_Texture *screenBuffer2x;
 #endif // RETRO_SOFTWARE_RENDERER
 #endif
 
@@ -515,10 +520,10 @@ public:
 #endif // RETRO_USING_SDL2
 
 #if RETRO_USING_SDL1
-    SDL_Surface *windowSurface = nullptr;
+    SDL_Surface *windowSurface;
 
-    SDL_Surface *screenBuffer   = nullptr;
-    SDL_Surface *screenBuffer2x = nullptr;
+    SDL_Surface *screenBuffer;
+    SDL_Surface *screenBuffer2x;
 
     SDL_Event sdlEvents;
 #endif // RETRO_USING_SDL1

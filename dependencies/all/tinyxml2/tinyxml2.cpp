@@ -24,9 +24,12 @@ distribution.
 #include "tinyxml2.h"
 
 #include <new>		// yes, this one new style header, is in the Android SDK.
-#if defined(ANDROID_NDK) || defined(__BORLANDC__) || defined(__QNXNTO__)
+#if defined(ANDROID_NDK) || defined(__BORLANDC__) || defined(__QNXNTO__) || defined(__PS3__) || defined(PS3)
 #   include <stddef.h>
 #   include <stdarg.h>
+#   include <stdio.h>
+#   include <stdlib.h>
+#   include <string.h>
 #else
 #   include <cstddef>
 #   include <cstdarg>

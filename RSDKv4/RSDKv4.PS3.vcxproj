@@ -42,8 +42,8 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>libpsgl.a;libpsglu.a;libgcm_cmd.a;libgcm_sys_stub.a;libvorbisfile.a;libvorbis.a;libogg.a;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SCE_PS3_SDK)/target/ppu/lib/PSGL/RSX/opt;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libPSGL.a;libPSGLU.a;libPSGLFX.a;libPSGLcgc.a;libgcm_cmd.a;libgcm_sys_stub.a;libvorbisfile.a;libvorbis.a;libogg.a;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\usr\local\cell\target\ppu\lib\PSGL\RSX\opt;$(SCE_PS3_SDK)/target/ppu/lib/PSGL/RSX/opt;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|PS3'">
@@ -54,8 +54,8 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>false</GenerateDebugInformation>
-      <AdditionalDependencies>libpsgl.a;libpsglu.a;libgcm_cmd.a;libgcm_sys_stub.a;libvorbisfile.a;libvorbis.a;libogg.a;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SCE_PS3_SDK)/target/ppu/lib/PSGL/RSX/opt;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libPSGL.a;libPSGLU.a;libPSGLFX.a;libPSGLcgc.a;libgcm_cmd.a;libgcm_sys_stub.a;libvorbisfile.a;libvorbis.a;libogg.a;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\usr\local\cell\target\ppu\lib\PSGL\RSX\opt;$(SCE_PS3_SDK)/target/ppu/lib/PSGL/RSX/opt;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

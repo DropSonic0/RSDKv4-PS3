@@ -129,7 +129,7 @@ inline void FreeMusInfo()
     streamInfo[currentStreamIndex].stream = NULL;
 #endif
 
-    psgl_ov_clear(&streamInfo[currentStreamIndex].vorbisFile);
+    ov_clear(&streamInfo[currentStreamIndex].vorbisFile);
 
 #if RETRO_USING_SDL2
     streamInfo[currentStreamIndex].stream = nullptr;
@@ -146,7 +146,7 @@ void ProcessAudioMixing(Sint32 *dst, const Sint16 *src, int len, int volume, sby
 #endif
 
 #if !RETRO_USE_ORIGINAL_CODE
-inline void FreeMusInfo() { psgl_ov_clear(&streamInfo[currentStreamIndex].vorbisFile); }
+inline void FreeMusInfo() { ov_clear(&streamInfo[currentStreamIndex].vorbisFile); }
 #endif
 #endif
 

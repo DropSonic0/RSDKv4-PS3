@@ -420,7 +420,7 @@ void ProcessAudioMixing(Sint32 *dst, const Sint16 *src, int len, int volume, sby
 
     while (len--) {
         Sint32 sample = *src++;
-        ADJUST_VOLUME(sample, volume);
+        sample = (sample * volume) / MAX_VOLUME;
 
         if (pan != 0) {
             if ((i % 2) != 0) {
@@ -437,6 +437,55 @@ void ProcessAudioMixing(Sint32 *dst, const Sint16 *src, int len, int volume, sby
     }
 }
 #endif
+#endif
+
+#if RETRO_PLATFORM == RETRO_PS3
+void ProcessMusicStream(Sint32 *stream, size_t bytes_wanted)
+{
+    // PS3 implementation stub
+}
+
+void ProcessAudioPlayback(void *userdata, Uint8 *stream, int len)
+{
+    // PS3 implementation stub
+}
+
+void ProcessAudioMixing(Sint32 *dst, const Sint16 *src, int len, int volume, sbyte pan)
+{
+    if (volume == 0)
+        return;
+
+    if (volume > MAX_VOLUME)
+        volume = MAX_VOLUME;
+
+    float panL = 1.0f;
+    float panR = 1.0f;
+    int i      = 0;
+
+    if (pan < 0) {
+        panR = 1.0f - (float)abs(pan / 100.0f);
+    }
+    else if (pan > 0) {
+        panL = 1.0f - (float)abs(pan / 100.0f);
+    }
+
+    while (len--) {
+        Sint32 sample = *src++;
+        sample = (sample * volume) / MAX_VOLUME;
+
+        if (pan != 0) {
+            if ((i % 2) != 0) {
+                sample = (Sint32)(sample * panR);
+            }
+            else {
+                sample = (Sint32)(sample * panL);
+            }
+        }
+
+        *dst++ += sample;
+        i++;
+    }
+}
 #endif
 
 void LoadMusic(void *userdata)

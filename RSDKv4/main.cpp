@@ -54,7 +54,9 @@ int main(int argc, char *argv[])
     parseArguments(argc, argv);
 #endif
 
+#if RETRO_USING_SDL1 || RETRO_USING_SDL2
     SDL_SetHint(SDL_HINT_WINRT_HANDLE_BACK_BUTTON, "1");
+#endif
     Engine.Init();
     Engine.Run();
 

@@ -613,6 +613,8 @@ void RetroEngine::Run()
     unsigned long long targetFreq = 1000000 / Engine.refreshRate;
     unsigned long long curTicks   = 0;
     unsigned long long prevTicks  = 0;
+    sys_time_sec_t sec;
+    sys_time_nsec_t nsec;
 #endif
 
     while (running) {
@@ -621,9 +623,8 @@ void RetroEngine::Run()
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2
             curTicks = SDL_GetPerformanceCounter();
 #elif RETRO_PLATFORM == RETRO_PS3
-            // Placeholder for PS3 time, assuming sys_time_get_system_time exists or is accessible
-            // If not, we might need another way to get time.
-            curTicks = 0; // Temporarily 0 to allow compilation
+            sys_time_get_system_time(&sec, &nsec);
+            curTicks = (unsigned long long)sec * 1000000ULL + (unsigned long long)nsec / 1000ULL;
 #endif
             if (curTicks < prevTicks + targetFreq)
                 continue;
@@ -668,8 +669,12 @@ void RetroEngine::Run()
                 FlipScreen();
 
 #if !RETRO_USE_ORIGINAL_CODE
-#if RETRO_USING_OPENGL && RETRO_USING_SDL2
+#if RETRO_USING_OPENGL
+#if RETRO_PLATFORM == RETRO_PS3
+                psglSwap();
+#elif RETRO_USING_SDL2
                 SDL_GL_SwapWindow(Engine.window);
+#endif
 #endif
                 frameStep = false;
             }

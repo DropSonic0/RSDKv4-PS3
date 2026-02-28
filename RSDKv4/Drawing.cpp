@@ -197,7 +197,18 @@ int InitRenderDevice()
 
 #if RETRO_USING_OPENGL
 
-#if RETRO_PLATFORM != RETRO_PS3
+#if RETRO_PLATFORM == RETRO_PS3
+    PSGLinitOptions initOpts;
+    initOpts.enable = PSGL_INIT_MAX_SPUS | PSGL_INIT_INITIALIZE_SPUS;
+    initOpts.maxSPUs = 1;
+    initOpts.initializeSPUs = GL_FALSE;
+    psglInit(&initOpts);
+
+    PSGLdevice *psgl_device = psglCreateDeviceExtended(1280, 720); // Default to 720p
+    PSGLcontext *psgl_context = psglCreateContext();
+    psglMakeCurrent(psgl_context, psgl_device);
+    psglResetCurrent();
+#elif RETRO_PLATFORM != RETRO_PS3
     // Init GL
     Engine.glContext = SDL_GL_CreateContext(Engine.window);
 

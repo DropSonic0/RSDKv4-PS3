@@ -207,8 +207,7 @@ typedef unsigned int uint;
 #define GL_COLOR_ATTACHMENT0   GL_COLOR_ATTACHMENT0_EXT
 #define GL_FRAMEBUFFER_BINDING GL_FRAMEBUFFER_BINDING_EXT
 #elif RETRO_PLATFORM == RETRO_PS3
-#include <PSGL/psgl.h>
-#include <PSGL/psglu.h>
+// Handled in ps3_compat.h
 #else
 #include <GL/glew.h>
 #endif

@@ -277,6 +277,9 @@ void controllerClose(int controllerID)
 
 void InitInputDevices()
 {
+#if RETRO_PLATFORM == RETRO_PS3
+    cellPadInit(7);
+#endif
 #if RETRO_USING_SDL2
     PrintLog("Initializing gamepads...");
 
@@ -313,7 +316,10 @@ void InitInputDevices()
 
 void ReleaseInputDevices()
 {
-    for (int i = 0; i < controllers.size(); i++) {
+#if RETRO_PLATFORM == RETRO_PS3
+    cellPadEnd();
+#endif
+    for (int i = 0; i < (int)controllers.size(); i++) {
 #if RETRO_USING_SDL2
         if (controllers[i].devicePtr)
             SDL_GameControllerClose(controllers[i].devicePtr);
@@ -326,6 +332,37 @@ void ReleaseInputDevices()
 
 void ProcessInput()
 {
+#if RETRO_PLATFORM == RETRO_PS3
+    CellPadData padData;
+    for (int i = 0; i < 7; i++) {
+        if (cellPadGetData(i, &padData) == CELL_PAD_OK) {
+            if (padData.len > 0) {
+                // Basic PS3 pad to RSDK mapping
+                inputDevice[INPUT_UP].hold      = (padData.button[CELL_PAD_BTN_OFFSET_DIGITAL1] & CELL_PAD_CTRL_UP);
+                inputDevice[INPUT_DOWN].hold    = (padData.button[CELL_PAD_BTN_OFFSET_DIGITAL1] & CELL_PAD_CTRL_DOWN);
+                inputDevice[INPUT_LEFT].hold    = (padData.button[CELL_PAD_BTN_OFFSET_DIGITAL1] & CELL_PAD_CTRL_LEFT);
+                inputDevice[INPUT_RIGHT].hold   = (padData.button[CELL_PAD_BTN_OFFSET_DIGITAL1] & CELL_PAD_CTRL_RIGHT);
+                inputDevice[INPUT_BUTTONA].hold = (padData.button[CELL_PAD_BTN_OFFSET_DIGITAL2] & CELL_PAD_CTRL_CROSS);
+                inputDevice[INPUT_BUTTONB].hold = (padData.button[CELL_PAD_BTN_OFFSET_DIGITAL2] & CELL_PAD_CTRL_CIRCLE);
+                inputDevice[INPUT_BUTTONC].hold = (padData.button[CELL_PAD_BTN_OFFSET_DIGITAL2] & CELL_PAD_CTRL_SQUARE);
+                inputDevice[INPUT_BUTTONX].hold = (padData.button[CELL_PAD_BTN_OFFSET_DIGITAL2] & CELL_PAD_CTRL_TRIANGLE);
+                inputDevice[INPUT_START].hold   = (padData.button[CELL_PAD_BTN_OFFSET_DIGITAL1] & CELL_PAD_CTRL_START);
+                inputDevice[INPUT_SELECT].hold  = (padData.button[CELL_PAD_BTN_OFFSET_DIGITAL1] & CELL_PAD_CTRL_SELECT);
+            }
+        }
+    }
+
+    for (int i = 0; i < INPUT_BUTTONCOUNT; i++) {
+        if (inputDevice[i].hold) {
+            if (!inputDevice[i].press) {
+                inputDevice[i].press = true;
+            }
+        }
+        else {
+            inputDevice[i].press = false;
+        }
+    }
+#endif
 #if RETRO_USING_SDL2
     int length           = 0;
     const byte *keyState = SDL_GetKeyboardState(&length);

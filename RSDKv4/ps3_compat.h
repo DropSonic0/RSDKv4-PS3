@@ -11,15 +11,11 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <math.h>
-#ifdef __cplusplus
-extern "C" {
-#endif
-#include <cell/sysmodule.h>
-#include <cell/resc.h>
-#include <cell/video_out.h>
-#ifdef __cplusplus
-}
-#endif
+
+#include <sys/sys_time.h>
+#include <sys/process.h>
+#include <sys/timer.h>
+#include <sys/return_code.h>
 
 
 #ifndef BYTE_DEFINED
@@ -76,6 +72,12 @@ static inline int strncasecmp_ps3(const char *s1, const char *s2, size_t n) {
 #endif
 
 #if defined(__PS3__) || defined(PS3) || defined(__CELLOS_LV2__)
+#include <PSGL/psgl.h>
+#include <PSGL/psglu.h>
+#include <cell/resc.h>
+#include <cell/video_out.h>
+#include <cell/gcm.h>
+
 #define glDeleteTextures psglDeleteTextures
 #define glGenTextures psglGenTextures
 #define glBindTexture psglBindTexture
@@ -101,6 +103,9 @@ static inline int strncasecmp_ps3(const char *s1, const char *s2, size_t n) {
 #define glColorPointer psglColorPointer
 #define glNormalPointer psglNormalPointer
 #define glDrawElements psglDrawElements
+#define glPushMatrix psglPushMatrix
+#define glPopMatrix psglPopMatrix
+#define glGetIntegerv psglGetIntegerv
 #endif
 
 // Some SDK versions might have these with a slightly different name or in different paths
@@ -125,23 +130,59 @@ static inline int strncasecmp_ps3(const char *s1, const char *s2, size_t n) {
 #define M_PI 3.14159265358979323846
 #endif
 
+#ifndef _OGG_CONFIG_TYPES_H
 #define _OGG_CONFIG_TYPES_H
+#endif
 
+#include <cell/pad.h>
+#include <cell/audio.h>
+#include <cell/dbgfont.h>
+#include <cell/sysmodule.h>
+#include <sysutil/sysutil_common.h>
+
+#ifndef OV_FALSE
 #define OV_FALSE      -1
+#endif
+#ifndef OV_EOF
 #define OV_EOF        -2
+#endif
+#ifndef OV_HOLE
 #define OV_HOLE       -3
+#endif
 
+#ifndef OV_EREAD
 #define OV_EREAD      -128
+#endif
+#ifndef OV_EFAULT
 #define OV_EFAULT     -129
+#endif
+#ifndef OV_EIMPL
 #define OV_EIMPL      -130
+#endif
+#ifndef OV_EINVAL
 #define OV_EINVAL     -131
+#endif
+#ifndef OV_ENOTVORBIS
 #define OV_ENOTVORBIS -132
+#endif
+#ifndef OV_EBADHEADER
 #define OV_EBADHEADER -133
+#endif
+#ifndef OV_EVERSION
 #define OV_EVERSION   -134
+#endif
+#ifndef OV_ENOTAUDIO
 #define OV_ENOTAUDIO  -135
+#endif
+#ifndef OV_EBADPACKET
 #define OV_EBADPACKET -136
+#endif
+#ifndef OV_EBADLINK
 #define OV_EBADLINK   -137
+#endif
+#ifndef OV_ENOSEEK
 #define OV_ENOSEEK    -138
+#endif
 
 #endif // PS3
 

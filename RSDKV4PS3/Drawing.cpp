@@ -221,25 +221,30 @@ int InitRenderDevice()
 
 #if RETRO_PLATFORM == RETRO_PS3
     PrintLog("PSGL: psglInit starting...");
-    PSGLinitOptions initOpts;
-    memset(&initOpts, 0, sizeof(PSGLinitOptions));
-    initOpts.enable = PSGL_INIT_MAX_SPUS | PSGL_INIT_INITIALIZE_SPUS;
-    initOpts.maxSPUs = 1;
-    initOpts.initializeSPUs = GL_FALSE;
-    psglInit(&initOpts);
+    // Using NULL for psglInit uses default options which is generally safest
+    psglInit(NULL);
     PrintLog("PSGL: psglInit Finished");
 
-    PrintLog("PSGL: psglCreateDeviceExtended(NULL)...");
-    PSGLdevice *psgl_device = psglCreateDeviceExtended(NULL);
-    PrintLog("PSGL: psglCreateDeviceExtended Finished, device = %p", psgl_device);
+    PrintLog("PSGL: psglCreateDeviceAuto(GL_ARGB_SCE, GL_DEPTH_COMPONENT24, GL_MULTISAMPLING_NONE_SCE)...");
+    PSGLdevice *psgl_device = psglCreateDeviceAuto(GL_ARGB_SCE, GL_DEPTH_COMPONENT24, GL_MULTISAMPLING_NONE_SCE);
+    if (!psgl_device) {
+        PrintLog("PSGL ERROR: psglCreateDeviceAuto failed!");
+        return 0;
+    }
+    PrintLog("PSGL: psglCreateDeviceAuto Finished, device = %p", psgl_device);
 
     PrintLog("PSGL: psglCreateContext()...");
     PSGLcontext *psgl_context = psglCreateContext();
     PrintLog("PSGL: psglCreateContext Finished, context = %p", psgl_context);
 
     PrintLog("PSGL: psglMakeCurrent(context, device)...");
-    psglMakeCurrent(psgl_context, psgl_device);
-    PrintLog("PSGL: psglMakeCurrent Finished");
+    if (psgl_device && psgl_context) {
+        psglMakeCurrent(psgl_context, psgl_device);
+        PrintLog("PSGL: psglMakeCurrent Finished");
+    } else {
+        PrintLog("PSGL ERROR: Cannot call psglMakeCurrent with NULL context or device!");
+        return 0;
+    }
     PrintLog("PSGL: Device: %p, Context: %p", psgl_device, psgl_context);
     PrintLog("PSGL: Init Finished");
 #elif RETRO_PLATFORM != RETRO_PS3

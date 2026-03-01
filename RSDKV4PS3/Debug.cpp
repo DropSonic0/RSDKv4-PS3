@@ -15,16 +15,16 @@ void PrintLog(const char *msg, ...)
         char logBuffer[0x100];
         va_list args;
         va_start(args, msg);
-        vsprintf(logBuffer, msg, args);
+        vsnprintf(logBuffer, sizeof(logBuffer), msg, args);
         va_end(args);
 
         if (endLine) {
             printf("%s\n", logBuffer);
-            sprintf(buffer, "%s\n", logBuffer);
+            snprintf(buffer, sizeof(buffer), "%s\n", logBuffer);
         }
         else {
             printf("%s", logBuffer);
-            sprintf(buffer, "%s", logBuffer);
+            snprintf(buffer, sizeof(buffer), "%s", logBuffer);
         }
 
         if (engineDebugMode) {

@@ -1287,8 +1287,9 @@ bool RetroEngine::LoadGameConfig(const char *filePath)
 
         // Read SFX
         PrintLog("LoadGameConfig: Reading SFX...");
-        byte globalSFXCount = 0;
-        FileRead(&globalSFXCount, 1);
+        byte sfxCount = 0;
+        FileRead(&sfxCount, 1);
+        globalSFXCount = sfxCount;
         for (int s = 0; s < globalSFXCount; ++s) { // SFX Names
             FileRead(&fileBuffer, 1);
             FileRead(&strBuffer, fileBuffer);

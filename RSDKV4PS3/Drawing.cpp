@@ -204,13 +204,18 @@ int InitRenderDevice()
     initOpts.maxSPUs = 1;
     initOpts.initializeSPUs = GL_FALSE;
     psglInit(&initOpts);
+    PrintLog("PSGL: psglInit Finished");
 
     PrintLog("PSGL: psglCreateDeviceExtended...");
     PSGLdevice *psgl_device = psglCreateDeviceExtended(NULL);
+    PrintLog("PSGL: psglCreateDeviceExtended Finished");
     PrintLog("PSGL: psglCreateContext...");
     PSGLcontext *psgl_context = psglCreateContext();
+    PrintLog("PSGL: psglCreateContext Finished");
     PrintLog("PSGL: psglMakeCurrent...");
     psglMakeCurrent(psgl_context, psgl_device);
+    PrintLog("PSGL: psglMakeCurrent Finished");
+    PrintLog("PSGL: Device: %p, Context: %p", psgl_device, psgl_context);
     PrintLog("PSGL: Init Finished");
 #elif RETRO_PLATFORM != RETRO_PS3
     // Init GL
@@ -230,6 +235,7 @@ int InitRenderDevice()
 
     displaySettings.unknown2 = 0;
 
+    PrintLog("GL: Setting up states...");
     glClearColor(0.0, 0.0, 0.0, 1.0);
 
     glDisable(GL_LIGHTING);
@@ -242,6 +248,7 @@ int InitRenderDevice()
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
+    PrintLog("GL: Matrices initialized");
 
 #if RETRO_PLATFORM == RETRO_ANDROID
     Engine.windowScale     = 1;
@@ -253,9 +260,12 @@ int InitRenderDevice()
 #endif
 
     textureList[0].id = 0;
+    PrintLog("GL: SetupViewport...");
     SetupViewport();
 
+    PrintLog("GL: ResetRenderStates...");
     ResetRenderStates();
+    PrintLog("GL: SetupDrawIndexList...");
     SetupDrawIndexList();
 
     for (int c = 0; c < 0x10000; ++c) {
@@ -280,8 +290,10 @@ int InitRenderDevice()
 #endif
 
 #if RETRO_PLATFORM != RETRO_ANDROID
+    PrintLog("GL: SetScreenDimensions(%d, %d)...", SCREEN_XSIZE_CONFIG * Engine.windowScale, SCREEN_YSIZE * Engine.windowScale);
     SetScreenDimensions(SCREEN_XSIZE_CONFIG * Engine.windowScale, SCREEN_YSIZE * Engine.windowScale);
 #else
+    PrintLog("GL: SetScreenDimensions(%d, %d)...", SCREEN_XSIZE, SCREEN_YSIZE);
     SetScreenDimensions(SCREEN_XSIZE, SCREEN_YSIZE);
 #endif
 
@@ -297,6 +309,7 @@ int InitRenderDevice()
 #endif
 
     if (Engine.startFullScreen) {
+        PrintLog("GL: Setting FullScreen...");
         SetFullScreen(true);
     }
 
@@ -305,7 +318,9 @@ int InitRenderDevice()
     OBJECT_BORDER_X4 = SCREEN_XSIZE + 0x20;
     // OBJECT_BORDER_Y4 = SCREEN_YSIZE + 0x80;
 
+    PrintLog("InitInputDevices...");
     InitInputDevices();
+    PrintLog("InitRenderDevice Finished");
 
     return 1;
 }
@@ -756,6 +771,7 @@ void CopyFrameOverlay2x()
 
 void SetupViewport()
 {
+    PrintLog("SetupViewport starting...");
     double aspect    = displaySettings.width / (double)displaySettings.height;
     SCREEN_XSIZE_F   = SCREEN_YSIZE * aspect;
     SCREEN_CENTERX_F = aspect * SCREEN_CENTERY;
@@ -958,6 +974,7 @@ void SetupViewport()
 
     if (transfer && Engine.frameBuffer)
         TransferRetroBuffer();
+    PrintLog("SetupViewport finished");
 }
 
 void SetFullScreen(bool fs)

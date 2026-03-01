@@ -276,6 +276,7 @@ bool ProcessEvents()
 
 void RetroEngine::Init()
 {
+    PrintLog("RetroEngine::Init starting...");
     initialised      = false;
     running          = false;
     deltaTime        = 0;
@@ -354,9 +355,12 @@ void RetroEngine::Init()
     frameBuffer2x = nullptr;
     texBuffer     = nullptr;
 
+    PrintLog("CalculateTrigAngles...");
     CalculateTrigAngles();
+    PrintLog("GenerateBlendLookupTable...");
     GenerateBlendLookupTable();
 
+    PrintLog("CloseRSDKContainers...");
     CloseRSDKContainers(); // Clears files
 
     Engine.usingDataFile = false;
@@ -394,6 +398,7 @@ void RetroEngine::Init()
     StrCopy(dest, BASE_PATH);
     StrAdd(dest, Engine.dataFile[0]);
 #endif
+    PrintLog("Checking RSDK file: %s", dest);
     CheckRSDKFile(dest);
 #else
     CheckRSDKFile("Data.rsdk");

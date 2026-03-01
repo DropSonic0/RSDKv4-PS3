@@ -187,6 +187,7 @@ bool WriteSaveRAMData()
 
 void InitUserdata()
 {
+    PrintLog("InitUserdata starting...");
     // userdata files are loaded from this directory
     sprintf(gamePath, "%s", BASE_PATH);
 #if RETRO_USE_MOD_LOADER
@@ -641,11 +642,14 @@ void InitUserdata()
     file = fOpen(buffer, "rb");
     if (file) {
         fClose(file);
+        PrintLog("Reading Userdata...");
         ReadUserdata();
     }
     else {
+        PrintLog("Writing default Userdata...");
         WriteUserdata();
     }
+    PrintLog("InitUserdata finished");
 }
 
 void WriteSettings()

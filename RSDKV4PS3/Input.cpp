@@ -277,8 +277,11 @@ void controllerClose(int controllerID)
 
 void InitInputDevices()
 {
+    PrintLog("InitInputDevices starting...");
 #if RETRO_PLATFORM == RETRO_PS3
+    PrintLog("PS3: cellPadInit...");
     cellPadInit(7);
+    PrintLog("PS3: cellPadInit Finished");
 #endif
 #if RETRO_USING_SDL2
     PrintLog("Initializing gamepads...");
@@ -312,6 +315,7 @@ void InitInputDevices()
     if (gamepadCount > 0)
         SDL_GameControllerEventState(SDL_ENABLE);
 #endif
+    PrintLog("InitInputDevices finished");
 }
 
 void ReleaseInputDevices()

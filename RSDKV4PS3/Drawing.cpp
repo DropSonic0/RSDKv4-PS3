@@ -52,31 +52,9 @@ bool bilinearScaling = false;
 
 int InitRenderDevice()
 {
-    PrintLog("InitRenderDevice: Starting...");
     char gameTitle[0x40];
 
-#if RETRO_USING_OPENGL
-    PrintLog("InitRenderDevice: RETRO_USING_OPENGL is defined");
-#else
-    PrintLog("InitRenderDevice: RETRO_USING_OPENGL is NOT defined");
-#endif
-
-#if RETRO_SOFTWARE_RENDER
-    PrintLog("InitRenderDevice: RETRO_SOFTWARE_RENDER is defined");
-#else
-    PrintLog("InitRenderDevice: RETRO_SOFTWARE_RENDER is NOT defined");
-#endif
-
-#if RETRO_PLATFORM == RETRO_PS3
-    PrintLog("InitRenderDevice: RETRO_PLATFORM is RETRO_PS3");
-#elif RETRO_PLATFORM == RETRO_WIN
-    PrintLog("InitRenderDevice: RETRO_PLATFORM is RETRO_WIN");
-#else
-    PrintLog("InitRenderDevice: RETRO_PLATFORM is %d", RETRO_PLATFORM);
-#endif
-
     sprintf(gameTitle, "%s%s", Engine.gameWindowText, Engine.usingDataFile_Config ? "" : " (Using Data Folder)");
-    PrintLog("InitRenderDevice: gameTitle = '%s'", gameTitle);
 
 #if !RETRO_USE_ORIGINAL_CODE
 #if RETRO_USING_SDL2
@@ -220,33 +198,23 @@ int InitRenderDevice()
 #if RETRO_USING_OPENGL
 
 #if RETRO_PLATFORM == RETRO_PS3
-    PrintLog("PSGL: psglInit starting...");
     // Using NULL for psglInit uses default options which is generally safest
     psglInit(NULL);
-    PrintLog("PSGL: psglInit Finished");
 
-    PrintLog("PSGL: psglCreateDeviceAuto(GL_ARGB_SCE, GL_DEPTH_COMPONENT24, GL_MULTISAMPLING_NONE_SCE)...");
     PSGLdevice *psgl_device = psglCreateDeviceAuto(GL_ARGB_SCE, GL_DEPTH_COMPONENT24, GL_MULTISAMPLING_NONE_SCE);
     if (!psgl_device) {
         PrintLog("PSGL ERROR: psglCreateDeviceAuto failed!");
         return 0;
     }
-    PrintLog("PSGL: psglCreateDeviceAuto Finished, device = %p", psgl_device);
 
-    PrintLog("PSGL: psglCreateContext()...");
     PSGLcontext *psgl_context = psglCreateContext();
-    PrintLog("PSGL: psglCreateContext Finished, context = %p", psgl_context);
 
-    PrintLog("PSGL: psglMakeCurrent(context, device)...");
     if (psgl_device && psgl_context) {
         psglMakeCurrent(psgl_context, psgl_device);
-        PrintLog("PSGL: psglMakeCurrent Finished");
     } else {
         PrintLog("PSGL ERROR: Cannot call psglMakeCurrent with NULL context or device!");
         return 0;
     }
-    PrintLog("PSGL: Device: %p, Context: %p", psgl_device, psgl_context);
-    PrintLog("PSGL: Init Finished");
 #elif RETRO_PLATFORM != RETRO_PS3
     // Init GL
     Engine.glContext = SDL_GL_CreateContext(Engine.window);
@@ -265,29 +233,18 @@ int InitRenderDevice()
 
     displaySettings.unknown2 = 0;
 
-    PrintLog("GL: Setting up states...");
-    PrintLog("GL: glClearColor...");
     glClearColor(0.0, 0.0, 0.0, 1.0);
 
-    PrintLog("GL: glDisable(GL_LIGHTING)...");
     glDisable(GL_LIGHTING);
-    PrintLog("GL: glEnable(GL_TEXTURE_2D)...");
     glEnable(GL_TEXTURE_2D);
-    PrintLog("GL: glDisable(GL_DEPTH_TEST)...");
     glDisable(GL_DEPTH_TEST);
-    PrintLog("GL: glDisable(GL_DITHER)...");
     glDisable(GL_DITHER);
-    PrintLog("GL: glBlendFunc...");
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    PrintLog("GL: glDisable(GL_BLEND)...");
     glDisable(GL_BLEND);
-    PrintLog("GL: glEnable(GL_CULL_FACE)...");
     glEnable(GL_CULL_FACE);
 
-    PrintLog("GL: glMatrixMode(GL_PROJECTION)...");
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    PrintLog("GL: Matrices initialized");
 
 #if RETRO_PLATFORM == RETRO_ANDROID
     Engine.windowScale     = 1;
@@ -299,12 +256,9 @@ int InitRenderDevice()
 #endif
 
     textureList[0].id = 0;
-    PrintLog("GL: SetupViewport...");
     SetupViewport();
 
-    PrintLog("GL: ResetRenderStates...");
     ResetRenderStates();
-    PrintLog("GL: SetupDrawIndexList...");
     SetupDrawIndexList();
 
     for (int c = 0; c < 0x10000; ++c) {
@@ -329,10 +283,8 @@ int InitRenderDevice()
 #endif
 
 #if RETRO_PLATFORM != RETRO_ANDROID
-    PrintLog("GL: SetScreenDimensions(%d, %d)...", SCREEN_XSIZE_CONFIG * Engine.windowScale, SCREEN_YSIZE * Engine.windowScale);
     SetScreenDimensions(SCREEN_XSIZE_CONFIG * Engine.windowScale, SCREEN_YSIZE * Engine.windowScale);
 #else
-    PrintLog("GL: SetScreenDimensions(%d, %d)...", SCREEN_XSIZE, SCREEN_YSIZE);
     SetScreenDimensions(SCREEN_XSIZE, SCREEN_YSIZE);
 #endif
 
@@ -348,7 +300,6 @@ int InitRenderDevice()
 #endif
 
     if (Engine.startFullScreen) {
-        PrintLog("GL: Setting FullScreen...");
         SetFullScreen(true);
     }
 
@@ -357,9 +308,7 @@ int InitRenderDevice()
     OBJECT_BORDER_X4 = SCREEN_XSIZE + 0x20;
     // OBJECT_BORDER_Y4 = SCREEN_YSIZE + 0x80;
 
-    PrintLog("InitInputDevices...");
     InitInputDevices();
-    PrintLog("InitRenderDevice Finished");
 
     return 1;
 }
@@ -810,7 +759,6 @@ void CopyFrameOverlay2x()
 
 void SetupViewport()
 {
-    PrintLog("SetupViewport starting...");
     double aspect    = displaySettings.width / (double)displaySettings.height;
     SCREEN_XSIZE_F   = SCREEN_YSIZE * aspect;
     SCREEN_CENTERX_F = aspect * SCREEN_CENTERY;
@@ -1013,7 +961,6 @@ void SetupViewport()
 
     if (transfer && Engine.frameBuffer)
         TransferRetroBuffer();
-    PrintLog("SetupViewport finished");
 }
 
 void SetFullScreen(bool fs)

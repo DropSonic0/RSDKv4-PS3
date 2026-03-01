@@ -3074,7 +3074,6 @@ void ParseScriptFile(char *scriptName, int scriptID)
 
 void LoadBytecode(int stageListID, int scriptID)
 {
-    PrintLog("LoadBytecode: stageListID=%d, scriptID=%d", stageListID, scriptID);
     char scriptPath[0x40];
     switch (stageListID) {
         case STAGELIST_PRESENTATION:
@@ -3279,7 +3278,6 @@ void LoadBytecode(int stageListID, int scriptID)
         }
 
         CloseFile();
-        PrintLog("LoadBytecode: Finished loading bytecode from '%s'", scriptPath);
     }
     else {
         PrintLog("LoadBytecode: Failed to load bytecode from '%s'", scriptPath);

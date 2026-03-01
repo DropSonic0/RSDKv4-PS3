@@ -50,7 +50,6 @@ SDL_AudioSpec audioDeviceFormat;
 
 int InitAudioPlayback()
 {
-    PrintLog("InitAudioPlayback...");
     StopAllSfx(); //"init"
 
 #if !RETRO_USE_ORIGINAL_CODE
@@ -86,16 +85,13 @@ int InitAudioPlayback()
 #endif
 #endif
 
-    PrintLog("Loading Global SFX...");
     LoadGlobalSfx();
 
-    PrintLog("InitAudioPlayback Finished");
     return true;
 }
 
 void LoadGlobalSfx()
 {
-    PrintLog("LoadGlobalSfx starting...");
     FileInfo info;
     FileInfo infoStore;
     char strBuffer[0x100];
@@ -161,7 +157,6 @@ void LoadGlobalSfx()
         }
 
         CloseFile();
-        PrintLog("LoadGlobalSfx: Finished loading SFX (count: %d)", globalSFXCount);
 
 #if RETRO_USE_MOD_LOADER
         Engine.LoadXMLSoundFX();

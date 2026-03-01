@@ -81,7 +81,6 @@ bool CheckRSDKFile(const char *filePath)
             Engine.usingBytecode = true;
             CloseFile();
         }
-        PrintLog("loaded datapack '%s'", filePathBuffer);
 
         rsdkContainer.packCount++;
         return true;
@@ -97,7 +96,6 @@ bool CheckRSDKFile(const char *filePath)
             Engine.usingBytecode = true;
             CloseFile();
         }
-        PrintLog("Couldn't load datapack '%s'", filePathBuffer);
         return false;
     }
 }
@@ -242,7 +240,6 @@ bool LoadFile(const char *filePath, FileInfo *fileInfo)
             fileInfo->useEncryption     = useEncryption;
             fileInfo->packID            = packID;
             fileInfo->usingDataPack     = true;
-            PrintLog("Loaded Data File '%s'", filePath);
 
             Engine.usingDataFile = true;
 
@@ -307,7 +304,6 @@ bool LoadFile(const char *filePath, FileInfo *fileInfo)
                 fileInfo->useEncryption     = useEncryption;
                 fileInfo->packID            = packID;
                 fileInfo->usingDataPack     = true;
-                PrintLog("Loaded Data File '%s'", filePath);
 
                 return true;
             }
@@ -316,7 +312,6 @@ bool LoadFile(const char *filePath, FileInfo *fileInfo)
             }
         }
 #endif
-        PrintLog("Couldn't load file '%s'", filePath);
         return false;
     }
     else {
@@ -345,7 +340,6 @@ bool LoadFile(const char *filePath, FileInfo *fileInfo)
         Engine.usingDataFile = false;
 #endif
 
-        PrintLog("Loaded File '%s'", filePath);
         return true;
     }
 }

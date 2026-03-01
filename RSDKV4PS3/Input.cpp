@@ -277,15 +277,10 @@ void controllerClose(int controllerID)
 
 void InitInputDevices()
 {
-    PrintLog("InitInputDevices starting...");
 #if RETRO_PLATFORM == RETRO_PS3
-    PrintLog("PS3: cellPadInit...");
     cellPadInit(7);
-    PrintLog("PS3: cellPadInit Finished");
 #endif
 #if RETRO_USING_SDL2
-    PrintLog("Initializing gamepads...");
-
     // fix for issue #334 on github, not sure what's going wrong, but it seems to not be initializing the gamepad api maybe?
     SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER);
 
@@ -297,8 +292,6 @@ void InitInputDevices()
     for (int i = 0; i < joyStickCount; i++)
         if (SDL_IsGameController(i))
             gamepadCount++;
-
-    PrintLog("Found %d gamepads!", gamepadCount);
     for (int i = 0; i < gamepadCount; i++) {
         SDL_GameController *gamepad = SDL_GameControllerOpen(i);
         InputDevice device;
@@ -315,7 +308,6 @@ void InitInputDevices()
     if (gamepadCount > 0)
         SDL_GameControllerEventState(SDL_ENABLE);
 #endif
-    PrintLog("InitInputDevices finished");
 }
 
 void ReleaseInputDevices()

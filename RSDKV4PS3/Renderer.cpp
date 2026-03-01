@@ -237,7 +237,6 @@ void MatrixInvertF(MatrixF *dstMatrix, MatrixF *matrix)
 // Render States
 void ResetRenderStates()
 {
-    PrintLog("ResetRenderStates starting...");
     currentRenderState.renderMatrix = NULL;
     currentRenderState.vertPtr      = drawVertexList;
     currentRenderState.indexCount   = 0;
@@ -254,7 +253,6 @@ void ResetRenderStates()
     vertexR                         = 0xFF;
     vertexG                         = 0xFF;
     vertexB                         = 0xFF;
-    PrintLog("ResetRenderStates finished");
 }
 void SetRenderBlendMode(byte mode)
 {
@@ -304,7 +302,6 @@ void SetPerspectiveMatrix(float w, float h, float near, float far)
 }
 void SetupDrawIndexList()
 {
-    PrintLog("SetupDrawIndexList starting...");
     int index = 0;
     for (int i = 0; i < DRAWINDEX_COUNT;) {
         drawIndexList[i + 2] = index + 0;
@@ -316,7 +313,6 @@ void SetupDrawIndexList()
         index += 4;
         i += 6;
     }
-    PrintLog("SetupDrawIndexList finished");
 }
 void SetRenderMatrix(MatrixF *matrix) { currentRenderState.renderMatrix = matrix; }
 void NewRenderState()

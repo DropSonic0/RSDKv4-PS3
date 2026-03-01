@@ -276,7 +276,6 @@ bool ProcessEvents()
 
 void RetroEngine::Init()
 {
-    PrintLog("RetroEngine::Init starting...");
     initialised      = false;
     running          = false;
     deltaTime        = 0;
@@ -355,12 +354,9 @@ void RetroEngine::Init()
     frameBuffer2x = nullptr;
     texBuffer     = nullptr;
 
-    PrintLog("CalculateTrigAngles...");
     CalculateTrigAngles();
-    PrintLog("GenerateBlendLookupTable...");
     GenerateBlendLookupTable();
 
-    PrintLog("CloseRSDKContainers...");
     CloseRSDKContainers(); // Clears files
 
     Engine.usingDataFile = false;
@@ -398,7 +394,6 @@ void RetroEngine::Init()
     StrCopy(dest, BASE_PATH);
     StrAdd(dest, Engine.dataFile[0]);
 #endif
-    PrintLog("Checking RSDK file: %s", dest);
     CheckRSDKFile(dest);
 #else
     CheckRSDKFile("Data.rsdk");
@@ -421,29 +416,13 @@ void RetroEngine::Init()
 #endif
     SaveGame *saveGame = (SaveGame *)saveRAM;
 
-    PrintLog("Loading Game Config...");
     if (LoadGameConfig("Data/Game/GameConfig.bin")) {
-        PrintLog("Init Render Device starting...");
-#if RETRO_USING_OPENGL
-        PrintLog("Macro: RETRO_USING_OPENGL = 1");
-#else
-        PrintLog("Macro: RETRO_USING_OPENGL = 0");
-#endif
-#if RETRO_SOFTWARE_RENDER
-        PrintLog("Macro: RETRO_SOFTWARE_RENDER = 1");
-#else
-        PrintLog("Macro: RETRO_SOFTWARE_RENDER = 0");
-#endif
         if (InitRenderDevice()) {
-            PrintLog("Init Audio Playback...");
             if (InitAudioPlayback()) {
-                PrintLog("Init First Stage...");
                 InitFirstStage();
-                PrintLog("Clear Script Data...");
                 ClearScriptData();
                 initialised = true;
                 running     = true;
-                PrintLog("Engine Initialized Successfully");
 
 #if !RETRO_USE_ORIGINAL_CODE
                 if ((startList_Game != 0xFF && startList_Game) || (startStage_Game != 0xFF && startStage_Game) || startPlayer != 0xFF) {
@@ -1233,7 +1212,6 @@ bool RetroEngine::LoadGameConfig(const char *filePath)
 
     bool loaded = LoadFile(filePath, &info);
     if (loaded) {
-        PrintLog("LoadGameConfig: Reading Window Text...");
         FileRead(&fileBuffer, 1);
         FileRead(gameWindowText, fileBuffer);
         gameWindowText[fileBuffer] = 0;
@@ -1249,7 +1227,6 @@ bool RetroEngine::LoadGameConfig(const char *filePath)
         }
 
         // Read Obect Names
-        PrintLog("LoadGameConfig: Reading Objects...");
         byte objectCount = 0;
         FileRead(&objectCount, 1);
         for (byte o = 0; o < objectCount; ++o) {
@@ -1258,13 +1235,11 @@ bool RetroEngine::LoadGameConfig(const char *filePath)
         }
 
         // Read Script Paths
-        PrintLog("LoadGameConfig: Reading Scripts...");
         for (byte s = 0; s < objectCount; ++s) {
             FileRead(&fileBuffer, 1);
             FileRead(&strBuffer, fileBuffer);
         }
 
-        PrintLog("LoadGameConfig: Reading Variables...");
         byte varCount = 0;
         FileRead(&varCount, 1);
         globalVariablesCount = varCount;
@@ -1286,7 +1261,6 @@ bool RetroEngine::LoadGameConfig(const char *filePath)
         }
 
         // Read SFX
-        PrintLog("LoadGameConfig: Reading SFX...");
         byte sfxCount = 0;
         FileRead(&sfxCount, 1);
         globalSFXCount = sfxCount;
@@ -1302,7 +1276,6 @@ bool RetroEngine::LoadGameConfig(const char *filePath)
         }
 
         // Read Player Names
-        PrintLog("LoadGameConfig: Reading Players...");
         byte plrCount = 0;
         FileRead(&plrCount, 1);
 #if RETRO_USE_MOD_LOADER
@@ -1324,7 +1297,6 @@ bool RetroEngine::LoadGameConfig(const char *filePath)
 #endif
         }
 
-        PrintLog("LoadGameConfig: Reading Stages...");
         for (byte c = 0; c < 4; ++c) {
             // Special Stages are stored as cat 2 in file, but cat 3 in game :(
             int cat = c;
@@ -1359,7 +1331,6 @@ bool RetroEngine::LoadGameConfig(const char *filePath)
         }
 
         CloseFile();
-        PrintLog("LoadGameConfig: Finished Reading Config");
 
 #if RETRO_USE_MOD_LOADER
         LoadXMLWindowText();

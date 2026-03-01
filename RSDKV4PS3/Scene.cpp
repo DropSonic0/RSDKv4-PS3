@@ -87,6 +87,7 @@ int globalObjCount     = 0;
 
 void InitFirstStage(void)
 {
+    PrintLog("InitFirstStage...");
     xScrollOffset = 0;
     yScrollOffset = 0;
     StopMusic(true);
@@ -131,6 +132,7 @@ void ProcessStage(void)
 
     switch (stageMode) {
         case STAGEMODE_LOAD: // Startup
+            PrintLog("ProcessStage: STAGEMODE_LOAD");
             SetActivePalette(0, 0, 256);
             gameMenu[0].visibleRowOffset = 0;
             gameMenu[1].alignment        = 0;
@@ -607,6 +609,7 @@ void ProcessParallaxAutoScroll()
 
 void LoadStageFiles(void)
 {
+    PrintLog("LoadStageFiles starting...");
     FileInfo infoStore;
     FileInfo info;
     byte fileBuffer  = 0;
@@ -843,9 +846,13 @@ void LoadStageFiles(void)
         objectEntityList[i].visible            = true;
         objectEntityList[i].tileCollisions     = true;
     }
+    PrintLog("LoadStageFiles: Loading Act Layout...");
     LoadActLayout();
+    PrintLog("LoadStageFiles: Init 3D Floor Buffer...");
     Init3DFloorBuffer(0);
+    PrintLog("LoadStageFiles: Process Startup Objects...");
     ProcessStartupObjects();
+    PrintLog("LoadStageFiles: Finished");
 }
 int LoadActFile(const char *ext, int stageID, FileInfo *info)
 {

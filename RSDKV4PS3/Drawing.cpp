@@ -198,15 +198,20 @@ int InitRenderDevice()
 #if RETRO_USING_OPENGL
 
 #if RETRO_PLATFORM == RETRO_PS3
+    PrintLog("PSGL: psglInit...");
     PSGLinitOptions initOpts;
     initOpts.enable = PSGL_INIT_MAX_SPUS | PSGL_INIT_INITIALIZE_SPUS;
     initOpts.maxSPUs = 1;
     initOpts.initializeSPUs = GL_FALSE;
     psglInit(&initOpts);
 
+    PrintLog("PSGL: psglCreateDeviceExtended...");
     PSGLdevice *psgl_device = psglCreateDeviceExtended(NULL);
+    PrintLog("PSGL: psglCreateContext...");
     PSGLcontext *psgl_context = psglCreateContext();
+    PrintLog("PSGL: psglMakeCurrent...");
     psglMakeCurrent(psgl_context, psgl_device);
+    PrintLog("PSGL: Init Finished");
 #elif RETRO_PLATFORM != RETRO_PS3
     // Init GL
     Engine.glContext = SDL_GL_CreateContext(Engine.window);

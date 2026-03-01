@@ -52,9 +52,31 @@ bool bilinearScaling = false;
 
 int InitRenderDevice()
 {
+    PrintLog("InitRenderDevice: Starting...");
     char gameTitle[0x40];
 
+#if RETRO_USING_OPENGL
+    PrintLog("InitRenderDevice: RETRO_USING_OPENGL is defined");
+#else
+    PrintLog("InitRenderDevice: RETRO_USING_OPENGL is NOT defined");
+#endif
+
+#if RETRO_SOFTWARE_RENDER
+    PrintLog("InitRenderDevice: RETRO_SOFTWARE_RENDER is defined");
+#else
+    PrintLog("InitRenderDevice: RETRO_SOFTWARE_RENDER is NOT defined");
+#endif
+
+#if RETRO_PLATFORM == RETRO_PS3
+    PrintLog("InitRenderDevice: RETRO_PLATFORM is RETRO_PS3");
+#elif RETRO_PLATFORM == RETRO_WIN
+    PrintLog("InitRenderDevice: RETRO_PLATFORM is RETRO_WIN");
+#else
+    PrintLog("InitRenderDevice: RETRO_PLATFORM is %d", RETRO_PLATFORM);
+#endif
+
     sprintf(gameTitle, "%s%s", Engine.gameWindowText, Engine.usingDataFile_Config ? "" : " (Using Data Folder)");
+    PrintLog("InitRenderDevice: gameTitle = '%s'", gameTitle);
 
 #if !RETRO_USE_ORIGINAL_CODE
 #if RETRO_USING_SDL2
@@ -198,21 +220,24 @@ int InitRenderDevice()
 #if RETRO_USING_OPENGL
 
 #if RETRO_PLATFORM == RETRO_PS3
-    PrintLog("PSGL: psglInit...");
+    PrintLog("PSGL: psglInit starting...");
     PSGLinitOptions initOpts;
+    memset(&initOpts, 0, sizeof(PSGLinitOptions));
     initOpts.enable = PSGL_INIT_MAX_SPUS | PSGL_INIT_INITIALIZE_SPUS;
     initOpts.maxSPUs = 1;
     initOpts.initializeSPUs = GL_FALSE;
     psglInit(&initOpts);
     PrintLog("PSGL: psglInit Finished");
 
-    PrintLog("PSGL: psglCreateDeviceExtended...");
+    PrintLog("PSGL: psglCreateDeviceExtended(NULL)...");
     PSGLdevice *psgl_device = psglCreateDeviceExtended(NULL);
-    PrintLog("PSGL: psglCreateDeviceExtended Finished");
-    PrintLog("PSGL: psglCreateContext...");
+    PrintLog("PSGL: psglCreateDeviceExtended Finished, device = %p", psgl_device);
+
+    PrintLog("PSGL: psglCreateContext()...");
     PSGLcontext *psgl_context = psglCreateContext();
-    PrintLog("PSGL: psglCreateContext Finished");
-    PrintLog("PSGL: psglMakeCurrent...");
+    PrintLog("PSGL: psglCreateContext Finished, context = %p", psgl_context);
+
+    PrintLog("PSGL: psglMakeCurrent(context, device)...");
     psglMakeCurrent(psgl_context, psgl_device);
     PrintLog("PSGL: psglMakeCurrent Finished");
     PrintLog("PSGL: Device: %p, Context: %p", psgl_device, psgl_context);
@@ -236,16 +261,25 @@ int InitRenderDevice()
     displaySettings.unknown2 = 0;
 
     PrintLog("GL: Setting up states...");
+    PrintLog("GL: glClearColor...");
     glClearColor(0.0, 0.0, 0.0, 1.0);
 
+    PrintLog("GL: glDisable(GL_LIGHTING)...");
     glDisable(GL_LIGHTING);
+    PrintLog("GL: glEnable(GL_TEXTURE_2D)...");
     glEnable(GL_TEXTURE_2D);
+    PrintLog("GL: glDisable(GL_DEPTH_TEST)...");
     glDisable(GL_DEPTH_TEST);
+    PrintLog("GL: glDisable(GL_DITHER)...");
     glDisable(GL_DITHER);
+    PrintLog("GL: glBlendFunc...");
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    PrintLog("GL: glDisable(GL_BLEND)...");
     glDisable(GL_BLEND);
+    PrintLog("GL: glEnable(GL_CULL_FACE)...");
     glEnable(GL_CULL_FACE);
 
+    PrintLog("GL: glMatrixMode(GL_PROJECTION)...");
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     PrintLog("GL: Matrices initialized");

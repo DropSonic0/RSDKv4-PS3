@@ -423,7 +423,17 @@ void RetroEngine::Init()
 
     PrintLog("Loading Game Config...");
     if (LoadGameConfig("Data/Game/GameConfig.bin")) {
-        PrintLog("Init Render Device...");
+        PrintLog("Init Render Device starting...");
+#if RETRO_USING_OPENGL
+        PrintLog("Macro: RETRO_USING_OPENGL = 1");
+#else
+        PrintLog("Macro: RETRO_USING_OPENGL = 0");
+#endif
+#if RETRO_SOFTWARE_RENDER
+        PrintLog("Macro: RETRO_SOFTWARE_RENDER = 1");
+#else
+        PrintLog("Macro: RETRO_SOFTWARE_RENDER = 0");
+#endif
         if (InitRenderDevice()) {
             PrintLog("Init Audio Playback...");
             if (InitAudioPlayback()) {

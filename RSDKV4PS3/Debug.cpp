@@ -12,16 +12,19 @@ void PrintLog(const char *msg, ...)
         char buffer[0x100];
 
         // make the full string
+        char logBuffer[0x100];
         va_list args;
         va_start(args, msg);
-        vsprintf(buffer, msg, args);
+        vsprintf(logBuffer, msg, args);
+        va_end(args);
+
         if (endLine) {
-            printf("%s\n", buffer);
-            sprintf(buffer, "%s\n", buffer);
+            printf("%s\n", logBuffer);
+            sprintf(buffer, "%s\n", logBuffer);
         }
         else {
-            printf("%s", buffer);
-            sprintf(buffer, "%s", buffer);
+            printf("%s", logBuffer);
+            sprintf(buffer, "%s", logBuffer);
         }
 
         if (engineDebugMode) {

@@ -50,6 +50,14 @@ void parseArguments(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
+#if RETRO_PLATFORM == RETRO_PS3
+    FILE *log = fopen("/dev_hdd0/game/RSDKV4PS3/log.txt", "w");
+    if (log) {
+        fprintf(log, "RSDKv4 PS3 Started\n");
+        fclose(log);
+    }
+#endif
+
 #if !RETRO_USE_ORIGINAL_CODE
     parseArguments(argc, argv);
 #endif

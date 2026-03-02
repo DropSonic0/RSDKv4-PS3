@@ -211,6 +211,12 @@ int InitRenderDevice()
 
     if (psgl_device && psgl_context) {
         psglMakeCurrent(psgl_context, psgl_device);
+
+        GLuint w, h;
+        psglGetDeviceDimensions(psgl_device, &w, &h);
+        displaySettings.width   = w;
+        displaySettings.height  = h;
+        displaySettings.offsetX = 0;
     } else {
         PrintLog("PSGL ERROR: Cannot call psglMakeCurrent with NULL context or device!");
         return 0;
@@ -246,7 +252,9 @@ int InitRenderDevice()
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
 
-#if RETRO_PLATFORM == RETRO_ANDROID
+#if RETRO_PLATFORM == RETRO_PS3
+    // displaySettings.width & displaySettings.height already set
+#elif RETRO_PLATFORM == RETRO_ANDROID
     Engine.windowScale     = 1;
     displaySettings.width  = SCREEN_XSIZE;
     displaySettings.height = SCREEN_YSIZE;
@@ -287,7 +295,9 @@ int InitRenderDevice()
 #endif
 #endif
 
-#if RETRO_PLATFORM != RETRO_ANDROID
+#if RETRO_PLATFORM == RETRO_PS3
+    SetScreenDimensions(displaySettings.width, displaySettings.height);
+#elif RETRO_PLATFORM != RETRO_ANDROID
     SetScreenDimensions(SCREEN_XSIZE_CONFIG * Engine.windowScale, SCREEN_YSIZE * Engine.windowScale);
 #else
     SetScreenDimensions(SCREEN_XSIZE, SCREEN_YSIZE);
@@ -991,7 +1001,12 @@ void SetFullScreen(bool fs)
             h = mode.w;
         }
 
-#if RETRO_PLATFORM != RETRO_iOS && RETRO_PLATFORM != RETRO_ANDROID
+#if RETRO_PLATFORM == RETRO_PS3
+        displaySettings.width   = w;
+        displaySettings.height  = h;
+        displaySettings.offsetX = 0;
+        glViewport(0, 0, displaySettings.width, displaySettings.height);
+#elif RETRO_PLATFORM != RETRO_iOS && RETRO_PLATFORM != RETRO_ANDROID
         float aspect            = SCREEN_XSIZE_CONFIG / (float)SCREEN_YSIZE;
         displaySettings.height  = h;
         displaySettings.width   = aspect * displaySettings.height;

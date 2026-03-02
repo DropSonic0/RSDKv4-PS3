@@ -16,6 +16,8 @@
 #include <sys/process.h>
 #include <sys/timer.h>
 #include <sys/return_code.h>
+#include <sys/ppu_thread.h>
+#include <sys/synchronization.h>
 
 #include <cell/sysmodule.h>
 #include <cell/pad.h>

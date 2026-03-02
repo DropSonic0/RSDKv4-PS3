@@ -637,11 +637,8 @@ int LoadTexture(const char *filePath, int format)
                             int g = data[id++];
                             int b = data[id++];
                             int a = data[id++];
-#if RETRO_IS_BIG_ENDIAN
+
                             pixels[x + (y * width)] = ((r >> 4) << 12) | ((g >> 4) << 8) | ((b >> 4) << 4) | (a >> 4);
-#else
-                            pixels[x + (y * width)] = ((a >> 4) << 12) | ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4);
-#endif
                         }
                     }
 
@@ -664,11 +661,8 @@ int LoadTexture(const char *filePath, int format)
                             int g = data[id++];
                             int b = data[id++];
                             int a = data[id++];
-#if RETRO_IS_BIG_ENDIAN
+
                             pixels[x + (y * width)] = RGB888_TO_RGB5551(r, g, b) | (a ? 1 : 0);
-#else
-                            pixels[x + (y * width)] = ((a ? 1 : 0) << 15) | ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
-#endif
                         }
                     }
 
@@ -691,11 +685,8 @@ int LoadTexture(const char *filePath, int format)
                             int g = data[id++];
                             int b = data[id++];
                             int a = data[id++];
-#if RETRO_IS_BIG_ENDIAN
+
                             pixels[x + (y * width)] = (r << 24) | (g << 16) | (b << 8) | (a << 0);
-#else
-                            pixels[x + (y * width)] = (a << 24) | (b << 16) | (g << 8) | (r << 0);
-#endif
                         }
                     }
 
@@ -764,11 +755,8 @@ void ReplaceTexture(const char *filePath, int texID)
                             int g = data[id++];
                             int b = data[id++];
                             int a = data[id++];
-#if RETRO_IS_BIG_ENDIAN
+
                             pixels[x + (y * width)] = ((a >> 4) << 12) | ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4);
-#else
-                            pixels[x + (y * width)] = ((r >> 4) << 12) | ((g >> 4) << 8) | ((b >> 4) << 4) | (a >> 4);
-#endif
                         }
                     }
 
@@ -789,11 +777,8 @@ void ReplaceTexture(const char *filePath, int texID)
                             int g = data[id++];
                             int b = data[id++];
                             int a = data[id++];
-#if RETRO_IS_BIG_ENDIAN
-                            pixels[x + (y * width)] = ((a ? 1 : 0) << 15) | ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
-#else
+
                             pixels[x + (y * width)] = RGB888_TO_RGB5551(r, g, b) | (a ? 1 : 0);
-#endif
                         }
                     }
 #if RETRO_USING_OPENGL
@@ -813,11 +798,8 @@ void ReplaceTexture(const char *filePath, int texID)
                             int g = data[id++];
                             int b = data[id++];
                             int a = data[id++];
-#if RETRO_IS_BIG_ENDIAN
+
                             pixels[x + (y * width)] = (a << 24) | (r << 16) | (g << 8) | (b << 0);
-#else
-                            pixels[x + (y * width)] = (a << 24) | (b << 16) | (g << 8) | (r << 0);
-#endif
                         }
                     }
 

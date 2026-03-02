@@ -32,6 +32,9 @@ inline int GetLowerRate(int intendRate, int targetRate)
 bool ProcessEvents()
 {
 #if !RETRO_USE_ORIGINAL_CODE
+#if RETRO_PLATFORM == RETRO_PS3
+    cellSysutilCheckCallback();
+#endif
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2
     while (SDL_PollEvent(&Engine.sdlEvents)) {
         // Main Events

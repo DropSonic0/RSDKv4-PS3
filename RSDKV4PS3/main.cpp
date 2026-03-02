@@ -6,6 +6,20 @@
 #include "Windows.h"
 #endif
 
+#if RETRO_PLATFORM == RETRO_PS3
+void sysutil_callback(uint64_t status, uint64_t param, void *userdata)
+{
+    (void)param;
+    (void)userdata;
+    switch (status) {
+        case CELL_SYSUTIL_REQUEST_EXITGAME: Engine.running = false; break;
+        case CELL_SYSUTIL_DRAWING_BEGIN: break;
+        case CELL_SYSUTIL_DRAWING_END: break;
+        default: break;
+    }
+}
+#endif
+
 void parseArguments(int argc, char *argv[])
 {
     for (int a = 0; a < argc; ++a) {
@@ -52,6 +66,10 @@ int main(int argc, char *argv[])
 {
 #if !RETRO_USE_ORIGINAL_CODE
     parseArguments(argc, argv);
+#endif
+
+#if RETRO_PLATFORM == RETRO_PS3
+    cellSysutilRegisterCallback(0, sysutil_callback, NULL);
 #endif
 
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2

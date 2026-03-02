@@ -779,13 +779,24 @@ void SetupViewport()
     SCREEN_CENTERX_F = aspect * SCREEN_CENTERY;
 
 #if RETRO_USING_OPENGL
-    glScalef(320.0f / (SCREEN_YSIZE * aspect), 1.0, 1.0);
+    glViewport(0, 0, displaySettings.width, displaySettings.height);
 #endif
 
-    SetPerspectiveMatrix(90.0, 0.75, 1.0, 5000.0);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
 
+#if RETRO_PLATFORM == RETRO_PS3
+    // Use a projection that fits the RSDK widescreen (or 4:3) quad perfectly into the screen aspect
+    // RSDKv4 vertical range at Z=160 is +/- 120 units (total 240 height).
+    // tan(vFOV/2) = 120/160 = 0.75.
+    // We set horizontal FOV to match the screen aspect.
+    float hFOV = 2.0f * atanf(0.75f * aspect) * 180.0f / M_PI;
+    SetPerspectiveMatrix(hFOV, 1.0f / aspect, 1.0, 5000.0);
+#else
 #if RETRO_USING_OPENGL
-    glViewport(displaySettings.offsetX, 0, displaySettings.width, displaySettings.height);
+    glScalef(320.0f / (SCREEN_YSIZE * aspect), 1.0, 1.0);
+#endif
+    SetPerspectiveMatrix(90.0, 0.75, 1.0, 5000.0);
 #endif
     int displayWidth = aspect * SCREEN_YSIZE;
 #if !RETRO_USE_ORIGINAL_CODE

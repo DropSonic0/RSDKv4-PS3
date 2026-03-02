@@ -43,7 +43,7 @@ uint32_t audioPort;
 
 void ProcessAudioPlaybackPS3(uint64_t arg)
 {
-    float ps3_audio_buffer[AUDIO_SAMPLES * 2]; // Floating point buffer for cellAudio
+    static float ps3_audio_buffer[AUDIO_SAMPLES * 2] __attribute__((aligned(16)));
 
     while (audioThreadRunning) {
         Sint32 mix_buffer[AUDIO_SAMPLES * 2];
@@ -98,8 +98,14 @@ void ProcessAudioPlaybackPS3(uint64_t arg)
         }
 
         // Output to PS3 audio port
-        while (audioThreadRunning && cellAudioAddData(audioPort, ps3_audio_buffer, AUDIO_SAMPLES * 2, 1.0f) == CELL_AUDIO_ERROR_PORT_FULL) {
-            sys_timer_usleep(1000); // Wait 1ms if port is full
+        int ret = cellAudioAddData(audioPort, ps3_audio_buffer, AUDIO_SAMPLES, 1.0f);
+        if (ret == CELL_AUDIO_ERROR_PORT_FULL) {
+            while (audioThreadRunning && cellAudioAddData(audioPort, ps3_audio_buffer, AUDIO_SAMPLES, 1.0f) == CELL_AUDIO_ERROR_PORT_FULL) {
+                sys_timer_usleep(1000); // Wait 1ms if port is full
+            }
+        }
+        else if (ret != CELL_OK) {
+            sys_timer_usleep(10000); // Error occurred, sleep 10ms to prevent spin-hang
         }
     }
     sys_ppu_thread_exit(0);
@@ -125,36 +131,38 @@ int InitAudioPlayback()
 {
 #if !RETRO_USE_ORIGINAL_CODE
 #if RETRO_PLATFORM == RETRO_PS3
-    sys_lwmutex_attribute_t mutexAttr;
-    sys_lwmutex_attribute_initialize(mutexAttr);
-    sys_lwmutex_create(&audioMutex, &mutexAttr);
-    sys_lwmutex_create(&musicMutex, &mutexAttr);
+    if (!audioThreadRunning) {
+        sys_lwmutex_attribute_t mutexAttr;
+        sys_lwmutex_attribute_initialize(&mutexAttr);
+        sys_lwmutex_create(&audioMutex, &mutexAttr);
+        sys_lwmutex_create(&musicMutex, &mutexAttr);
 
-    if (cellSysmoduleLoadModule(CELL_SYSMODULE_AUDIO) < 0) {
-        PrintLog("PS3 ERROR: cellSysmoduleLoadModule(CELL_SYSMODULE_AUDIO) failed");
-        return false;
+        if (cellSysmoduleLoadModule(CELL_SYSMODULE_AUDIO) < 0) {
+            PrintLog("PS3 ERROR: cellSysmoduleLoadModule(CELL_SYSMODULE_AUDIO) failed");
+            return false;
+        }
+
+        CellAudioPortParam audioParam;
+        audioParam.nChannel = CELL_AUDIO_PORT_2CH;
+        audioParam.nBlock   = CELL_AUDIO_BLOCK_8;
+        audioParam.attr     = 0;
+
+        if (cellAudioInit() < 0) {
+            PrintLog("PS3 ERROR: cellAudioInit failed");
+            return false;
+        }
+
+        if (cellAudioPortOpen(&audioParam, &audioPort) < 0) {
+            PrintLog("PS3 ERROR: cellAudioPortOpen failed");
+            return false;
+        }
+
+        audioEnabled       = true;
+        audioThreadRunning = true;
+        sys_ppu_thread_create(&audioThread, ProcessAudioPlaybackPS3, 0, 44, 256 * 1024, SYS_PPU_THREAD_CREATE_JOINABLE, "RSDKAudioThread");
+
+        cellAudioPortStart(audioPort);
     }
-
-    CellAudioPortParam audioParam;
-    audioParam.nChannel = CELL_AUDIO_PORT_2CH;
-    audioParam.nBlock   = CELL_AUDIO_BLOCK_8;
-    audioParam.attr     = 0;
-
-    if (cellAudioInit() < 0) {
-        PrintLog("PS3 ERROR: cellAudioInit failed");
-        return false;
-    }
-
-    if (cellAudioPortOpen(&audioParam, &audioPort) < 0) {
-        PrintLog("PS3 ERROR: cellAudioPortOpen failed");
-        return false;
-    }
-
-    audioEnabled       = true;
-    audioThreadRunning = true;
-    sys_ppu_thread_create(&audioThread, ProcessAudioPlaybackPS3, 0, 44, 256 * 1024, SYS_PPU_THREAD_CREATE_JOINABLE, "RSDKAudioThread");
-
-    cellAudioPortStart(audioPort);
 #endif
 #endif
 
@@ -657,7 +665,7 @@ void LoadMusic(void *userdata)
     currentStreamIndex++;
     currentStreamIndex %= STREAMFILE_COUNT;
 
-    LockAudioDevice();
+    // Mutex should be locked by the caller (PlayMusic or SwapMusicTrack)
 
     if (streamFile[currentStreamIndex].fileSize > 0)
         StopMusic(false);
@@ -740,7 +748,6 @@ void LoadMusic(void *userdata)
     else {
         musicStatus = MUSIC_STOPPED;
     }
-    UnlockAudioDevice();
 }
 
 void SetMusicTrack(const char *filePath, byte trackID, bool loop, uint loopPoint)

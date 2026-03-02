@@ -11,6 +11,22 @@
 
 #define MAX_VOLUME (100)
 
+#ifndef AUDIO_FREQUENCY
+#define AUDIO_FREQUENCY (44100)
+#endif
+
+#ifndef AUDIO_SAMPLES
+#if RETRO_PLATFORM == RETRO_PS3
+#define AUDIO_SAMPLES (512)
+#else
+#define AUDIO_SAMPLES (0x800)
+#endif
+#endif
+
+#ifndef AUDIO_CHANNELS
+#define AUDIO_CHANNELS (2)
+#endif
+
 #define MUSBUFFER_SIZE   (0x200000)
 #define STREAMFILE_COUNT (2)
 

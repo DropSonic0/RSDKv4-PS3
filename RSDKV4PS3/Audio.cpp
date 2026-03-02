@@ -5,6 +5,7 @@
 #include <math.h>
 #endif
 
+
 int globalSFXCount = 0;
 int stageSFXCount  = 0;
 
@@ -97,7 +98,7 @@ void ProcessAudioPlaybackPS3(uint64_t arg)
         }
 
         // Output to PS3 audio port
-        while (audioThreadRunning && cellAudioAddData(audioPort, ps3_audio_buffer, AUDIO_SAMPLES, 1.0f) == CELL_AUDIO_ERROR_PORT_FULL) {
+        while (audioThreadRunning && cellAudioAddData(audioPort, ps3_audio_buffer, AUDIO_SAMPLES * 2, 1.0f) == CELL_AUDIO_ERROR_PORT_FULL) {
             sys_timer_usleep(1000); // Wait 1ms if port is full
         }
     }
@@ -114,10 +115,9 @@ SDL_AudioSpec audioDeviceFormat;
 
 #endif
 
-#define AUDIO_FREQUENCY (44100)
-#define AUDIO_FORMAT    (AUDIO_S16SYS) /**< Signed 16-bit samples */
-#define AUDIO_SAMPLES   (512)
-#define AUDIO_CHANNELS  (2)
+#if RETRO_USING_SDL1 || RETRO_USING_SDL2
+#define AUDIO_FORMAT (AUDIO_S16SYS) /**< Signed 16-bit samples */
+#endif
 
 #define ADJUST_VOLUME(s, v) (s = (s * v) / MAX_VOLUME)
 
@@ -927,8 +927,13 @@ void LoadSfx(char *filePath, byte sfxID)
             buf                  = audioBuf;
             toRead               = audioLen;
 
+#if RETRO_IS_BIG_ENDIAN
             for (read = (int)ov_read(&vf, (char *)buf, toRead, 1, 2, 1, &bitstream); read > 0;
                  read = (int)ov_read(&vf, (char *)buf, toRead, 1, 2, 1, &bitstream)) {
+#else
+            for (read = (int)ov_read(&vf, (char *)buf, toRead, 0, 2, 1, &bitstream); read > 0;
+                 read = (int)ov_read(&vf, (char *)buf, toRead, 0, 2, 1, &bitstream)) {
+#endif
                 if (read < 0) {
                     free(audioBuf);
                     ov_clear(&vf);

@@ -609,7 +609,7 @@ void RetroEngine::Run()
     unsigned long long curTicks   = 0;
     unsigned long long prevTicks  = 0;
 #elif RETRO_PLATFORM == RETRO_PS3
-    // PS3 uses microseconds for its time base in many APIs
+    // PS3 sys_time_get_system_time() returns nanoseconds, we use microseconds for targetFreq
     unsigned long long targetFreq = 1000000 / Engine.refreshRate;
     unsigned long long curTicks   = 0;
     unsigned long long prevTicks  = 0;
@@ -621,7 +621,7 @@ void RetroEngine::Run()
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2
             curTicks = SDL_GetPerformanceCounter();
 #elif RETRO_PLATFORM == RETRO_PS3
-            curTicks = sys_time_get_system_time();
+            curTicks = sys_time_get_system_time() / 1000;
 #endif
             if (curTicks < prevTicks + targetFreq)
                 continue;

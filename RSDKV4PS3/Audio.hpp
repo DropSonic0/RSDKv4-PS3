@@ -14,12 +14,21 @@
 #define MUSBUFFER_SIZE   (0x200000)
 #define STREAMFILE_COUNT (2)
 
-#define MIX_BUFFER_SAMPLES (256)
+#define MIX_BUFFER_SAMPLES (2048)
 
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2
 
 #define LockAudioDevice()   SDL_LockAudio()
 #define UnlockAudioDevice() SDL_UnlockAudio()
+
+#elif RETRO_PLATFORM == RETRO_PS3
+
+extern sys_lwmutex_t audioMutex;
+extern sys_lwmutex_t musicMutex;
+#define LockAudioDevice()   sys_lwmutex_lock(&audioMutex, SYS_NO_TIMEOUT)
+#define UnlockAudioDevice() sys_lwmutex_unlock(&audioMutex)
+#define LockMusicDevice()   sys_lwmutex_lock(&musicMutex, SYS_NO_TIMEOUT)
+#define UnlockMusicDevice() sys_lwmutex_unlock(&musicMutex)
 
 #else
 #define LockAudioDevice()   ;
@@ -109,6 +118,9 @@ extern SDL_AudioSpec audioDeviceFormat;
 
 int InitAudioPlayback();
 void LoadGlobalSfx();
+#if RETRO_PLATFORM == RETRO_PS3
+void ShutdownAudioPS3();
+#endif
 
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2
 #if !RETRO_USE_ORIGINAL_CODE
@@ -161,9 +173,17 @@ inline void StopMusic(bool setStatus)
     musicPosition = 0;
 
 #if !RETRO_USE_ORIGINAL_CODE
+#if RETRO_PLATFORM == RETRO_PS3
+    LockMusicDevice();
+#else
     LockAudioDevice();
+#endif
     FreeMusInfo();
+#if RETRO_PLATFORM == RETRO_PS3
+    UnlockMusicDevice();
+#else
     UnlockAudioDevice();
+#endif
 #endif
 }
 
@@ -318,6 +338,9 @@ inline void ReleaseAudioDevice()
     StopAllSfx();
     ReleaseStageSfx();
     ReleaseGlobalSfx();
+#if RETRO_PLATFORM == RETRO_PS3
+    ShutdownAudioPS3();
+#endif
 }
 
 #endif // !AUDIO_H

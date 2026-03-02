@@ -52,6 +52,7 @@ bool bilinearScaling = false;
 
 int InitRenderDevice()
 {
+    PrintLog("InitRenderDevice()");
     char gameTitle[0x40];
 
     sprintf(gameTitle, "%s%s", Engine.gameWindowText, Engine.usingDataFile_Config ? "" : " (Using Data Folder)");
@@ -198,18 +199,22 @@ int InitRenderDevice()
 #if RETRO_USING_OPENGL
 
 #if RETRO_PLATFORM == RETRO_PS3
+    PrintLog("InitRenderDevice: Initializing PSGL...");
     // Using NULL for psglInit uses default options which is generally safest
     psglInit(NULL);
 
+    PrintLog("InitRenderDevice: Creating PSGL device...");
     PSGLdevice *psgl_device = psglCreateDeviceAuto(GL_ARGB_SCE, GL_DEPTH_COMPONENT24, GL_MULTISAMPLING_NONE_SCE);
     if (!psgl_device) {
         PrintLog("PSGL ERROR: psglCreateDeviceAuto failed!");
         return 0;
     }
 
+    PrintLog("InitRenderDevice: Creating PSGL context...");
     PSGLcontext *psgl_context = psglCreateContext();
 
     if (psgl_device && psgl_context) {
+        PrintLog("InitRenderDevice: Making PSGL context current...");
         psglMakeCurrent(psgl_context, psgl_device);
     } else {
         PrintLog("PSGL ERROR: Cannot call psglMakeCurrent with NULL context or device!");
@@ -256,9 +261,12 @@ int InitRenderDevice()
 #endif
 
     textureList[0].id = 0;
+    PrintLog("InitRenderDevice: Setting up viewport...");
     SetupViewport();
 
+    PrintLog("InitRenderDevice: Resetting render states...");
     ResetRenderStates();
+    PrintLog("InitRenderDevice: Setting up draw index list...");
     SetupDrawIndexList();
 
     for (int c = 0; c < 0x10000; ++c) {
@@ -313,8 +321,10 @@ int InitRenderDevice()
     OBJECT_BORDER_X4 = SCREEN_XSIZE + 0x20;
     // OBJECT_BORDER_Y4 = SCREEN_YSIZE + 0x80;
 
+    PrintLog("InitRenderDevice: Initializing input devices...");
     InitInputDevices();
 
+    PrintLog("InitRenderDevice: Done.");
     return 1;
 }
 void FlipScreen()

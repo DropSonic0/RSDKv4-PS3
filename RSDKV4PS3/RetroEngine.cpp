@@ -2,7 +2,11 @@
 
 #if !RETRO_USE_ORIGINAL_CODE
 bool usingCWD        = false;
+#if RETRO_PLATFORM == RETRO_PS3
+bool engineDebugMode = true;
+#else
 bool engineDebugMode = false;
+#endif
 #endif
 
 #if RETRO_PLATFORM == RETRO_ANDROID
@@ -394,8 +398,10 @@ void RetroEngine::Init()
     StrCopy(dest, BASE_PATH);
     StrAdd(dest, Engine.dataFile[0]);
 #endif
+    PrintLog("Checking RSDK file: %s", dest);
     CheckRSDKFile(dest);
 #else
+    PrintLog("Checking RSDK file: Data.rsdk");
     CheckRSDKFile("Data.rsdk");
 #endif
 
@@ -404,11 +410,13 @@ void RetroEngine::Init()
         if (!StrComp(Engine.dataFile[i], "")) {
             StrCopy(dest, BASE_PATH);
             StrAdd(dest, Engine.dataFile[i]);
+            PrintLog("Checking additional RSDK file: %s", dest);
             CheckRSDKFile(dest);
         }
     }
 #endif
 
+    PrintLog("Initializing game mode");
     gameMode = ENGINE_MAINGAME;
     running  = false;
 #if !RETRO_USE_ORIGINAL_CODE
@@ -416,10 +424,15 @@ void RetroEngine::Init()
 #endif
     SaveGame *saveGame = (SaveGame *)saveRAM;
 
+    PrintLog("Loading Game Config...");
     if (LoadGameConfig("Data/Game/GameConfig.bin")) {
+        PrintLog("Game Config loaded successfully. Initializing Render Device...");
         if (InitRenderDevice()) {
+            PrintLog("Render Device initialized successfully. Initializing Audio Playback...");
             if (InitAudioPlayback()) {
+                PrintLog("Audio Playback initialized successfully. Initializing First Stage...");
                 InitFirstStage();
+                PrintLog("First Stage initialized. Clearing Script Data...");
                 ClearScriptData();
                 initialised = true;
                 running     = true;
@@ -1199,6 +1212,7 @@ void RetroEngine::LoadXMLStages(TextMenu *menu, int listNo)
 
 bool RetroEngine::LoadGameConfig(const char *filePath)
 {
+    PrintLog("RetroEngine::LoadGameConfig(%s)", filePath);
     FileInfo info;
     byte fileBuffer  = 0;
     byte fileBuffer2 = 0;
@@ -1212,6 +1226,7 @@ bool RetroEngine::LoadGameConfig(const char *filePath)
 
     bool loaded = LoadFile(filePath, &info);
     if (loaded) {
+        PrintLog("LoadGameConfig: File loaded, reading data...");
         FileRead(&fileBuffer, 1);
         FileRead(gameWindowText, fileBuffer);
         gameWindowText[fileBuffer] = 0;
@@ -1227,6 +1242,7 @@ bool RetroEngine::LoadGameConfig(const char *filePath)
         }
 
         // Read Obect Names
+        PrintLog("LoadGameConfig: Reading Object Names...");
         byte objectCount = 0;
         FileRead(&objectCount, 1);
         for (byte o = 0; o < objectCount; ++o) {
@@ -1235,11 +1251,13 @@ bool RetroEngine::LoadGameConfig(const char *filePath)
         }
 
         // Read Script Paths
+        PrintLog("LoadGameConfig: Reading Script Paths...");
         for (byte s = 0; s < objectCount; ++s) {
             FileRead(&fileBuffer, 1);
             FileRead(&strBuffer, fileBuffer);
         }
 
+        PrintLog("LoadGameConfig: Reading Global Variables...");
         byte varCount = 0;
         FileRead(&varCount, 1);
         globalVariablesCount = varCount;
@@ -1261,6 +1279,7 @@ bool RetroEngine::LoadGameConfig(const char *filePath)
         }
 
         // Read SFX
+        PrintLog("LoadGameConfig: Reading SFX...");
         byte sfxCount = 0;
         FileRead(&sfxCount, 1);
         globalSFXCount = sfxCount;
@@ -1276,6 +1295,7 @@ bool RetroEngine::LoadGameConfig(const char *filePath)
         }
 
         // Read Player Names
+        PrintLog("LoadGameConfig: Reading Player Names...");
         byte plrCount = 0;
         FileRead(&plrCount, 1);
 #if RETRO_USE_MOD_LOADER
@@ -1297,6 +1317,7 @@ bool RetroEngine::LoadGameConfig(const char *filePath)
 #endif
         }
 
+        PrintLog("LoadGameConfig: Reading Stage Lists...");
         for (byte c = 0; c < 4; ++c) {
             // Special Stages are stored as cat 2 in file, but cat 3 in game :(
             int cat = c;
@@ -1331,6 +1352,7 @@ bool RetroEngine::LoadGameConfig(const char *filePath)
         }
 
         CloseFile();
+        PrintLog("LoadGameConfig: Done reading GameConfig.bin.");
 
 #if RETRO_USE_MOD_LOADER
         LoadXMLWindowText();

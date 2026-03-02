@@ -25,6 +25,7 @@ FileIO *cFileHandle = nullptr;
 
 bool CheckRSDKFile(const char *filePath)
 {
+    PrintLog("CheckRSDKFile('%s')", filePath);
     FileInfo info;
 
     char filePathBuffer[0x100];
@@ -38,6 +39,7 @@ bool CheckRSDKFile(const char *filePath)
 
     cFileHandle = fOpen(filePathBuffer, "rb");
     if (cFileHandle) {
+        PrintLog("CheckRSDKFile: File opened successfully.");
         byte signature[6] = { 'R', 'S', 'D', 'K', 'v', 'B' };
         byte buf          = 0;
         for (int i = 0; i < 6; ++i) {
@@ -52,6 +54,7 @@ bool CheckRSDKFile(const char *filePath)
 #endif
 
         StrCopy(rsdkContainer.packNames[rsdkContainer.packCount], filePathBuffer);
+        PrintLog("loaded datapack '%s'", filePathBuffer);
 
         byte b[4];
         fRead(&b, 2, 1, cFileHandle);
@@ -77,7 +80,9 @@ bool CheckRSDKFile(const char *filePath)
 
         fClose(cFileHandle);
         cFileHandle = NULL;
+        PrintLog("CheckRSDKFile: Loading GlobalCode.bin...");
         if (LoadFile("Bytecode/GlobalCode.bin", &info)) {
+            PrintLog("CheckRSDKFile: GlobalCode.bin found.");
             Engine.usingBytecode = true;
             CloseFile();
         }
@@ -86,6 +91,7 @@ bool CheckRSDKFile(const char *filePath)
         return true;
     }
     else {
+        PrintLog("CheckRSDKFile: Failed to open file.");
         Engine.usingDataFile = false;
 #if !RETRO_USE_ORIGINAL_CODE
         Engine.usingDataFile_Config = false;
@@ -137,6 +143,7 @@ inline bool ends_with(std::string const &value, std::string const &ending)
 
 bool LoadFile(const char *filePath, FileInfo *fileInfo)
 {
+    PrintLog("Loaded Data File '%s'", filePath);
     MEM_ZEROP(fileInfo);
 
     if (cFileHandle)

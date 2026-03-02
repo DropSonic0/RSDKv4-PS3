@@ -50,6 +50,7 @@ SDL_AudioSpec audioDeviceFormat;
 
 int InitAudioPlayback()
 {
+    PrintLog("InitAudioPlayback()");
     StopAllSfx(); //"init"
 
 #if !RETRO_USE_ORIGINAL_CODE
@@ -85,13 +86,16 @@ int InitAudioPlayback()
 #endif
 #endif
 
+    PrintLog("InitAudioPlayback: Loading global SFX...");
     LoadGlobalSfx();
 
+    PrintLog("InitAudioPlayback: Done.");
     return true;
 }
 
 void LoadGlobalSfx()
 {
+    PrintLog("LoadGlobalSfx()");
     FileInfo info;
     FileInfo infoStore;
     char strBuffer[0x100];

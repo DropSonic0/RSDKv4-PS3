@@ -372,8 +372,13 @@ void InitUserdata()
 
         if (!ini.GetBool("Dev", "DevMenu", &Engine.devMenu))
             Engine.devMenu = false;
-        if (!ini.GetBool("Dev", "EngineDebugMode", &engineDebugMode))
+        if (!ini.GetBool("Dev", "EngineDebugMode", &engineDebugMode)) {
+#if RETRO_PLATFORM == RETRO_PS3
+            engineDebugMode = true;
+#else
             engineDebugMode = false;
+#endif
+        }
         if (!ini.GetBool("Dev", "TxtScripts", &forceUseScripts))
             forceUseScripts = false;
         forceUseScripts_Config = forceUseScripts;

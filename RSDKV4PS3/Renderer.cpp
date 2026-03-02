@@ -633,11 +633,15 @@ int LoadTexture(const char *filePath, int format)
 
                     for (int y = 0; y < height; ++y) {
                         for (int x = 0; x < width; ++x) {
-                            int r                   = (data[id++] >> 4) << 12;
-                            int g                   = (data[id++] >> 4) << 8;
-                            int b                   = (data[id++]) & 0xF0;
-                            int a                   = (data[id++] >> 4);
-                            pixels[x + (y * width)] = a | r | g | b;
+                            int r = data[id++];
+                            int g = data[id++];
+                            int b = data[id++];
+                            int a = data[id++];
+#if RETRO_IS_BIG_ENDIAN
+                            pixels[x + (y * width)] = ((a >> 4) << 12) | ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4);
+#else
+                            pixels[x + (y * width)] = ((r >> 4) << 12) | ((g >> 4) << 8) | ((b >> 4) << 4) | (a >> 4);
+#endif
                         }
                     }
 
@@ -656,11 +660,15 @@ int LoadTexture(const char *filePath, int format)
 
                     for (int y = 0; y < height; ++y) {
                         for (int x = 0; x < width; ++x) {
-                            int r                   = data[id++];
-                            int g                   = data[id++];
-                            int b                   = data[id++];
-                            int a                   = data[id++];
+                            int r = data[id++];
+                            int g = data[id++];
+                            int b = data[id++];
+                            int a = data[id++];
+#if RETRO_IS_BIG_ENDIAN
+                            pixels[x + (y * width)] = ((a ? 1 : 0) << 15) | ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
+#else
                             pixels[x + (y * width)] = RGB888_TO_RGB5551(r, g, b) | (a ? 1 : 0);
+#endif
                         }
                     }
 
@@ -679,11 +687,15 @@ int LoadTexture(const char *filePath, int format)
 
                     for (int y = 0; y < height; ++y) {
                         for (int x = 0; x < width; ++x) {
-                            int r                   = data[id++];
-                            int g                   = data[id++];
-                            int b                   = data[id++];
-                            int a                   = data[id++];
+                            int r = data[id++];
+                            int g = data[id++];
+                            int b = data[id++];
+                            int a = data[id++];
+#if RETRO_IS_BIG_ENDIAN
+                            pixels[x + (y * width)] = (a << 24) | (r << 16) | (g << 8) | (b << 0);
+#else
                             pixels[x + (y * width)] = (a << 24) | (b << 16) | (g << 8) | (r << 0);
+#endif
                         }
                     }
 
@@ -748,11 +760,15 @@ void ReplaceTexture(const char *filePath, int texID)
 
                     for (int y = 0; y < height; ++y) {
                         for (int x = 0; x < width; ++x) {
-                            int r                   = (data[id++] >> 4) << 12;
-                            int g                   = (data[id++] >> 4) << 8;
-                            int b                   = (data[id++]) & 0xF0;
-                            int a                   = (data[id++] >> 4);
-                            pixels[x + (y * width)] = a | r | g | b;
+                            int r = data[id++];
+                            int g = data[id++];
+                            int b = data[id++];
+                            int a = data[id++];
+#if RETRO_IS_BIG_ENDIAN
+                            pixels[x + (y * width)] = ((a >> 4) << 12) | ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4);
+#else
+                            pixels[x + (y * width)] = ((r >> 4) << 12) | ((g >> 4) << 8) | ((b >> 4) << 4) | (a >> 4);
+#endif
                         }
                     }
 
@@ -769,11 +785,15 @@ void ReplaceTexture(const char *filePath, int texID)
 
                     for (int y = 0; y < height; ++y) {
                         for (int x = 0; x < width; ++x) {
-                            int r                   = data[id++];
-                            int g                   = data[id++];
-                            int b                   = data[id++];
-                            int a                   = data[id++];
+                            int r = data[id++];
+                            int g = data[id++];
+                            int b = data[id++];
+                            int a = data[id++];
+#if RETRO_IS_BIG_ENDIAN
+                            pixels[x + (y * width)] = ((a ? 1 : 0) << 15) | ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
+#else
                             pixels[x + (y * width)] = RGB888_TO_RGB5551(r, g, b) | (a ? 1 : 0);
+#endif
                         }
                     }
 #if RETRO_USING_OPENGL
@@ -789,11 +809,15 @@ void ReplaceTexture(const char *filePath, int texID)
 
                     for (int y = 0; y < height; ++y) {
                         for (int x = 0; x < width; ++x) {
-                            int r                   = data[id++];
-                            int g                   = data[id++];
-                            int b                   = data[id++];
-                            int a                   = data[id++];
+                            int r = data[id++];
+                            int g = data[id++];
+                            int b = data[id++];
+                            int a = data[id++];
+#if RETRO_IS_BIG_ENDIAN
+                            pixels[x + (y * width)] = (a << 24) | (r << 16) | (g << 8) | (b << 0);
+#else
                             pixels[x + (y * width)] = (a << 24) | (b << 16) | (g << 8) | (r << 0);
+#endif
                         }
                     }
 
@@ -853,9 +877,11 @@ MeshInfo *LoadMesh(const char *filePath, byte textureID)
             for (int v = 0; v < mesh->vertexCount; ++v) {
                 float buf = 0;
                 FileRead(&buf, sizeof(float));
+                SWAP_ENDIAN(buf);
                 mesh->vertices[v].texCoordX = buf;
 
                 FileRead(&buf, sizeof(float));
+                SWAP_ENDIAN(buf);
                 mesh->vertices[v].texCoordY = buf;
 
                 mesh->vertices[v].r = 0xFF;
@@ -889,21 +915,27 @@ MeshInfo *LoadMesh(const char *filePath, byte textureID)
                 for (int v = 0; v < mesh->vertexCount; ++v) {
                     float buf = 0;
                     FileRead(&buf, sizeof(float));
+                    SWAP_ENDIAN(buf);
                     mesh->vertices[v].vertX = buf;
 
                     FileRead(&buf, sizeof(float));
+                    SWAP_ENDIAN(buf);
                     mesh->vertices[v].vertY = buf;
 
                     FileRead(&buf, sizeof(float));
+                    SWAP_ENDIAN(buf);
                     mesh->vertices[v].vertZ = buf;
 
                     FileRead(&buf, sizeof(float));
+                    SWAP_ENDIAN(buf);
                     mesh->vertices[v].normalX = buf;
 
                     FileRead(&buf, sizeof(float));
+                    SWAP_ENDIAN(buf);
                     mesh->vertices[v].normalY = buf;
 
                     FileRead(&buf, sizeof(float));
+                    SWAP_ENDIAN(buf);
                     mesh->vertices[v].normalZ = buf;
                 }
             }
@@ -914,21 +946,27 @@ MeshInfo *LoadMesh(const char *filePath, byte textureID)
                     for (int v = 0; v < mesh->vertexCount; ++v) {
                         float buf = 0;
                         FileRead(&buf, sizeof(float));
+                        SWAP_ENDIAN(buf);
                         mesh->frames[frameOff + v].vertX = buf;
 
                         FileRead(&buf, sizeof(float));
+                        SWAP_ENDIAN(buf);
                         mesh->frames[frameOff + v].vertY = buf;
 
                         FileRead(&buf, sizeof(float));
+                        SWAP_ENDIAN(buf);
                         mesh->frames[frameOff + v].vertZ = buf;
 
                         FileRead(&buf, sizeof(float));
+                        SWAP_ENDIAN(buf);
                         mesh->frames[frameOff + v].normalX = buf;
 
                         FileRead(&buf, sizeof(float));
+                        SWAP_ENDIAN(buf);
                         mesh->frames[frameOff + v].normalY = buf;
 
                         FileRead(&buf, sizeof(float));
+                        SWAP_ENDIAN(buf);
                         mesh->frames[frameOff + v].normalZ = buf;
                     }
                 }

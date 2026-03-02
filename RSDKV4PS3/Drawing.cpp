@@ -265,7 +265,12 @@ int InitRenderDevice()
         int r               = (c & 0xF800) >> 8;
         int g               = (c & 0x07E0) >> 3;
         int b               = (c & 0x001F) << 3;
+#if RETRO_IS_BIG_ENDIAN
+        // Pack as R, G, B, A in memory for GL_RGBA
+        gfxPalette16to32[c] = (r << 24) | (g << 16) | (b << 8) | 0xFF;
+#else
         gfxPalette16to32[c] = (0xFF << 24) | (b << 16) | (g << 8) | (r << 0);
+#endif
     }
 
     float lightAmbient[4] = { 2.0, 2.0, 2.0, 1.0 };

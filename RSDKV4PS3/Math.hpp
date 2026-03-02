@@ -14,6 +14,30 @@
 #define MEM_ZERO(x)  memset(&(x), 0, sizeof((x)))
 #define MEM_ZEROP(x) memset((x), 0, sizeof(*(x)))
 
+#if RETRO_PLATFORM == RETRO_PS3
+#define RETRO_IS_BIG_ENDIAN (1)
+#else
+#define RETRO_IS_BIG_ENDIAN (0)
+#endif
+
+inline void SwapEndian(void *val, int size)
+{
+#if RETRO_IS_BIG_ENDIAN
+    byte *data = (byte *)val;
+    for (int i = 0; i < size / 2; ++i) {
+        byte temp          = data[i];
+        data[i]            = data[size - 1 - i];
+        data[size - 1 - i] = temp;
+    }
+#endif
+}
+
+#if RETRO_IS_BIG_ENDIAN
+#define SWAP_ENDIAN(val) SwapEndian(&(val), sizeof(val))
+#else
+#define SWAP_ENDIAN(val)
+#endif
+
 extern int sinM7LookupTable[0x200];
 extern int cosM7LookupTable[0x200];
 

@@ -74,9 +74,17 @@ int InitAudioPlayback()
 {
     StopAllSfx(); //"init"
 
+    PrintLog("PS3: StreamInfo size=%d, SFXInfo size=%d, ChannelInfo size=%d", sizeof(StreamInfo), sizeof(SFXInfo), sizeof(ChannelInfo));
+
     for (int i = 0; i < STREAMFILE_COUNT; ++i) {
-        MEM_ZERO(streamFile[i]);
+        if (streamFile[i].buffer == NULL) {
+            streamFile[i].buffer = (byte*)memalign(16, MUSBUFFER_SIZE);
+        }
+        streamFile[i].vsize = 0;
+        streamFile[i].vpos = 0;
+
         MEM_ZERO(streamInfo[i]);
+        PrintLog("PS3: streamInfo[%d] at %p", i, &streamInfo[i]);
     }
     for (int i = 0; i < SFX_COUNT; ++i) {
         MEM_ZERO(sfxList[i]);
@@ -85,6 +93,9 @@ int InitAudioPlayback()
         MEM_ZERO(sfxChannels[i]);
         sfxChannels[i].sfxID = -1;
     }
+
+    streamFilePtr = NULL;
+    streamInfoPtr = NULL;
 
 #if !RETRO_USE_ORIGINAL_CODE
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2
@@ -222,34 +233,54 @@ void LoadGlobalSfx()
 size_t readVorbis(void *mem, size_t size, size_t nmemb, void *ptr)
 {
     StreamFile *file = (StreamFile *)ptr;
+    if (!file || !file->buffer || file->vpos >= file->vsize)
+        return 0;
 
-    int n = size * nmemb;
-    if (size * nmemb > file->fileSize - file->filePos)
-        n = file->fileSize - file->filePos;
+    size_t n = size * nmemb;
+    if (n > (size_t)(file->vsize - file->vpos))
+        n = (size_t)(file->vsize - file->vpos);
 
-    if (n) {
-        memcpy(mem, &file->buffer[file->filePos], n);
-        file->filePos += n;
+    size_t elements      = size > 0 ? (n / size) : 0;
+    size_t bytes_to_read = elements * size;
+
+    if (bytes_to_read > 0) {
+        memcpy(mem, &file->buffer[file->vpos], bytes_to_read);
+        file->vpos += (int)bytes_to_read;
     }
-    return n;
+
+    // int index = -1;
+    // for (int i = 0; i < STREAMFILE_COUNT; i++) if (file == &streamFile[i]) index = i;
+    // PrintLog("PS3: readVorbis[%d] size=%d nmemb=%d elements=%d bytes=%d pos=%d", index, (int)size, (int)nmemb, (int)elements, (int)bytes_to_read, file->vpos);
+    return elements;
 }
 int seekVorbis(void *ptr, ogg_int64_t offset, int whence)
 {
     StreamFile *file = (StreamFile *)ptr;
+    if (!file) return -1;
 
+    int newPos = 0;
     switch (whence) {
-        case SEEK_SET: whence = 0; break;
-        case SEEK_CUR: whence = file->filePos; break;
-        case SEEK_END: whence = file->fileSize; break;
-        default: break;
+        case SEEK_SET: newPos = (int)offset; break;
+        case SEEK_CUR: newPos = file->vpos + (int)offset; break;
+        case SEEK_END: newPos = file->vsize + (int)offset; break;
+        default: return -1;
     }
-    file->filePos = whence + offset;
+
+    if (newPos < 0)
+        newPos = 0;
+    if (newPos > file->vsize)
+        newPos = file->vsize;
+
+    file->vpos = newPos;
+    // int index = -1;
+    // for (int i = 0; i < STREAMFILE_COUNT; i++) if (file == &streamFile[i]) index = i;
+    // PrintLog("PS3: seekVorbis[%d] offset=%lld whence=%d newPos=%d", index, (long long)offset, (int)whence, newPos);
     return 0;
 }
 long tellVorbis(void *ptr)
 {
     StreamFile *file = (StreamFile *)ptr;
-    return file->filePos;
+    return file->vpos;
 }
 int closeVorbis(void *ptr) { return 1; }
 
@@ -262,7 +293,7 @@ int closeVorbis(void *ptr) { return 1; }
 #endif
     if (!streamFilePtr || !streamInfoPtr)
         return;
-    if (!streamFilePtr->fileSize)
+    if (!streamFilePtr->vsize)
         return;
     switch (musicStatus) {
         case MUSIC_READY:
@@ -353,32 +384,45 @@ int closeVorbis(void *ptr) { return 1; }
             if (bytes_wanted > 0)
                 free(buffer);
 #elif RETRO_PLATFORM == RETRO_PS3
-            if (!streamInfoPtr->loaded) {
+            if (!streamInfoPtr || !streamInfoPtr->loaded) {
+                PrintLog("PS3: Stream no cargado (ptr=%p status=%d loaded=%d)", streamInfoPtr, musicStatus, streamInfoPtr ? streamInfoPtr->loaded : -1);
                 musicStatus = MUSIC_STOPPED;
                 break;
             }
             int channels = streamInfoPtr->vorbisFile.vi->channels;
-            size_t samples_wanted = sampleCount;
+            size_t samples_wanted = (size_t)sampleCount;
             size_t samples_gotten = 0;
             while (samples_gotten < samples_wanted) {
                 size_t samples_to_read = (samples_wanted - samples_gotten);
-                if (channels == 1) samples_to_read /= 2;
+                if (channels == 1) {
+                    // Capping to half to ensure expansion doesn't overflow mix_buffer
+                    if (samples_to_read > (MIX_BUFFER_SAMPLES / 2)) samples_to_read = (MIX_BUFFER_SAMPLES / 2);
+                    samples_to_read /= 2;
+                }
 
-                if (samples_to_read > MIX_BUFFER_SAMPLES)
-                    samples_to_read = MIX_BUFFER_SAMPLES;
+                if (samples_to_read > (MIX_BUFFER_SAMPLES / channels))
+                    samples_to_read = (MIX_BUFFER_SAMPLES / channels);
                 if (samples_to_read == 0) break;
 
-                // PrintLog("ProcessMusicStream: ov_read %d samples", samples_to_read);
+                // Ensure we read an even number of bytes (complete samples)
                 long bytes_read = ov_read(&streamInfoPtr->vorbisFile, (char *)streamInfoPtr->buffer, (int)(samples_to_read * sizeof(Sint16)), 1,
                                           2, 1, &streamInfoPtr->vorbBitstream);
-                // PrintLog("ProcessMusicStream: ov_read returned %d bytes", bytes_read);
+                if (bytes_read > 0 && bytes_read % 2 != 0) bytes_read--; // Align to sample
+                // PrintLog("ProcessMusicStream: ov_read returned %ld bytes", bytes_read);
 
                 if (bytes_read == 0) {
                     if (streamInfoPtr->trackLoop) {
-                        ov_pcm_seek(&streamInfoPtr->vorbisFile, streamInfoPtr->loopPoint);
+                        PrintLog("PS3: ov_read retorno 0 (looping to %u, pos=%ld, size=%ld, loop=%d)", streamInfoPtr->loopPoint, (long)ov_pcm_tell(&streamInfoPtr->vorbisFile), (long)ov_pcm_total(&streamInfoPtr->vorbisFile, -1), streamInfoPtr->trackLoop);
+                        int seek_err = ov_pcm_seek(&streamInfoPtr->vorbisFile, (ogg_int64_t)streamInfoPtr->loopPoint);
+                        if (seek_err != 0) {
+                            PrintLog("PS3: ov_pcm_seek loop error %d", seek_err);
+                            musicStatus = MUSIC_STOPPED;
+                            break;
+                        }
                         continue;
                     }
                     else {
+                        PrintLog("PS3: ov_read retorno 0 (fin, loop=%d)", streamInfoPtr->trackLoop);
                         musicStatus = MUSIC_STOPPED;
                         break;
                     }
@@ -400,6 +444,7 @@ int closeVorbis(void *ptr) { return 1; }
                     }
                 }
                 else if (bytes_read < 0) {
+                    PrintLog("PS3: ov_read error %ld", bytes_read);
                     // Vorbis error, stop to avoid infinite loop
                     musicStatus = MUSIC_STOPPED;
                     break;
@@ -438,12 +483,20 @@ void ProcessAudioPlayback(Sint16 *stream, int sampleCount)
 #else
     size_t samples_remaining = (size_t)sampleCount;
 #endif
-    while (samples_remaining != 0) {
-        Sint32 mix_buffer[MIX_BUFFER_SAMPLES];
+    static Sint32 mix_buffer[MIX_BUFFER_SAMPLES] __attribute__((aligned(16)));
+    static Sint16 sfx_temp_buffer[MIX_BUFFER_SAMPLES] __attribute__((aligned(16)));
+
+    while (samples_remaining > 0) {
         memset(mix_buffer, 0, sizeof(mix_buffer));
 
-        const size_t samples_to_do = (samples_remaining < MIX_BUFFER_SAMPLES) ? samples_remaining : MIX_BUFFER_SAMPLES;
+        // Ensure we always do an even number of samples (stereo frames)
+        // MIX_BUFFER_SAMPLES is 2048, enough for 1024 stereo frames.
+        // We limit to 1024 here to avoid overflows during expansion.
+        size_t samples_to_do = (samples_remaining < 1024) ? samples_remaining : 1024;
+        if (samples_to_do % 2 != 0) samples_to_do--; 
+        if (samples_to_do == 0) break;
 
+        LockAudioDevice();
         // Mix music
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2
         ProcessMusicStream(mix_buffer, samples_to_do * sizeof(Sint16));
@@ -454,43 +507,49 @@ void ProcessAudioPlayback(Sint16 *stream, int sampleCount)
         // Mix SFX
         for (byte i = 0; i < CHANNEL_COUNT; ++i) {
             ChannelInfo *sfx = &sfxChannels[i];
-            if (sfx == NULL)
+            if (sfx->sfxID < 0 || sfx->samplePtr == NULL)
                 continue;
 
-            if (sfx->sfxID < 0)
-                continue;
+            memset(sfx_temp_buffer, 0, sizeof(sfx_temp_buffer));
 
-            if (sfx->samplePtr) {
-                Sint16 buffer[MIX_BUFFER_SAMPLES];
+            size_t samples_done = 0;
+            while (samples_done < samples_to_do) {
+                size_t samples_needed = samples_to_do - samples_done;
+                size_t sampleLen = (sfx->sampleLength < samples_needed) ? sfx->sampleLength : samples_needed;
+                
+                // SFX must be frame-aligned (even number of samples)
+                if (sampleLen % 2 != 0) sampleLen--;
 
-                size_t samples_done = 0;
-                while (samples_done != samples_to_do) {
-                    size_t sampleLen = (sfx->sampleLength < samples_to_do - samples_done) ? sfx->sampleLength : samples_to_do - samples_done;
-                    memcpy(&buffer[samples_done], sfx->samplePtr, sampleLen * sizeof(Sint16));
+                if (sampleLen > 0 && sfx->samplePtr != NULL) {
+                    memcpy(&sfx_temp_buffer[samples_done], sfx->samplePtr, sampleLen * sizeof(Sint16));
 
                     samples_done += sampleLen;
                     sfx->samplePtr += sampleLen;
                     sfx->sampleLength -= sampleLen;
-
-                    if (sfx->sampleLength == 0) {
-                        if (sfx->loopSFX) {
-                            sfx->samplePtr    = sfxList[sfx->sfxID].buffer;
-                            sfx->sampleLength = sfxList[sfx->sfxID].length;
-                        }
-                        else {
-                            MEM_ZEROP(sfx);
-                            sfx->sfxID = -1;
-                            break;
-                        }
-                    }
                 }
 
-                ProcessAudioMixing(mix_buffer, buffer, (int)samples_done, sfxVolume, sfx->pan);
+                if (sfx->sampleLength <= 1) { // 1 or 0 samples left means it's finished
+                    if (sfx->loopSFX && sfxList[sfx->sfxID].length > 0 && sfxList[sfx->sfxID].buffer != NULL) {
+                        sfx->samplePtr    = sfxList[sfx->sfxID].buffer;
+                        sfx->sampleLength = sfxList[sfx->sfxID].length;
+                    }
+                    else {
+                        MEM_ZEROP(sfx);
+                        sfx->sfxID = -1;
+                        break;
+                    }
+                }
+                
+                if (sampleLen == 0) break; // Avoid infinite loop
             }
+
+            if (samples_done > 0)
+                ProcessAudioMixing(mix_buffer, sfx_temp_buffer, (int)samples_done, sfxVolume, sfx->pan);
         }
+        UnlockAudioDevice();
 
         // Clamp mixed samples back to 16-bit and write them to the output buffer
-        for (size_t i = 0; i < (size_t)samples_to_do; ++i) {
+        for (size_t i = 0; i < samples_to_do; ++i) {
             const Sint16 max_audioval = 32767;
             const Sint16 min_audioval = -32768;
 
@@ -504,7 +563,6 @@ void ProcessAudioPlayback(Sint16 *stream, int sampleCount)
                 output_buffer[i] = (Sint16)sample;
         }
         output_buffer += samples_to_do;
-
         samples_remaining -= samples_to_do;
     }
 }
@@ -555,30 +613,38 @@ void LoadMusic(void *userdata)
 {
     int oldStreamID = currentStreamIndex;
 
-    if (streamFile[currentStreamIndex].fileSize > 0) {
-        musicStatus = MUSIC_STOPPED;
-        musicPosition = 0;
-        FreeMusInfo(true);
-    }
+    LockAudioDevice();
+    streamInfoPtr = NULL;
+    musicStatus = MUSIC_LOADING;
 
     currentStreamIndex++;
     currentStreamIndex %= STREAMFILE_COUNT;
 
+    if (streamFile[currentStreamIndex].vsize > 0) {
+        musicPosition = 0;
+        FreeMusInfo(false);
+    }
+    UnlockAudioDevice();
+
     FileInfo info;
     if (LoadFile(musicTracks[currentMusicTrack].fileName, &info)) {
         StreamFile *musFile = &streamFile[currentStreamIndex];
-        musFile->filePos    = 0;
-        musFile->fileSize   = info.vfileSize;
-        if (info.vfileSize > MUSBUFFER_SIZE)
-            musFile->fileSize = MUSBUFFER_SIZE;
+        musFile->vpos       = 0;
+        musFile->vsize      = info.vfileSize;
+        if (info.vfileSize > MUSBUFFER_SIZE) {
+            PrintLog("PS3: Music file too large (%d > %d), truncating", info.vfileSize, MUSBUFFER_SIZE);
+            musFile->vsize = MUSBUFFER_SIZE;
+        }
 
-        FileRead(streamFile[currentStreamIndex].buffer, musFile->fileSize);
+        FileRead(streamFile[currentStreamIndex].buffer, musFile->vsize);
+        CloseFile();
+
+        PrintLog("PS3: LoadMusic - Buffer filled with %d bytes", musFile->vsize);
 
         LockAudioDevice();
 
         StreamInfo *strmInfo = &streamInfo[currentStreamIndex];
-
-        CloseFile();
+        PrintLog("PS3: LoadMusic[%d] using StreamInfo at %p", currentStreamIndex, strmInfo);
 
         unsigned long long samples = 0;
         ov_callbacks callbacks;
@@ -589,12 +655,15 @@ void LoadMusic(void *userdata)
         callbacks.close_func = closeVorbis;
 
         memset(&strmInfo->vorbisFile, 0, sizeof(strmInfo->vorbisFile));
+        strmInfo->loaded = false;
         int error = ov_open_callbacks(musFile, &strmInfo->vorbisFile, NULL, 0, callbacks);
+        PrintLog("PS3: ov_open_callbacks[%d] returned %d", currentStreamIndex, error);
         if (error == 0) {
             strmInfo->vorbBitstream = -1;
             strmInfo->vorbisFile.vi = ov_info(&strmInfo->vorbisFile, -1);
 
             samples = (unsigned long long)ov_pcm_total(&strmInfo->vorbisFile, -1);
+            PrintLog("PS3: ov_pcm_total = %llu samples", samples);
 
 #if RETRO_USING_SDL2
             strmInfo->stream = SDL_NewAudioStream(AUDIO_S16, strmInfo->vorbisFile.vi->channels, (int)strmInfo->vorbisFile.vi->rate,
@@ -615,7 +684,8 @@ void LoadMusic(void *userdata)
                 float newPos  = oldPos * ((float)musicRatio * 0.0001f); // 8,000 == 0.8, 10,000 == 1.0 (ratio / 10,000)
                 musicStartPos = (int)fmod((double)newPos, (double)samples);
 
-                ov_pcm_seek(&strmInfo->vorbisFile, musicStartPos);
+                int err = ov_pcm_seek(&strmInfo->vorbisFile, musicStartPos);
+                PrintLog("PS3: ov_pcm_seek (start) to %d returned %d", musicStartPos, err);
             }
             musicStartPos = 0;
 
@@ -624,6 +694,9 @@ void LoadMusic(void *userdata)
             strmInfo->loaded    = true;
             streamFilePtr       = &streamFile[currentStreamIndex];
             streamInfoPtr       = &streamInfo[currentStreamIndex];
+
+            PrintLog("PS3: LoadMusic success - slot=%d strmInfoPtr=%p loaded=%d loop=%d pos=%d", 
+                currentStreamIndex, streamInfoPtr, (int)strmInfo->loaded, (int)strmInfo->trackLoop, (int)ov_pcm_tell(&strmInfo->vorbisFile));
 
             musicStatus         = MUSIC_PLAYING;
             masterVolume        = MAX_VOLUME;
@@ -684,6 +757,8 @@ bool PlayMusic(int track, int musStartPos)
     if (!audioEnabled)
         return false;
 
+    PrintLog("PS3: PlayMusic track=%d fileName=%s", track, musicTracks[track].fileName);
+
     if (musicTracks[track].fileName[0]) {
         if (musicStatus != MUSIC_LOADING) {
             if (track < 0 || track >= TRACK_COUNT) {
@@ -723,7 +798,7 @@ void SetSfxName(const char *sfxName, int sfxID)
 
 void LoadSfx(char *filePath, byte sfxID)
 {
-    if (!audioEnabled)
+    if (!audioEnabled || sfxID >= SFX_COUNT)
         return;
 
     FileInfo info;
@@ -804,12 +879,12 @@ void LoadSfx(char *filePath, byte sfxID)
             currentStreamIndex %= STREAMFILE_COUNT;
 
             StreamFile *sfxFile = &streamFile[currentStreamIndex];
-            sfxFile->filePos    = 0;
-            sfxFile->fileSize   = info.vfileSize;
+            sfxFile->vpos       = 0;
+            sfxFile->vsize      = info.vfileSize;
             if (info.vfileSize > MUSBUFFER_SIZE)
-                sfxFile->fileSize = MUSBUFFER_SIZE;
+                sfxFile->vsize = MUSBUFFER_SIZE;
 
-            FileRead(streamFile[currentStreamIndex].buffer, sfxFile->fileSize);
+            FileRead(streamFile[currentStreamIndex].buffer, sfxFile->vsize);
             CloseFile();
 
             callbacks.read_func  = readVorbis;
@@ -960,21 +1035,20 @@ void LoadSfx(char *filePath, byte sfxID)
         else if (type == 'o') {
             OggVorbis_File vf;
             vorbis_info *vinfo;
-            byte *buf;
             int bitstream = -1;
             long samples;
-            int read;
+            int read = 0;
 
-            currentStreamIndex++;
-            currentStreamIndex %= STREAMFILE_COUNT;
+            // Load OGG into a temporary structure instead of sharing with music slots
+            PrintLog("PS3: Loading OGG SFX %s", filePath);
+            StreamFile *sfxFile = (StreamFile*)malloc(sizeof(StreamFile));
+            if (!sfxFile) return;
+            sfxFile->buffer = (byte*)memalign(16, info.vfileSize);
+            if (!sfxFile->buffer) { free(sfxFile); return; }
 
-            StreamFile *sfxFile = &streamFile[currentStreamIndex];
-            sfxFile->filePos    = 0;
-            sfxFile->fileSize   = info.vfileSize;
-            if (info.vfileSize > MUSBUFFER_SIZE)
-                sfxFile->fileSize = MUSBUFFER_SIZE;
-
-            FileRead(streamFile[currentStreamIndex].buffer, sfxFile->fileSize);
+            sfxFile->vpos = 0;
+            sfxFile->vsize = (int)info.vfileSize;
+            FileRead(sfxFile->buffer, info.vfileSize);
             CloseFile();
 
             ov_callbacks callbacks;
@@ -985,13 +1059,13 @@ void LoadSfx(char *filePath, byte sfxID)
 
             int error = ov_open_callbacks(sfxFile, &vf, NULL, 0, callbacks);
             if (error != 0) {
-                ov_clear(&vf);
-                PrintLog("failed to load ogg sfx!");
+                if (sfxFile->buffer) free(sfxFile->buffer);
+                free(sfxFile);
+                PrintLog("failed to load ogg sfx %s error %d!", filePath, error);
                 return;
             }
 
             vinfo = ov_info(&vf, -1);
-
             samples = (long)ov_pcm_total(&vf, -1);
 
             int channels = vinfo->channels;
@@ -999,46 +1073,67 @@ void LoadSfx(char *filePath, byte sfxID)
             int rateMul = (srcRate <= 22050) ? 2 : 1;
             
             // Always convert to stereo (2 channels) for the engine's mixer
-            uint finalLen = (Uint32)(samples * 2 * 2 * rateMul); 
-            byte *audioBuf = (byte *)malloc(finalLen);
-            buf            = audioBuf;
+            // Add a safety margin to prevent overflow
+            size_t maxSamples = (size_t)(samples * 2 * rateMul) + 2048; 
+            Sint16 *audioBuf = (Sint16 *)memalign(16, maxSamples * sizeof(Sint16));
+            if (!audioBuf) {
+                if (sfxFile->buffer) free(sfxFile->buffer);
+                free(sfxFile);
+                ov_clear(&vf);
+                return;
+            }
             
             // Temporary buffer for decoding
-            int decodeBufSize = 4096;
-            byte *decodeBuf = (byte *)malloc(decodeBufSize);
+            int decodeBufSize = 4096; // bytes
+            Sint16 *decodeBuf = (Sint16 *)memalign(16, decodeBufSize);
+            if (!decodeBuf) {
+                free(audioBuf);
+                if (sfxFile->buffer) free(sfxFile->buffer);
+                free(sfxFile);
+                ov_clear(&vf);
+                return;
+            }
 
-            size_t bytes_written = 0;
-            while ((read = (int)ov_read(&vf, (char *)decodeBuf, decodeBufSize, 1, 2, 1, &bitstream)) > 0) {
-                int sample_count = read / 2;
-                Sint16 *src = (Sint16*)decodeBuf;
-                Sint16 *dst = (Sint16*)(audioBuf + bytes_written);
+            size_t samples_written = 0;
+            size_t max_expansion_per_read = (decodeBufSize / 2) * 2 * rateMul; // max stereo samples produced per read
+            while (samples_written + max_expansion_per_read < maxSamples && (read = (int)ov_read(&vf, (char *)decodeBuf, decodeBufSize, 1, 2, 1, &bitstream)) > 0) {
+                int samples_read_per_channel = read / (channels * 2);
+                if (samples_read_per_channel == 0) break;
 
-                for (int s = 0; s < sample_count; s++) {
+                Sint16 *src = decodeBuf;
+                Sint16 *dst = audioBuf + samples_written;
+
+                for (int s = 0; s < samples_read_per_channel; s++) {
                     Sint16 valL = src[s * channels];
                     Sint16 valR = (channels > 1) ? src[s * channels + 1] : valL;
                     
                     for (int r = 0; r < rateMul; r++) {
-                        dst[(s * rateMul + r) * 2 + 0] = valL;
-                        dst[(s * rateMul + r) * 2 + 1] = valR;
+                        dst[0] = valL;
+                        dst[1] = valR;
+                        dst += 2;
                     }
                 }
-                bytes_written += (sample_count * 2 * 2 * rateMul);
+                samples_written += (samples_read_per_channel * 2 * rateMul);
             }
-            free(decodeBuf);
-
             if (read < 0) {
                 free(audioBuf);
+                if (decodeBuf) free(decodeBuf);
+                if (sfxFile->buffer) free(sfxFile->buffer);
+                free(sfxFile);
                 ov_clear(&vf);
-                PrintLog("failed to read ogg sfx!");
+                PrintLog("failed to read ogg sfx %s error %d!", filePath, read);
                 return;
             }
 
             ov_clear(&vf);
+            if (decodeBuf) free(decodeBuf);
+            if (sfxFile->buffer) free(sfxFile->buffer);
+            free(sfxFile);
 
             LockAudioDevice();
             StrCopy(sfxList[sfxID].name, filePath);
-            sfxList[sfxID].buffer = (Sint16 *)audioBuf;
-            sfxList[sfxID].length = bytes_written / sizeof(Sint16);
+            sfxList[sfxID].buffer = audioBuf;
+            sfxList[sfxID].length = samples_written;
             sfxList[sfxID].loaded = true;
             UnlockAudioDevice();
         }
@@ -1060,6 +1155,11 @@ void LoadSfx(char *filePath, byte sfxID)
 }
 void PlaySfx(int sfx, bool loop)
 {
+    if (sfx < 0 || sfx >= SFX_COUNT) return;
+    if (!sfxList[sfx].loaded || !sfxList[sfx].buffer) return;
+
+    // PrintLog("PS3: PlaySfx id=%d (%s) loop=%d", sfx, sfxList[sfx].name, (int)loop);
+
     LockAudioDevice();
     int sfxChannelID = -1;
     for (int c = 0; c < CHANNEL_COUNT; ++c) {
@@ -1069,12 +1169,14 @@ void PlaySfx(int sfx, bool loop)
         }
     }
 
-    ChannelInfo *sfxInfo  = &sfxChannels[sfxChannelID];
-    sfxInfo->sfxID        = sfx;
-    sfxInfo->samplePtr    = sfxList[sfx].buffer;
-    sfxInfo->sampleLength = sfxList[sfx].length;
-    sfxInfo->loopSFX      = loop;
-    sfxInfo->pan          = 0;
+    if (sfxChannelID >= 0) {
+        ChannelInfo *sfxInfo  = &sfxChannels[sfxChannelID];
+        sfxInfo->sfxID        = sfx;
+        sfxInfo->samplePtr    = sfxList[sfx].buffer;
+        sfxInfo->sampleLength = sfxList[sfx].length;
+        sfxInfo->loopSFX      = loop;
+        sfxInfo->pan          = 0;
+    }
     UnlockAudioDevice();
 }
 void SetSfxAttributes(int sfx, int loopCount, sbyte pan)

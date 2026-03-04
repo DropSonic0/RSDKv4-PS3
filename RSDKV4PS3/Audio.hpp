@@ -14,10 +14,18 @@
 
 #define MAX_VOLUME (100)
 
+#if RETRO_PLATFORM == RETRO_PS3
+#define MUSBUFFER_SIZE   (0x1000000)
+#else
 #define MUSBUFFER_SIZE   (0x200000)
-#define STREAMFILE_COUNT (2)
+#endif
+#define STREAMFILE_COUNT (4)
 
+#if RETRO_PLATFORM == RETRO_PS3
+#define MIX_BUFFER_SAMPLES (2048)
+#else
 #define MIX_BUFFER_SAMPLES (256)
+#endif
 
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2
 
@@ -61,83 +69,58 @@ typedef unsigned long long Uint64;
 #define UnlockAudioDevice() ;
 #endif
 
-struct TrackInfo {
-    char fileName[0x40];
-    bool trackLoop;
-    uint loopPoint;
-};
-
 #if RETRO_PLATFORM == RETRO_PS3
-struct __attribute__((aligned(16))) StreamInfo {
-    Sint16 buffer[MIX_BUFFER_SAMPLES]; // Align buffer at the start
-    OggVorbis_File vorbisFile;
-    int vorbBitstream;
-    bool trackLoop;
-    uint loopPoint;
-    bool loaded;
-    byte padding[7]; // Ensure 16-byte alignment of the next element in an array
-};
-
-struct __attribute__((aligned(16))) SFXInfo {
-    char name[0x40];
-    Sint16 *buffer;
-    size_t length;
-    bool loaded;
-    byte padding[7];
-};
-
-struct __attribute__((aligned(16))) ChannelInfo {
-    size_t sampleLength;
-    Sint16 *samplePtr;
-    int sfxID;
-    byte loopSFX;
-    sbyte pan;
-    byte padding[6];
-};
-
-struct __attribute__((aligned(16))) StreamFile {
-    byte buffer[MUSBUFFER_SIZE];
-    int fileSize;
-    int filePos;
-    byte padding[8];
-};
+#define RETRO_AUDIO_ALIGN __attribute__((aligned(16)))
 #else
-struct StreamInfo {
-    OggVorbis_File vorbisFile;
-    int vorbBitstream;
-#if RETRO_USING_SDL1
-    SDL_AudioSpec spec;
+#define RETRO_AUDIO_ALIGN
 #endif
+
+struct RETRO_AUDIO_ALIGN TrackInfo {
+    char fileName[0x40];
+    int trackLoop;
+    uint loopPoint;
+    byte padding[8]; // Total 80 bytes
+};
+
+struct RETRO_AUDIO_ALIGN StreamInfo {
+    Sint16 buffer[MIX_BUFFER_SAMPLES * 2];
+    uint loopPoint;
+    int trackLoop;
+    int loaded;
+    int vorbBitstream;
 #if RETRO_USING_SDL2
     SDL_AudioStream *stream;
 #endif
-    Sint16 buffer[MIX_BUFFER_SAMPLES];
-    bool trackLoop;
-    uint loopPoint;
-    bool loaded;
+#if RETRO_USING_SDL1
+    SDL_AudioSpec spec;
+#endif
+    byte padding[12]; // Keep vorbisFile at a consistent 16-byte aligned offset
+    OggVorbis_File vorbisFile;
 };
 
-struct SFXInfo {
+struct RETRO_AUDIO_ALIGN SFXInfo {
     char name[0x40];
     Sint16 *buffer;
     size_t length;
-    bool loaded;
+    int loaded;
+    byte padding[4]; // Make it 80 bytes (multiple of 16)
 };
 
-struct ChannelInfo {
-    size_t sampleLength;
+struct RETRO_AUDIO_ALIGN ChannelInfo {
     Sint16 *samplePtr;
+    size_t sampleLength;
     int sfxID;
-    byte loopSFX;
+    int loopSFX;
     sbyte pan;
+    byte padding[15]; // Total 32 bytes on 32-bit (4+4+4+4+1+15=32)
 };
 
-struct StreamFile {
-    byte buffer[MUSBUFFER_SIZE];
-    int fileSize;
-    int filePos;
+struct RETRO_AUDIO_ALIGN StreamFile {
+    byte *buffer;
+    int vsize;
+    int vpos;
+    byte padding[4];
 };
-#endif
 
 enum MusicStatuses {
     MUSIC_STOPPED = 0,
@@ -248,12 +231,14 @@ void LoadSfx(char *filePath, byte sfxID);
 void PlaySfx(int sfx, bool loop);
 inline void StopSfx(int sfx)
 {
+    LockAudioDevice();
     for (int i = 0; i < CHANNEL_COUNT; ++i) {
         if (sfxChannels[i].sfxID == sfx) {
             MEM_ZERO(sfxChannels[i]);
             sfxChannels[i].sfxID = -1;
         }
     }
+    UnlockAudioDevice();
 }
 void SetSfxAttributes(int sfx, int loopCount, sbyte pan);
 
@@ -348,7 +333,11 @@ inline void StopAllSfx()
     LockAudioDevice();
 #endif
 
-    for (int i = 0; i < CHANNEL_COUNT; ++i) sfxChannels[i].sfxID = -1;
+    for (int i = 0; i < CHANNEL_COUNT; ++i) {
+        sfxChannels[i].sfxID = -1;
+        sfxChannels[i].samplePtr = NULL;
+        sfxChannels[i].sampleLength = 0;
+    }
 
 #if !RETRO_USE_ORIGINAL_CODE
     UnlockAudioDevice();
@@ -356,6 +345,15 @@ inline void StopAllSfx()
 }
 inline void ReleaseGlobalSfx()
 {
+    LockAudioDevice();
+    for (int i = 0; i < CHANNEL_COUNT; ++i) {
+        if (sfxChannels[i].sfxID >= 0 && sfxChannels[i].sfxID < globalSFXCount) {
+            sfxChannels[i].sfxID = -1;
+            sfxChannels[i].samplePtr = NULL;
+            sfxChannels[i].sampleLength = 0;
+        }
+    }
+
     for (int i = globalSFXCount - 1; i >= 0; --i) {
         if (sfxList[i].loaded) {
             StrCopy(sfxList[i].name, "");
@@ -370,9 +368,19 @@ inline void ReleaseGlobalSfx()
     }
 
     globalSFXCount = 0;
+    UnlockAudioDevice();
 }
 inline void ReleaseStageSfx()
 {
+    LockAudioDevice();
+    for (int i = 0; i < CHANNEL_COUNT; ++i) {
+        if (sfxChannels[i].sfxID >= globalSFXCount) {
+            sfxChannels[i].sfxID = -1;
+            sfxChannels[i].samplePtr = NULL;
+            sfxChannels[i].sampleLength = 0;
+        }
+    }
+
     for (int i = (stageSFXCount + globalSFXCount) - 1; i >= globalSFXCount; --i) {
         if (sfxList[i].loaded) {
             StrCopy(sfxList[i].name, "");
@@ -387,6 +395,7 @@ inline void ReleaseStageSfx()
     }
 
     stageSFXCount = 0;
+    UnlockAudioDevice();
 }
 
 inline void ReleaseAudioDevice()
@@ -395,6 +404,13 @@ inline void ReleaseAudioDevice()
     StopAllSfx();
     ReleaseStageSfx();
     ReleaseGlobalSfx();
+
+    LockAudioDevice();
+    for (int i = 0; i < STREAMFILE_COUNT; i++) {
+        if (streamFile[i].buffer) free(streamFile[i].buffer);
+        streamFile[i].buffer = NULL;
+    }
+    UnlockAudioDevice();
 }
 
 #endif // !AUDIO_H

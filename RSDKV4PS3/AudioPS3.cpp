@@ -141,7 +141,7 @@ bool InitPS3Audio(uint32_t samplerate, uint32_t buffersize) {
 
     cellAudioPortStart(aud_ctx->audio_port);
     
-    sys_ppu_thread_create(&aud_ctx->thread, audio_event_loop, (uint64_t)(uintptr_t)aud_ctx, 500, 262144, SYS_PPU_THREAD_CREATE_JOINABLE, "AudioThread");
+    sys_ppu_thread_create(&aud_ctx->thread, audio_event_loop, (uint64_t)(uintptr_t)aud_ctx, 500, 1048576, SYS_PPU_THREAD_CREATE_JOINABLE, "AudioThread");
 
     return true;
 }

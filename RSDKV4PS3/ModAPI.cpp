@@ -20,8 +20,31 @@ char modScriptPaths[OBJECT_COUNT][0x40];
 byte modScriptFlags[OBJECT_COUNT];
 byte modObjCount = 0;
 
+#if RETRO_PLATFORM != RETRO_PS3
 #include <filesystem>
 #include <locale>
+#endif
+
+#if RETRO_PLATFORM == RETRO_PS3
+#include <dirent.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#ifndef S_ISDIR
+#ifdef S_IFDIR
+#define S_ISDIR(m) (((m)&S_IFMT) == S_IFDIR)
+#else
+#define S_ISDIR(m) (((m)&0170000) == 0040000)
+#endif
+#endif
+#ifndef S_ISREG
+#ifdef S_IFREG
+#define S_ISREG(m) (((m)&S_IFMT) == S_IFREG)
+#else
+#define S_ISREG(m) (((m)&0170000) == 0100000)
+#endif
+#endif
+#endif
 
 void OpenModMenu()
 {
@@ -29,6 +52,7 @@ void OpenModMenu()
     Engine.modMenuCalled = true;
 }
 
+#if RETRO_PLATFORM != RETRO_PS3
 #if RETRO_PLATFORM == RETRO_ANDROID
 namespace fs = std::__fs::filesystem; // this is so we can avoid using c++17, which causes a ton of warnings w asio and looks ugly
 #else
@@ -54,6 +78,7 @@ fs::path resolvePath(fs::path given)
     }
     return given; // might work might not!
 }
+#endif
 
 void InitMods()
 {
@@ -68,6 +93,7 @@ void InitMods()
     char modBuf[0x100];
     sprintf(modBuf, "%smods", modsPath);
 
+#if RETRO_PLATFORM != RETRO_PS3
     fs::path modPath = resolvePath(modBuf);
 
     if (fs::exists(modPath) && fs::is_directory(modPath)) {
@@ -117,6 +143,53 @@ void InitMods()
             PrintLog(fe.what());
         }
     }
+#else
+    DIR *dir = opendir(modBuf);
+    if (dir) {
+        char mod_config[0x100];
+        sprintf(mod_config, "%s/modconfig.ini", modBuf);
+        FileIO *configFile = fOpen(mod_config, "r");
+        if (configFile) {
+            fClose(configFile);
+            IniParser modConfig(mod_config, false);
+
+            for (int m = 0; m < modConfig.items.size(); ++m) {
+                bool active = false;
+                ModInfo info;
+                modConfig.GetBool("mods", modConfig.items[m].key, &active);
+                if (LoadMod(&info, modBuf, modConfig.items[m].key, active))
+                    modList.push_back(info);
+            }
+        }
+
+        struct dirent *entry;
+        while ((entry = readdir(dir)) != NULL) {
+            if (entry->d_name[0] == '.')
+                continue;
+
+            char fullPath[0x100];
+            sprintf(fullPath, "%s/%s", modBuf, entry->d_name);
+
+            struct stat st;
+            if (stat(fullPath, &st) == 0 && S_ISDIR(st.st_mode)) {
+                ModInfo info;
+                bool flag = true;
+                for (int m = 0; m < modList.size(); ++m) {
+                    if (modList[m].folder == entry->d_name) {
+                        flag = false;
+                        break;
+                    }
+                }
+
+                if (flag) {
+                    if (LoadMod(&info, modBuf, entry->d_name, false))
+                        modList.push_back(info);
+                }
+            }
+        }
+        closedir(dir);
+    }
+#endif
 
     forceUseScripts    = forceUseScripts_Config;
     skipStartMenu      = skipStartMenu_Config;
@@ -229,6 +302,65 @@ bool LoadMod(ModInfo *info, std::string modsPath, std::string folder, bool activ
     return false;
 }
 
+#if RETRO_PLATFORM == RETRO_PS3
+void ScanModFolder_Recursive(ModInfo *info, const char *path, const char *folderName)
+{
+    DIR *dir = opendir(path);
+    if (!dir)
+        return;
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        if (entry->d_name[0] == '.')
+            continue;
+
+        char fullPath[0x100];
+        sprintf(fullPath, "%s/%s", path, entry->d_name);
+
+        struct stat st;
+        if (stat(fullPath, &st) == 0) {
+            if (S_ISDIR(st.st_mode)) {
+                ScanModFolder_Recursive(info, fullPath, folderName);
+            }
+            else if (S_ISREG(st.st_mode)) {
+                char modBuf[0x100];
+                StrCopy(modBuf, fullPath);
+
+                char folderTest[4][0x10];
+                sprintf(folderTest[0], "%s/", folderName);
+                sprintf(folderTest[1], "%s\\", folderName);
+                StringLowerCase(folderTest[2], folderTest[0]);
+                StringLowerCase(folderTest[3], folderTest[1]);
+
+                int tokenPos = -1;
+                for (int i = 0; i < 4; ++i) {
+                    tokenPos = FindLastStringToken(modBuf, folderTest[i]);
+                    if (tokenPos >= 0)
+                        break;
+                }
+
+                if (tokenPos >= 0) {
+                    char buffer[0x100];
+                    for (int i = StrLength(modBuf); i >= tokenPos; --i) {
+                        buffer[i - tokenPos] = modBuf[i] == '\\' ? '/' : modBuf[i];
+                    }
+
+                    std::string path(buffer);
+                    char pathLower[0x100];
+                    memset(pathLower, 0, sizeof(char) * 0x100);
+                    for (int c = 0; c < path.size(); ++c) {
+                        pathLower[c] = tolower(path.c_str()[c]);
+                    }
+
+                    info->fileMap.insert(std::pair<std::string, std::string>(pathLower, modBuf));
+                }
+            }
+        }
+    }
+    closedir(dir);
+}
+#endif
+
 void ScanModFolder(ModInfo *info)
 {
     if (!info)
@@ -237,6 +369,7 @@ void ScanModFolder(ModInfo *info)
     char modBuf[0x100];
     sprintf(modBuf, "%smods", modsPath);
 
+#if RETRO_PLATFORM != RETRO_PS3
     fs::path modPath = resolvePath(modBuf);
 
     const std::string modDir = modPath.string() + "/" + info->folder;
@@ -338,12 +471,27 @@ void ScanModFolder(ModInfo *info)
             PrintLog(fe.what());
         }
     }
+#else
+    char modDir[0x100];
+    sprintf(modDir, "%s/%s", modBuf, info->folder.c_str());
+
+    info->fileMap.clear();
+
+    char dataPath[0x100];
+    sprintf(dataPath, "%s/Data", modDir);
+    ScanModFolder_Recursive(info, dataPath, "Data");
+
+    char bytecodePath[0x100];
+    sprintf(bytecodePath, "%s/Bytecode", modDir);
+    ScanModFolder_Recursive(info, bytecodePath, "Bytecode");
+#endif
 }
 
 void SaveMods()
 {
     char modBuf[0x100];
     sprintf(modBuf, "%smods", modsPath);
+#if RETRO_PLATFORM != RETRO_PS3
     fs::path modPath = resolvePath(modBuf);
 
     if (fs::exists(modPath) && fs::is_directory(modPath)) {
@@ -358,6 +506,23 @@ void SaveMods()
 
         modConfig.Write(mod_config.c_str(), false);
     }
+#else
+    DIR *dir = opendir(modBuf);
+    if (dir) {
+        closedir(dir);
+        char mod_config[0x100];
+        sprintf(mod_config, "%s/modconfig.ini", modBuf);
+        IniParser modConfig;
+
+        for (int m = 0; m < modList.size(); ++m) {
+            ModInfo *info = &modList[m];
+
+            modConfig.SetBool("mods", info->folder.c_str(), info->active);
+        }
+
+        modConfig.Write(mod_config, false);
+    }
+#endif
 }
 
 void RefreshEngine()

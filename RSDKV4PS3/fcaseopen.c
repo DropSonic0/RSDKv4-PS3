@@ -28,7 +28,28 @@ THE SOFTWARE.
 
 #include <dirent.h>
 #include <errno.h>
+#if !defined(__CELLOS_LV2__)
 #include <unistd.h>
+#endif
+
+#if defined(__CELLOS_LV2__)
+static char *strsep(char **stringp, const char *delim)
+{
+    char *begin, *end;
+    begin = *stringp;
+    if (begin == NULL)
+        return NULL;
+    end = begin + strcspn(begin, delim);
+    if (*end) {
+        *end++   = '\0';
+        *stringp = end;
+    }
+    else {
+        *stringp = NULL;
+    }
+    return begin;
+}
+#endif
 
 // r must have strlen(path) + 3 bytes
 static int casepath(char const *path, char *r)
@@ -122,15 +143,15 @@ FILE *fcaseopen(char const *path, char const *mode)
 void casechdir(char const *path)
 {
 #if !defined(_WIN32)
-    char *r = (char*)alloca(strlen(path) + 3);
-    if (casepath(path, r))
-    {
+#if !defined(__CELLOS_LV2__)
+    char *r = (char *)alloca(strlen(path) + 3);
+    if (casepath(path, r)) {
         chdir(r);
     }
-    else
-    {
+    else {
         errno = ENOENT;
     }
+#endif
 #else
     chdir(path);
 #endif

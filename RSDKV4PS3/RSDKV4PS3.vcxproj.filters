@@ -92,6 +92,9 @@
     <ClCompile Include="..\dependencies\all\stb-image\stb_vorbis.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="fcaseopen.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Animation.hpp">
@@ -167,6 +170,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="AudioPS3.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fcaseopen.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -72,7 +72,7 @@
       <OptimizationLevel>Level2</OptimizationLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <AdditionalIncludeDirectories>.C:\usr\local\cell\target\ppu\include;C:\Users\Admin\Documents\Visual Studio 2012\Projects\RSDKV4PS3\dependencies\all\include;C:\Users\Admin\Documents\Visual Studio 2012\Projects\RSDKV4PS3\dependencies\all\stb-image;C:\Users\Admin\Documents\Visual Studio 2012\Projects\RSDKV4PS3\dependencies\all\tinyxml2;C:\Users\Admin\Documents\Visual Studio 2012\Projects\RSDKV4PS3\RSDKV4PS3\NativeObjects;C:\Users\Admin\Documents\Visual Studio 2012\Projects\RSDKV4PS3\RSDKV4PS3;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>-DRETRO_USE_MOD_LOADER=0 -DRETRO_USE_NETWORKING=0 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-DRETRO_USE_NETWORKING=0 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <OutputFormat>ELFFile</OutputFormat>
@@ -90,6 +90,7 @@
     <ClCompile Include="Collision.cpp" />
     <ClCompile Include="Debug.cpp" />
     <ClCompile Include="Drawing.cpp" />
+    <ClCompile Include="fcaseopen.c" />
     <ClCompile Include="Ini.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="main.cpp" />
@@ -117,6 +118,7 @@
     <ClInclude Include="Collision.hpp" />
     <ClInclude Include="Debug.hpp" />
     <ClInclude Include="Drawing.hpp" />
+    <ClInclude Include="fcaseopen.h" />
     <ClInclude Include="Ini.hpp" />
     <ClInclude Include="Input.hpp" />
     <ClInclude Include="Math.hpp" />

@@ -15,7 +15,11 @@
 #endif
 
 #ifndef RETRO_USE_NETWORKING
+#if RETRO_PLATFORM == RETRO_PS3
+#define RETRO_USE_NETWORKING (0)
+#else
 #define RETRO_USE_NETWORKING (!RETRO_USE_ORIGINAL_CODE && 1)
+#endif
 #endif
 
 // Forces all DLC flags to be disabled, this should be enabled in any public releases
@@ -30,7 +34,9 @@
 #include <string.h>
 #include <cmath>
 #if RETRO_USE_MOD_LOADER
+#if RETRO_PLATFORM != RETRO_PS3
 #include <regex>
+#endif
 #endif
 
 // ================
@@ -67,6 +73,7 @@ typedef unsigned int uint;
 #include "ps3_compat.h"
 #define RETRO_PLATFORM   (RETRO_PS3)
 #define RETRO_DEVICETYPE (RETRO_STANDARD)
+#define FORCE_CASE_INSENSITIVE (1)
 #elif defined _WIN32
 
 #if defined WINAPI_FAMILY

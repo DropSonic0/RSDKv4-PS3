@@ -2,6 +2,7 @@
 
 #if RETRO_PLATFORM == RETRO_PS3
 #include "AudioPS3.hpp"
+#include <dirent.h>
 #endif
 
 #if !RETRO_USE_ORIGINAL_CODE
@@ -373,6 +374,22 @@ void RetroEngine::Init()
     InitUserdata();
 #if RETRO_USE_MOD_LOADER
     InitMods();
+#endif
+
+    // Check if Scripts folder exists in the same directory as Data.rsdk
+    char scriptsPath[0x100];
+#if RETRO_PLATFORM == RETRO_PS3
+    sprintf(scriptsPath, "%sScripts", BASE_PATH);
+    DIR *scriptsDir = opendir(scriptsPath);
+    if (!scriptsDir) {
+        sprintf(scriptsPath, "%sscripts", BASE_PATH);
+        scriptsDir = opendir(scriptsPath);
+    }
+    if (scriptsDir) {
+        forceUseScripts = true;
+        closedir(scriptsDir);
+        PrintLog("External Scripts folder detected, forcing TxtScripts mode.");
+    }
 #endif
 #if RETRO_USE_NETWORKING
     InitNetwork();
@@ -904,6 +921,7 @@ void RetroEngine::LoadXMLPalettes()
 
                         std::string text = clrsElement->GetText();
                         // working: AABBFF #FFaaFF (12, 32, 34) (145 53 234)
+#if RETRO_PLATFORM != RETRO_PS3
                         std::regex search(R"((?:#?([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2}))|(?:\((\d+),?\s*(\d+),?\s*(\d+)\)))",
                                           std::regex_constants::icase | std::regex_constants::ECMAScript);
                         std::smatch match;
@@ -928,6 +946,57 @@ void RetroEngine::LoadXMLPalettes()
                             SetPaletteEntry(bank, index++, r, g, b);
                             text = match.suffix();
                         }
+#else
+                        const char *textPtr = text.c_str();
+                        while (*textPtr) {
+                            while (*textPtr && isspace((unsigned char)*textPtr)) textPtr++;
+                            if (!*textPtr)
+                                break;
+
+                            int r, g, b;
+                            if (*textPtr == '(') {
+                                textPtr++;
+                                r = (int)strtol(textPtr, (char **)&textPtr, 10);
+                                while (*textPtr && (isspace((unsigned char)*textPtr) || *textPtr == ',')) textPtr++;
+                                g = (int)strtol(textPtr, (char **)&textPtr, 10);
+                                while (*textPtr && (isspace((unsigned char)*textPtr) || *textPtr == ',')) textPtr++;
+                                b = (int)strtol(textPtr, (char **)&textPtr, 10);
+                                while (*textPtr && *textPtr != ')') textPtr++;
+                                if (*textPtr == ')')
+                                    textPtr++;
+                                SetPaletteEntry(bank, index++, r, g, b);
+                            }
+                            else {
+                                if (*textPtr == '#')
+                                    textPtr++;
+
+                                if (isxdigit((unsigned char)textPtr[0]) && isxdigit((unsigned char)textPtr[1]) && isxdigit((unsigned char)textPtr[2])
+                                    && isxdigit((unsigned char)textPtr[3]) && isxdigit((unsigned char)textPtr[4])
+                                    && isxdigit((unsigned char)textPtr[5])) {
+                                    char hex[3];
+                                    hex[2] = 0;
+
+                                    hex[0] = textPtr[0];
+                                    hex[1] = textPtr[1];
+                                    r      = (int)strtol(hex, NULL, 16);
+
+                                    hex[0] = textPtr[2];
+                                    hex[1] = textPtr[3];
+                                    g      = (int)strtol(hex, NULL, 16);
+
+                                    hex[0] = textPtr[4];
+                                    hex[1] = textPtr[5];
+                                    b      = (int)strtol(hex, NULL, 16);
+
+                                    SetPaletteEntry(bank, index++, r, g, b);
+                                    textPtr += 6;
+                                }
+                                else {
+                                    textPtr++;
+                                }
+                            }
+                        }
+#endif
                     }
                 }
             }

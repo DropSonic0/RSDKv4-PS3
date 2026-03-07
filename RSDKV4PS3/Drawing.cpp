@@ -214,9 +214,15 @@ int InitRenderDevice()
 
         GLuint w, h;
         psglGetDeviceDimensions(psgl_device, &w, &h);
-        displaySettings.width   = w;
+
+        float aspect            = SCREEN_XSIZE_CONFIG / (float)SCREEN_YSIZE;
         displaySettings.height  = h;
-        displaySettings.offsetX = 0;
+        displaySettings.width   = aspect * displaySettings.height;
+        displaySettings.offsetX = abs((int)w - displaySettings.width) / 2;
+        if (displaySettings.width > w) {
+            displaySettings.offsetX = 0;
+            displaySettings.width   = w;
+        }
     } else {
         PrintLog("PSGL ERROR: Cannot call psglMakeCurrent with NULL context or device!");
         return 0;
@@ -668,7 +674,7 @@ void SetScreenDimensions(int width, int height)
     SCREEN_CENTERX_F = aspect * SCREEN_CENTERY;
     SetPerspectiveMatrix(SCREEN_YSIZE * aspect, SCREEN_YSIZE_F, 0.0, 1000.0);
 #if RETRO_USING_OPENGL
-    glViewport(0, 0, displaySettings.width, displaySettings.height);
+    glViewport(displaySettings.offsetX, 0, displaySettings.width, displaySettings.height);
 #endif
 
     Engine.useHighResAssets = displaySettings.height > (SCREEN_YSIZE * 2);
@@ -1084,10 +1090,16 @@ void SetFullScreen(bool fs)
         }
 
 #if RETRO_PLATFORM == RETRO_PS3
-        displaySettings.width   = w;
+        float aspect            = SCREEN_XSIZE_CONFIG / (float)SCREEN_YSIZE;
         displaySettings.height  = h;
-        displaySettings.offsetX = 0;
-        glViewport(0, 0, displaySettings.width, displaySettings.height);
+        displaySettings.width   = aspect * displaySettings.height;
+        displaySettings.offsetX = abs((int)w - displaySettings.width) / 2;
+        if (displaySettings.width > w) {
+            displaySettings.offsetX = 0;
+            displaySettings.width   = w;
+        }
+
+        SetupViewport();
 #elif RETRO_PLATFORM != RETRO_iOS && RETRO_PLATFORM != RETRO_ANDROID
         float aspect            = SCREEN_XSIZE_CONFIG / (float)SCREEN_YSIZE;
         displaySettings.height  = h;

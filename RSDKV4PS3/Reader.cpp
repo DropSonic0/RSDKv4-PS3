@@ -46,7 +46,7 @@ bool CheckRSDKFile(const char *filePath)
                 return false;
         }
 
-        Engine.usingDataFile = true;
+        Engine.usingDataFile = false;
 #if !RETRO_USE_ORIGINAL_CODE
         Engine.usingDataFile_Config = true;
 #endif
@@ -133,7 +133,7 @@ inline bool ends_with(std::string const &value, std::string const &ending)
 {
     if (ending.size() > value.size())
         return false;
-    return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+    return std::equal(value.end() - ending.size(), value.end(), ending.begin());
 }
 #endif
 
@@ -160,7 +160,7 @@ bool LoadFile(const char *filePath, FileInfo *fileInfo)
     for (; m < modList.size(); ++m) {
         if (modList[m].active) {
             std::map<std::string, std::string>::const_iterator iter = modList[m].fileMap.find(pathLower);
-            if (iter != modList[m].fileMap.cend()) {
+            if (iter != modList[m].fileMap.end()) {
                 StrCopy(filePathBuf, iter->second.c_str());
                 forceFolder = true;
                 addPath     = false;
@@ -184,7 +184,7 @@ bool LoadFile(const char *filePath, FileInfo *fileInfo)
     }
 #endif
 
-#if RETRO_PLATFORM == RETRO_OSX || RETRO_PLATFORM == RETRO_ANDROID
+#if RETRO_PLATFORM == RETRO_OSX || RETRO_PLATFORM == RETRO_ANDROID || RETRO_PLATFORM == RETRO_PS3
 #if RETRO_USE_MOD_LOADER
     if (addPath) {
 #else

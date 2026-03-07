@@ -8,8 +8,11 @@ extern byte playerCount;
 
 #if RETRO_USE_MOD_LOADER
 #include <string>
+#include <vector>
 #include <map>
+#if RETRO_PLATFORM != RETRO_PS3
 #include <unordered_map>
+#endif
 #include <tinyxml2.h>
 
 struct ModInfo {

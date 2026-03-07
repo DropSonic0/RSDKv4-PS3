@@ -243,9 +243,15 @@ void InitNetwork()
     try {
         udp::resolver resolver(io_context);
         asio::error_code ec;
+#if RETRO_PLATFORM == RETRO_PS3
+        char portBuf[16];
+        sprintf(portBuf, "%d", networkPort);
+        auto endpoint = *resolver.resolve(udp::v4(), networkHost, portBuf, ec).begin();
+#else
         auto endpoint = *resolver.resolve(udp::v4(), networkHost, std::to_string(networkPort), ec).begin();
+#endif
         session.reset();
-        auto newsession = std::make_shared<NetworkSession>(io_context, endpoint);
+        std::shared_ptr<NetworkSession> newsession = std::make_shared<NetworkSession>(io_context, endpoint);
         session.swap(newsession);
     } catch (std::exception &e) {
         Engine.onlineActive = false;

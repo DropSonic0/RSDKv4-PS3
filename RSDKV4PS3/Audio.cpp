@@ -998,24 +998,40 @@ void LoadSfx(char *filePath, byte sfxID)
                         uint32_t dataLen = READ_LE32(ptr + 4);
                         ptr += 8;
                         
-                        if (srcChannels > 0 && bitsPerSample == 16) {
-                            int sampleCount = (int)(dataLen / 2); // Total Sint16 samples in file
+                        if (srcChannels > 0 && (bitsPerSample == 16 || bitsPerSample == 8)) {
+                            int sampleSize = bitsPerSample / 8;
+                            int sampleCount = (int)(dataLen / sampleSize);
                             
                             PrintLog("PS3: Loading WAV %s (%d channels, %d Hz, %d bits, %d samples)", filePath, srcChannels, srcRate, bitsPerSample, sampleCount);
 
                             // We want 44100Hz Stereo
-                            int rateMul = (srcRate <= 22050) ? 2 : 1;
+                            int rateMul = 1;
+                            if (srcRate <= 11025) rateMul = 4;
+                            else if (srcRate <= 22050) rateMul = 2;
+
                             int dstSampleCount = (sampleCount / srcChannels) * 2 * rateMul;
                             
                             Sint16 *buffer = (Sint16 *)memalign(16, dstSampleCount * sizeof(Sint16));
                             
                             for (int s = 0; s < dstSampleCount / 2; s++) {
                                 int srcIdx = (s / rateMul) * srcChannels;
-                                byte *samplePtr = ptr + (srcIdx * 2);
+                                byte *samplePtr = ptr + (srcIdx * sampleSize);
                                 
-                                // Read Little Endian 16-bit and auto-convert to Native Endian (BE on PS3)
-                                Sint16 valL = (Sint16)READ_LE16(samplePtr);
-                                Sint16 valR = (srcChannels > 1) ? (Sint16)READ_LE16(samplePtr + 2) : valL;
+                                Sint16 valL = 0;
+                                if (bitsPerSample == 16) {
+                                    valL = (Sint16)READ_LE16(samplePtr);
+                                } else {
+                                    valL = (Sint16)((samplePtr[0] - 128) << 8);
+                                }
+                                
+                                Sint16 valR = valL;
+                                if (srcChannels > 1) {
+                                    if (bitsPerSample == 16) {
+                                        valR = (Sint16)READ_LE16(samplePtr + 2);
+                                    } else {
+                                        valR = (Sint16)((samplePtr[1] - 128) << 8);
+                                    }
+                                }
                                 
                                 buffer[s * 2 + 0] = valL;
                                 buffer[s * 2 + 1] = valR;
@@ -1031,7 +1047,7 @@ void LoadSfx(char *filePath, byte sfxID)
                         break;
                     }
                     uint32_t chunkSize = READ_LE32(ptr + 4);
-                    ptr += 8 + chunkSize;
+                    ptr += 8 + ((chunkSize + 1) & ~1);
                 }
             }
             delete[] wavData;
@@ -1081,7 +1097,9 @@ void LoadSfx(char *filePath, byte sfxID)
 
             int channels = vinfo->channels;
             int srcRate = vinfo->rate;
-            int rateMul = (srcRate <= 22050) ? 2 : 1;
+            int rateMul = 1;
+            if (srcRate <= 11025) rateMul = 4;
+            else if (srcRate <= 22050) rateMul = 2;
             
             // Always convert to stereo (2 channels) for the engine's mixer
             // Add a safety margin to prevent overflow

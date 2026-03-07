@@ -333,37 +333,86 @@ void ReleaseInputDevices()
 void ProcessInput()
 {
 #if RETRO_PLATFORM == RETRO_PS3
+    static bool portHoldState[8][INPUT_BUTTONCOUNT];
     CellPadData padData;
-    for (int i = 0; i < 7; i++) {
-        if (cellPadGetData(i, &padData) == CELL_PAD_OK) {
-            if (padData.len > 0) {
-                // Basic PS3 pad to RSDK mapping
-                inputDevice[INPUT_UP].hold      = (padData.button[CELL_PAD_BTN_OFFSET_DIGITAL1] & CELL_PAD_CTRL_UP);
-                inputDevice[INPUT_DOWN].hold    = (padData.button[CELL_PAD_BTN_OFFSET_DIGITAL1] & CELL_PAD_CTRL_DOWN);
-                inputDevice[INPUT_LEFT].hold    = (padData.button[CELL_PAD_BTN_OFFSET_DIGITAL1] & CELL_PAD_CTRL_LEFT);
-                inputDevice[INPUT_RIGHT].hold   = (padData.button[CELL_PAD_BTN_OFFSET_DIGITAL1] & CELL_PAD_CTRL_RIGHT);
-                inputDevice[INPUT_BUTTONA].hold = (padData.button[CELL_PAD_BTN_OFFSET_DIGITAL2] & CELL_PAD_CTRL_CROSS);
-                inputDevice[INPUT_BUTTONB].hold = (padData.button[CELL_PAD_BTN_OFFSET_DIGITAL2] & CELL_PAD_CTRL_CIRCLE);
-                inputDevice[INPUT_BUTTONC].hold = (padData.button[CELL_PAD_BTN_OFFSET_DIGITAL2] & CELL_PAD_CTRL_SQUARE);
-                inputDevice[INPUT_BUTTONX].hold = (padData.button[CELL_PAD_BTN_OFFSET_DIGITAL2] & CELL_PAD_CTRL_TRIANGLE);
-                inputDevice[INPUT_START].hold   = (padData.button[CELL_PAD_BTN_OFFSET_DIGITAL1] & CELL_PAD_CTRL_START);
-                inputDevice[INPUT_SELECT].hold  = (padData.button[CELL_PAD_BTN_OFFSET_DIGITAL1] & CELL_PAD_CTRL_SELECT);
+    CellPadInfo2 padInfo;
+
+    bool anyPadConnected = false;
+    if (cellPadGetInfo2(&padInfo) == CELL_PAD_OK) {
+        for (int i = 0; i < 7; i++) {
+            if (!(padInfo.port_status[i] & CELL_PAD_STATUS_CONNECTED)) {
+                memset(portHoldState[i], 0, sizeof(portHoldState[i]));
+                continue;
+            }
+
+            anyPadConnected = true;
+            if (cellPadGetData(i, &padData) == CELL_PAD_OK && padData.len > 0) {
+                bool *hold = portHoldState[i];
+                memset(hold, 0, sizeof(bool) * INPUT_BUTTONCOUNT);
+
+                uint16_t d1 = padData.button[CELL_PAD_BTN_OFFSET_DIGITAL1];
+                uint16_t d2 = padData.button[CELL_PAD_BTN_OFFSET_DIGITAL2];
+
+                if (d1 & CELL_PAD_CTRL_UP)     hold[INPUT_UP] = true;
+                if (d1 & CELL_PAD_CTRL_DOWN)   hold[INPUT_DOWN] = true;
+                if (d1 & CELL_PAD_CTRL_LEFT)   hold[INPUT_LEFT] = true;
+                if (d1 & CELL_PAD_CTRL_RIGHT)  hold[INPUT_RIGHT] = true;
+
+                if (d2 & CELL_PAD_CTRL_CROSS)    hold[INPUT_BUTTONA] = true;
+                if (d2 & CELL_PAD_CTRL_CIRCLE)   hold[INPUT_BUTTONB] = true;
+                if (d2 & CELL_PAD_CTRL_SQUARE)   hold[INPUT_BUTTONC] = true;
+                if (d2 & CELL_PAD_CTRL_TRIANGLE) hold[INPUT_BUTTONX] = true;
+                if (d2 & CELL_PAD_CTRL_L1)       hold[INPUT_BUTTONL] = true;
+                if (d2 & CELL_PAD_CTRL_R1)       hold[INPUT_BUTTONR] = true;
+                if (d2 & CELL_PAD_CTRL_L2)       hold[INPUT_BUTTONY] = true;
+                if (d2 & CELL_PAD_CTRL_R2)       hold[INPUT_BUTTONZ] = true;
+
+                if (d1 & CELL_PAD_CTRL_START)    hold[INPUT_START] = true;
+                if (d1 & CELL_PAD_CTRL_SELECT)   hold[INPUT_SELECT] = true;
+
+                // Analog Sticks
+                int lx = (int)(padData.button[CELL_PAD_BTN_OFFSET_ANALOG_LEFT_X] & 0xFF);
+                int ly = (int)(padData.button[CELL_PAD_BTN_OFFSET_ANALOG_LEFT_Y] & 0xFF);
+                if (ly < 80)  hold[INPUT_UP]    = true;
+                if (ly > 176) hold[INPUT_DOWN]  = true;
+                if (lx < 80)  hold[INPUT_LEFT]  = true;
+                if (lx > 176) hold[INPUT_RIGHT] = true;
+
+                int rx = (int)(padData.button[CELL_PAD_BTN_OFFSET_ANALOG_RIGHT_X] & 0xFF);
+                int ry = (int)(padData.button[CELL_PAD_BTN_OFFSET_ANALOG_RIGHT_Y] & 0xFF);
+                if (ry < 80)  hold[INPUT_UP]    = true;
+                if (ry > 176) hold[INPUT_DOWN]  = true;
+                if (rx < 80)  hold[INPUT_LEFT]  = true;
+                if (rx > 176) hold[INPUT_RIGHT] = true;
             }
         }
     }
 
-    for (int i = 0; i < INPUT_BUTTONCOUNT; i++) {
-        if (inputDevice[i].hold) {
-            if (!inputDevice[i].press) {
-                inputDevice[i].press = true;
-            }
-        }
-        else {
-            inputDevice[i].press = false;
-        }
+    inputType = anyPadConnected ? 1 : 0;
+
+    bool combinedHold[INPUT_BUTTONCOUNT];
+    memset(combinedHold, 0, sizeof(combinedHold));
+    for (int i = 0; i < 7; i++) {
+        for (int b = 0; b < INPUT_ANY; b++) combinedHold[b] |= portHoldState[i][b];
     }
-#endif
-#if RETRO_USING_SDL2
+
+    bool isAnyDown = false;
+    for (int i = 0; i < INPUT_ANY; i++) {
+        inputDevice[i].press = combinedHold[i] && !inputDevice[i].hold;
+        inputDevice[i].hold  = combinedHold[i];
+        if (combinedHold[i]) isAnyDown = true;
+    }
+
+    inputDevice[INPUT_ANY].press = isAnyDown && !inputDevice[INPUT_ANY].hold;
+    inputDevice[INPUT_ANY].hold  = isAnyDown;
+
+    if (isAnyDown || touches > 0) {
+        Engine.dimTimer = 0;
+    }
+    else if (Engine.dimTimer < Engine.dimLimit && !Engine.masterPaused) {
+        ++Engine.dimTimer;
+    }
+#elif RETRO_USING_SDL2
     int length           = 0;
     const byte *keyState = SDL_GetKeyboardState(&length);
 

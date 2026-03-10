@@ -496,6 +496,7 @@ void MultiplayerScreen_Main(void *objPtr)
                         useHostServer = true;
                         StrCopy(networkHost, "127.0.0.1");
                         WriteSettings();
+                        RunNetwork();
 
                         self->state         = MULTIPLAYERSCREEN_STATE_FLIP;
                         self->nextState     = MULTIPLAYERSCREEN_STATE_HOSTSCR;
@@ -505,6 +506,7 @@ void MultiplayerScreen_Main(void *objPtr)
                     case MULTIPLAYERSCREEN_BUTTON_JOIN:
                         useHostServer = false;
                         WriteSettings();
+                        RunNetwork();
 
                         self->state         = MULTIPLAYERSCREEN_STATE_FLIP;
                         self->nextState     = MULTIPLAYERSCREEN_STATE_IPENTER;
@@ -1026,8 +1028,7 @@ void MultiplayerScreen_Main(void *objPtr)
 
                             StrCopy(networkHost, newIP);
                             WriteSettings();
-                            DisconnectNetwork();
-                            InitNetwork();
+                            RunNetwork();
 
                             self->state         = MULTIPLAYERSCREEN_STATE_FLIP;
                             self->nextState     = MULTIPLAYERSCREEN_STATE_JOINSCR;

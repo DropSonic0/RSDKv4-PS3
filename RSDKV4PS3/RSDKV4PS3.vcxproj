@@ -109,6 +109,7 @@
     <ClCompile Include="Sprite.cpp" />
     <ClCompile Include="String.cpp" />
     <ClCompile Include="Text.cpp" />
+    <ClCompile Include="UPnP.cpp" />
     <ClCompile Include="Userdata.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -137,6 +138,7 @@
     <ClInclude Include="Sprite.hpp" />
     <ClInclude Include="String.hpp" />
     <ClInclude Include="Text.hpp" />
+    <ClInclude Include="UPnP.hpp" />
     <ClInclude Include="Userdata.hpp" />
   </ItemGroup>
   <Import Condition="'$(ConfigurationType)' == 'Makefile' and Exists('$(VCTargetsPath)\Platforms\$(Platform)\SCE.Makefile.$(Platform).targets')" Project="$(VCTargetsPath)\Platforms\$(Platform)\SCE.Makefile.$(Platform).targets" />

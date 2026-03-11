@@ -608,7 +608,27 @@ void MultiplayerScreen_Main(void *objPtr)
             CheckKeyPress(&keyPress);
 
             char ipBuf[0x40];
-            sprintf(ipBuf, "IP: %s", publicIP);
+            int ip[4] = { 0, 0, 0, 0 };
+            sscanf(publicIP, "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3]);
+            int digits[12];
+            for (int i = 0; i < 4; ++i) {
+                digits[i * 3 + 0] = (ip[i] / 100) % 10;
+                digits[i * 3 + 1] = (ip[i] / 10) % 10;
+                digits[i * 3 + 2] = ip[i] % 10;
+            }
+
+            // Swap pairs to display in obfuscated format
+            for (int i = 0; i < 3; ++i) {
+                int t1             = digits[i * 2 + 0];
+                int t2             = digits[i * 2 + 1];
+                digits[i * 2 + 0]  = digits[10 - i * 2];
+                digits[i * 2 + 1]  = digits[11 - i * 2];
+                digits[10 - i * 2] = t1;
+                digits[11 - i * 2] = t2;
+            }
+
+            sprintf(ipBuf, "IP: %d%d%d.%d%d%d.%d%d%d.%d%d%d", digits[0], digits[1], digits[2], digits[3], digits[4], digits[5], digits[6], digits[7], digits[8], digits[9], digits[10],
+                    digits[11]);
             SetStringToFont8(self->codeLabel[2]->text, ipBuf, self->codeLabel[2]->fontID);
             self->codeLabel[2]->alignPtr(self->codeLabel[2], ALIGN_CENTER);
 
@@ -1014,11 +1034,24 @@ void MultiplayerScreen_Main(void *objPtr)
                     if (keyPress.start || keyPress.A) {
                         if (self->selectedButton == MULTIPLAYERSCREEN_BUTTON_JOINROOM) {
                             PlaySfxByName("Menu Select", false);
+
+                            // Revert obfuscation before saving
+                            int digits[12];
+                            memcpy(digits, self->ipDigits, sizeof(int) * 12);
+                            for (int i = 0; i < 3; ++i) {
+                                int t1             = digits[i * 2 + 0];
+                                int t2             = digits[i * 2 + 1];
+                                digits[i * 2 + 0]  = digits[10 - i * 2];
+                                digits[i * 2 + 1]  = digits[11 - i * 2];
+                                digits[10 - i * 2] = t1;
+                                digits[11 - i * 2] = t2;
+                            }
+
                             // Parse IP from digits
                             char newIP[64];
                             int offset = 0;
                             for (int i = 0; i < 4; ++i) {
-                                int val = self->ipDigits[i * 3] * 100 + self->ipDigits[i * 3 + 1] * 10 + self->ipDigits[i * 3 + 2];
+                                int val = digits[i * 3] * 100 + digits[i * 3 + 1] * 10 + digits[i * 3 + 2];
                                 sprintf(newIP + offset, "%d", val);
                                 offset = strlen(newIP);
                                 if (i < 3)
@@ -1134,6 +1167,16 @@ void MultiplayerScreen_Main(void *objPtr)
                 self->ipDigits[i * 3 + 0] = buf[0] - '0';
                 self->ipDigits[i * 3 + 1] = buf[1] - '0';
                 self->ipDigits[i * 3 + 2] = buf[2] - '0';
+            }
+
+            // Swap pairs to display in obfuscated format
+            for (int i = 0; i < 3; ++i) {
+                int t1                     = self->ipDigits[i * 2 + 0];
+                int t2                     = self->ipDigits[i * 2 + 1];
+                self->ipDigits[i * 2 + 0]  = self->ipDigits[10 - i * 2];
+                self->ipDigits[i * 2 + 1]  = self->ipDigits[11 - i * 2];
+                self->ipDigits[10 - i * 2] = t1;
+                self->ipDigits[11 - i * 2] = t2;
             }
 
             if (self->ipPrefixLabel) self->ipPrefixLabel->alpha = 0x100;

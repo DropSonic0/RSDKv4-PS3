@@ -95,6 +95,9 @@
     <ClCompile Include="fcaseopen.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="UPnP.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Animation.hpp">
@@ -173,6 +176,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="fcaseopen.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UPnP.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

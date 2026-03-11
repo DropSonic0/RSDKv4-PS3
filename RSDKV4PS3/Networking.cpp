@@ -1,4 +1,5 @@
 #include "RetroEngine.hpp"
+#include "UPnP.hpp"
 #if RETRO_USE_NETWORKING
 
 #include <cstdlib>
@@ -1001,8 +1002,18 @@ bool netThreadRunning = false;
 
 sys_ppu_thread_t relayThread;
 
+sys_ppu_thread_t upnpThread;
+bool upnpThreadRunning = false;
+
 sys_ppu_thread_t ipThread;
 bool ipThreadRunning = false;
+
+static void upnpLoop(uint64_t arg)
+{
+    UPnP_AddPortMapping(networkPort);
+    upnpThreadRunning = false;
+    sys_ppu_thread_exit(0);
+}
 
 static void fetchIPLoop(uint64_t arg)
 {
@@ -1081,6 +1092,13 @@ void InitNetwork()
     }
 
     if (useHostServer && !relayThreadRunning) {
+#if RETRO_PLATFORM == RETRO_PS3
+        if (!upnpThreadRunning) {
+            upnpThreadRunning = true;
+            sys_ppu_thread_create(&upnpThread, upnpLoop, 0, 100, 16384, SYS_PPU_THREAD_CREATE_JOINABLE, "UPnPThread");
+        }
+#endif
+
         if (!ipThreadRunning && strcmp(publicIP, "0.0.0.0") == 0) {
             ipThreadRunning = true;
             sys_ppu_thread_create(&ipThread, fetchIPLoop, 0, 100, 16384, SYS_PPU_THREAD_CREATE_JOINABLE, "IPThread");
@@ -1169,7 +1187,17 @@ void DisconnectNetwork(bool finalClose)
             session->leave();
         session->running = false; // Ensure it stops even if leave packet wasn't processed
     }
+
 #if RETRO_PLATFORM == RETRO_PS3
+    if (upnpThreadRunning) {
+        uint64_t exit_code;
+        sys_ppu_thread_join(upnpThread, &exit_code);
+        upnpThreadRunning = false;
+    }
+    if (useHostServer) {
+        UPnP_DeletePortMapping(networkPort);
+    }
+
     if (netThreadRunning) {
         uint64_t exit_code;
         sys_ppu_thread_join(netThread, &exit_code);

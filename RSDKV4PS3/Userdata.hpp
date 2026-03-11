@@ -99,6 +99,11 @@ extern int vsGameLength;
 extern int vsItemMode;
 extern int vsPlayerID;
 extern bool vsPlaying;
+extern bool receiveReady;
+
+extern int partnerReadyList;
+extern int partnerReadyStage;
+extern bool partnerIsLoading;
 
 extern int sendCounter;
 
@@ -203,6 +208,7 @@ void TransmitGlobal(int *globalValue, const char *globalName);
 
 void Receive2PVSData(MultiplayerData *data);
 void Receive2PVSMatchCode(int code);
+void SendStageReady(bool is_loading);
 
 void ShowPromoPopup(int *id, const char *popupName);
 void ShowSegaIDPopup();

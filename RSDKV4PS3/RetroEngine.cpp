@@ -445,9 +445,6 @@ void RetroEngine::Init()
         PrintLog("External Scripts folder detected, forcing TxtScripts mode.");
     }
 #endif
-#if RETRO_USE_NETWORKING
-    InitNetwork();
-#endif
 
     char dest[0x200];
 #if RETRO_PLATFORM == RETRO_UWP

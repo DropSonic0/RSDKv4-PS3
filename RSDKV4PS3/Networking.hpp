@@ -73,6 +73,7 @@ extern std::shared_ptr<NetworkSession> session;
 
 void InitNetwork();
 void RunNetwork();
+void UpdateNetwork();
 void SendData(bool verify = false);
 void DisconnectNetwork(bool finalClose = false);
 void SendServerPacket(ServerPacket &send, bool verify = false);

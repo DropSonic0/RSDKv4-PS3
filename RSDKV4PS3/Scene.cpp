@@ -265,6 +265,23 @@ void ProcessStage(void)
 
             ProcessParallaxAutoScroll();
             DrawStageGFX();
+
+        if (vsPlaying) {
+            static uint64_t lastHeartbeat = 0;
+            if (GetSystemTime() > lastHeartbeat + 1000000) {
+                SendStageReady(false);
+                lastHeartbeat = GetSystemTime();
+            }
+
+            // If partner is in a different stage and we are not the one yielding, follow them
+            if (partnerReadyList != -1 && (partnerReadyList != activeStageList || partnerReadyStage != stageListPosition)) {
+                if (!partnerIsLoading) {
+                    PrintLog("Desync detected! Following partner to stage %d:%d", partnerReadyList, partnerReadyStage);
+                    InitStartingStage(partnerReadyList, partnerReadyStage, playerListPos);
+                    return;
+                }
+            }
+        }
             break;
 
         case STAGEMODE_PAUSED:
@@ -395,6 +412,23 @@ void ProcessStage(void)
 
             ProcessParallaxAutoScroll();
             DrawStageGFX();
+
+            if (vsPlaying) {
+                static uint64_t lastHeartbeat = 0;
+                if (GetSystemTime() > lastHeartbeat + 1000000) {
+                    SendStageReady(false);
+                    lastHeartbeat = GetSystemTime();
+                }
+
+                // If partner is in a different stage and we are not the one yielding, follow them
+                if (partnerReadyList != -1 && (partnerReadyList != activeStageList || partnerReadyStage != stageListPosition)) {
+                    if (!partnerIsLoading) {
+                        PrintLog("Desync detected (2P)! Following partner to stage %d:%d", partnerReadyList, partnerReadyStage);
+                        InitStartingStage(partnerReadyList, partnerReadyStage, playerListPos);
+                        return;
+                    }
+                }
+            }
             break;
 #endif
 
@@ -832,6 +866,79 @@ void LoadStageFiles(void)
     else {
         PrintLog("Reloading Scene %s - %s", stageListNames[activeStageList], stageList[activeStageList][stageListPosition].name);
     }
+
+    if (vsPlaying) {
+        PrintLog("Synchronizing stage load with partner...");
+        // Always reset to ensure we get a fresh signal for this specific load
+        partnerReadyList  = -1;
+        partnerReadyStage = -1;
+        partnerIsLoading  = false;
+
+        // Clear incoming buffers at the start to avoid stale data
+        multiplayerDataIN.type = 0;
+        matchValueReadPos      = 0;
+        matchValueWritePos     = 0;
+        receiveReady           = false;
+
+        SendStageReady(true);
+        uint64_t lastHandshake = GetSystemTime();
+        uint64_t startTime     = GetSystemTime();
+
+        while (true) {
+            UpdateNetwork();
+
+            if (!vsPlaying || dcError)
+                break;
+
+            // If partner is already in a different stage and NOT loading, we MUST follow them.
+            // This handles the case where one player chose a level and the other was late.
+            if (partnerReadyList != -1 && !partnerIsLoading && (partnerReadyList != activeStageList || partnerReadyStage != stageListPosition)) {
+                PrintLog("Partner is already in stage %d:%d. Aborting current load to follow.", partnerReadyList, partnerReadyStage);
+                InitStartingStage(partnerReadyList, partnerReadyStage, playerListPos);
+                return;
+            }
+
+            // If we are both loading different stages, Host wins.
+            if (partnerIsLoading && (partnerReadyList != activeStageList || partnerReadyStage != stageListPosition)) {
+                if (vsPlayerID != 0) { // We are Guest, we yield.
+                    PrintLog("Yielding to Host's stage choice: %d:%d", partnerReadyList, partnerReadyStage);
+                    InitStartingStage(partnerReadyList, partnerReadyStage, playerListPos);
+                    return;
+                }
+            }
+
+            // Success condition: Partner is ready for OUR stage (either loading or already there)
+            if (partnerReadyList == activeStageList && partnerReadyStage == stageListPosition) {
+                break;
+            }
+
+            // Timeout after 30 seconds
+            if (GetSystemTime() > startTime + 30000000) {
+                PrintLog("Stage synchronization timeout!");
+                break;
+            }
+
+            // Resend every 1 second
+            if (GetSystemTime() > lastHandshake + 1000000) {
+                SendStageReady(true);
+                lastHandshake = GetSystemTime();
+            }
+
+#if RETRO_PLATFORM == RETRO_PS3
+            sys_timer_usleep(1000);
+#else
+            // Fallback for other platforms (e.g. PC development)
+            SDL_Delay(1);
+#endif
+        }
+
+        // Final clear to ensure gameplay starts fresh
+        matchValueReadPos  = 0;
+        matchValueWritePos = 0;
+        receiveReady       = false;
+        PrintLog("Stage synchronization complete.");
+    }
+
     LoadStageChunks();
     for (int i = 0; i < TRACK_COUNT; ++i) SetMusicTrack("", i, false, 0);
 
@@ -1074,10 +1181,10 @@ void LoadStageBackground()
         for (byte i = 1; i < layerCount + 1; ++i) {
             FileRead(&fileBuffer, 1);
             stageLayouts[i].xsize = fileBuffer;
-            FileRead(&fileBuffer, 1); // Unused (???)
+            FileRead(&fileBuffer, 1); // Unused
             FileRead(&fileBuffer, 1);
             stageLayouts[i].ysize = fileBuffer;
-            FileRead(&fileBuffer, 1); // Unused (???)
+            FileRead(&fileBuffer, 1); // Unused
             FileRead(&fileBuffer, 1);
             stageLayouts[i].type = fileBuffer;
             FileRead(&fileBuffer, 1);
@@ -2197,12 +2304,9 @@ void SetPlayerHLockedScreenPosition(Entity *target)
 
     xScrollOffset = cameraShakeX + cameraXPos - SCREEN_CENTERX;
 
-    int pos = newCamY + target->lookPosY - SCREEN_SCROLL_UP;
-    if (pos < curYBoundary1) {
+    yScrollOffset = newCamY + target->lookPosY - SCREEN_SCROLL_UP;
+    if (yScrollOffset < curYBoundary1) {
         yScrollOffset = curYBoundary1;
-    }
-    else {
-        yScrollOffset = newCamY + target->lookPosY - SCREEN_SCROLL_UP;
     }
     int y1 = curYBoundary2 - (SCREEN_YSIZE - 1);
     int y2 = curYBoundary2 - SCREEN_YSIZE;

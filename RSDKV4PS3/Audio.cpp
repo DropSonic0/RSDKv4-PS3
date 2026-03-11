@@ -84,14 +84,6 @@ int InitAudioPlayback()
 
     StopAllSfx(); //"init"
 
-    PrintLog("PS3: StreamInfo size=%d, SFXInfo size=%d, ChannelInfo size=%d, OggVorbis_File size=%d", sizeof(StreamInfo), sizeof(SFXInfo), sizeof(ChannelInfo), sizeof(OggVorbis_File));
-    PrintLog("PS3: StreamInfo offsets: buffer=%d, loopPoint=%d, trackLoop=%d, loaded=%d, vorbBitstream=%d, vorbisFile=%d", 
-        offsetof(StreamInfo, buffer), offsetof(StreamInfo, loopPoint), offsetof(StreamInfo, trackLoop), 
-        offsetof(StreamInfo, loaded), offsetof(StreamInfo, vorbBitstream), offsetof(StreamInfo, vorbisFile));
-    PrintLog("PS3: ChannelInfo offsets: sampleLength=%d, samplePtr=%d, sfxID=%d, loopSFX=%d, pan=%d",
-        offsetof(ChannelInfo, sampleLength), offsetof(ChannelInfo, samplePtr), offsetof(ChannelInfo, sfxID),
-        offsetof(ChannelInfo, loopSFX), offsetof(ChannelInfo, pan));
-
     for (int i = 0; i < STREAMFILE_COUNT; ++i) {
         if (streamFile[i].buffer == NULL) {
             streamFile[i].buffer = (byte*)memalign(16, MUSBUFFER_SIZE);
@@ -100,7 +92,6 @@ int InitAudioPlayback()
         streamFile[i].vpos = 0;
 
         MEM_ZERO(streamInfo[i]);
-        PrintLog("PS3: streamInfo[%d] at %p", i, &streamInfo[i]);
     }
     for (int i = 0; i < SFX_COUNT; ++i) {
         MEM_ZERO(sfxList[i]);
@@ -256,9 +247,6 @@ size_t readVorbis(void *mem, size_t size, size_t nmemb, void *ptr)
         file->vpos += (int)bytes_to_read;
     }
 
-    // int index = -1;
-    // for (int i = 0; i < STREAMFILE_COUNT; i++) if (file == &streamFile[i]) index = i;
-    // PrintLog("PS3: readVorbis[%d] size=%d nmemb=%d elements=%d bytes=%d pos=%d", index, (int)size, (int)nmemb, (int)elements, (int)bytes_to_read, file->vpos);
     return elements;
 }
 int seekVorbis(void *ptr, ogg_int64_t offset, int whence)
@@ -280,9 +268,6 @@ int seekVorbis(void *ptr, ogg_int64_t offset, int whence)
         newPos = file->vsize;
 
     file->vpos = newPos;
-    // int index = -1;
-    // for (int i = 0; i < STREAMFILE_COUNT; i++) if (file == &streamFile[i]) index = i;
-    // PrintLog("PS3: seekVorbis[%d] offset=%lld whence=%d newPos=%d", index, (long long)offset, (int)whence, newPos);
     return 0;
 }
 long tellVorbis(void *ptr)
@@ -393,7 +378,6 @@ int closeVorbis(void *ptr) { return 1; }
                 free(buffer);
 #elif RETRO_PLATFORM == RETRO_PS3
             if (!streamInfoPtr || !streamInfoPtr->loaded) {
-                PrintLog("PS3: Stream no cargado (ptr=%p status=%d loaded=%d)", streamInfoPtr, musicStatus, streamInfoPtr ? streamInfoPtr->loaded : -1);
                 musicStatus = MUSIC_STOPPED;
                 break;
             }
@@ -416,21 +400,17 @@ int closeVorbis(void *ptr) { return 1; }
                 long bytes_read = ov_read(&streamInfoPtr->vorbisFile, (char *)streamInfoPtr->buffer, (int)(samples_to_read * sizeof(Sint16)), 1,
                                           2, 1, &streamInfoPtr->vorbBitstream);
                 if (bytes_read > 0 && bytes_read % 2 != 0) bytes_read--; // Align to sample
-                // PrintLog("ProcessMusicStream: ov_read returned %ld bytes", bytes_read);
 
                 if (bytes_read == 0) {
                     if (streamInfoPtr->trackLoop) {
-                        PrintLog("PS3: ov_read retorno 0 (looping to %u, pos=%ld, size=%ld, loop=%d)", streamInfoPtr->loopPoint, (long)ov_pcm_tell(&streamInfoPtr->vorbisFile), (long)ov_pcm_total(&streamInfoPtr->vorbisFile, -1), streamInfoPtr->trackLoop);
                         int seek_err = ov_pcm_seek(&streamInfoPtr->vorbisFile, (ogg_int64_t)streamInfoPtr->loopPoint);
                         if (seek_err != 0) {
-                            PrintLog("PS3: ov_pcm_seek loop error %d", seek_err);
                             musicStatus = MUSIC_STOPPED;
                             break;
                         }
                         continue;
                     }
                     else {
-                        PrintLog("PS3: ov_read retorno 0 (fin, loop=%d)", streamInfoPtr->trackLoop);
                         musicStatus = MUSIC_STOPPED;
                         break;
                     }
@@ -452,7 +432,6 @@ int closeVorbis(void *ptr) { return 1; }
                     }
                 }
                 else if (bytes_read < 0) {
-                    PrintLog("PS3: ov_read error %ld", bytes_read);
                     // Vorbis error, stop to avoid infinite loop
                     musicStatus = MUSIC_STOPPED;
                     break;
@@ -619,7 +598,6 @@ void ProcessAudioMixing(Sint32 *dst, const Sint16 *src, int len, int volume, sby
 
 void LoadMusic(void *userdata)
 {
-    uint64_t startTime = GetSystemTime();
     int oldStreamID = currentStreamIndex;
 
     LockAudioDevice();
@@ -641,19 +619,15 @@ void LoadMusic(void *userdata)
         musFile->vpos       = 0;
         musFile->vsize      = info.vfileSize;
         if (info.vfileSize > MUSBUFFER_SIZE) {
-            PrintLog("PS3: Music file too large (%d > %d), truncating", info.vfileSize, MUSBUFFER_SIZE);
             musFile->vsize = MUSBUFFER_SIZE;
         }
 
         FileRead(streamFile[currentStreamIndex].buffer, musFile->vsize);
         CloseFile();
 
-        PrintLog("PS3: LoadMusic - Buffer filled with %d bytes", musFile->vsize);
-
         LockAudioDevice();
 
         StreamInfo *strmInfo = &streamInfo[currentStreamIndex];
-        PrintLog("PS3: LoadMusic[%d] using StreamInfo at %p", currentStreamIndex, strmInfo);
 
         unsigned long long samples = 0;
         ov_callbacks callbacks;
@@ -666,13 +640,11 @@ void LoadMusic(void *userdata)
         memset(&strmInfo->vorbisFile, 0, sizeof(strmInfo->vorbisFile));
         strmInfo->loaded = false;
         int error = ov_open_callbacks(musFile, &strmInfo->vorbisFile, NULL, 0, callbacks);
-        PrintLog("PS3: ov_open_callbacks[%d] returned %d", currentStreamIndex, error);
         if (error == 0) {
             strmInfo->vorbBitstream = -1;
             strmInfo->vorbisFile.vi = ov_info(&strmInfo->vorbisFile, -1);
 
             samples = (unsigned long long)ov_pcm_total(&strmInfo->vorbisFile, -1);
-            PrintLog("PS3: ov_pcm_total = %llu samples", samples);
 
 #if RETRO_USING_SDL2
             strmInfo->stream = SDL_NewAudioStream(AUDIO_S16, strmInfo->vorbisFile.vi->channels, (int)strmInfo->vorbisFile.vi->rate,
@@ -693,8 +665,7 @@ void LoadMusic(void *userdata)
                 float newPos  = oldPos * ((float)musicRatio * 0.0001f); // 8,000 == 0.8, 10,000 == 1.0 (ratio / 10,000)
                 musicStartPos = (int)fmod((double)newPos, (double)samples);
 
-                int err = ov_pcm_seek(&strmInfo->vorbisFile, musicStartPos);
-                PrintLog("PS3: ov_pcm_seek (start) to %d returned %d", musicStartPos, err);
+                ov_pcm_seek(&strmInfo->vorbisFile, musicStartPos);
             }
             musicStartPos = 0;
 
@@ -704,9 +675,6 @@ void LoadMusic(void *userdata)
             streamFilePtr       = &streamFile[currentStreamIndex];
             streamInfoPtr       = &streamInfo[currentStreamIndex];
 
-            PrintLog("PS3: LoadMusic success - slot=%d strmInfoPtr=%p loaded=%d loop=%d pos=%d (took %llu us)", 
-                currentStreamIndex, streamInfoPtr, (int)strmInfo->loaded, (int)strmInfo->trackLoop, (int)ov_pcm_tell(&strmInfo->vorbisFile), GetSystemTime() - startTime);
-
             musicStatus         = MUSIC_PLAYING;
             masterVolume        = MAX_VOLUME;
             trackID             = currentMusicTrack;
@@ -715,7 +683,7 @@ void LoadMusic(void *userdata)
         }
         else {
             musicStatus = MUSIC_STOPPED;
-            PrintLog("Failed to load vorbis! error: %d (took %llu us)", error, GetSystemTime() - startTime);
+            PrintLog("Failed to load vorbis! error: %d", error);
             switch (error) {
                 default: PrintLog("Vorbis open error: Unknown (%d)", error); break;
                 case OV_EREAD: PrintLog("Vorbis open error: A read from media returned an error"); break;
@@ -773,8 +741,6 @@ bool PlayMusic(int track, int musStartPos)
     if (!audioEnabled)
         return false;
 
-    PrintLog("PS3: PlayMusic track=%d fileName=%s", track, musicTracks[track].fileName);
-
     if (musicTracks[track].fileName[0]) {
         if (musicStatus != MUSIC_LOADING) {
             if (track < 0 || track >= TRACK_COUNT) {
@@ -822,7 +788,6 @@ void LoadSfx(char *filePath, byte sfxID)
     if (!audioEnabled || sfxID >= SFX_COUNT)
         return;
 
-    uint64_t startTime = GetSystemTime();
     FileInfo info;
     char fullPath[0x80];
 
@@ -1016,8 +981,6 @@ void LoadSfx(char *filePath, byte sfxID)
                             int sampleSize = bitsPerSample / 8;
                             int sampleCount = (int)(dataLen / sampleSize);
                             
-                            PrintLog("PS3: Loading WAV %s (%d channels, %d Hz, %d bits, %d samples)", filePath, srcChannels, srcRate, bitsPerSample, sampleCount);
-
                             // We want 44100Hz Stereo
                             int rateMul = 1;
                             if (srcRate <= 11025) rateMul = 4;
@@ -1057,7 +1020,6 @@ void LoadSfx(char *filePath, byte sfxID)
                             sfxList[sfxID].length = (size_t)dstSampleCount;
                             sfxList[sfxID].loaded = true;
                             UnlockAudioDevice();
-                            PrintLog("PS3: Loaded WAV %s (took %llu us)", filePath, GetSystemTime() - startTime);
                         }
                         break;
                     }
@@ -1078,7 +1040,6 @@ void LoadSfx(char *filePath, byte sfxID)
             int read = 0;
 
             // Load OGG into a temporary structure instead of sharing with music slots
-            PrintLog("PS3: Loading OGG SFX %s", filePath);
             StreamFile *sfxFile = (StreamFile*)memalign(16, sizeof(StreamFile));
             if (!sfxFile) { free(vf); return; }
             memset(sfxFile, 0, sizeof(StreamFile));
@@ -1097,13 +1058,12 @@ void LoadSfx(char *filePath, byte sfxID)
             callbacks.tell_func  = tellVorbis;
             callbacks.close_func = closeVorbis;
 
-            PrintLog("PS3: ov_open_callbacks for %s (sfxFile=%p, buffer=%p, size=%d)", filePath, sfxFile, sfxFile->buffer, sfxFile->vsize);
             int error = ov_open_callbacks(sfxFile, vf, NULL, 0, callbacks);
             if (error != 0) {
                 if (sfxFile->buffer) free(sfxFile->buffer);
                 free(sfxFile);
                 free(vf);
-                PrintLog("failed to load ogg sfx %s error %d!", filePath, error);
+                PrintLog("failed to load ogg sfx!");
                 return;
             }
 
@@ -1141,7 +1101,6 @@ void LoadSfx(char *filePath, byte sfxID)
             }
 
             size_t samples_written = 0;
-            PrintLog("PS3: Decoding %s (%ld samples, %d channels, %d rate, %d rateMul)", filePath, samples, channels, srcRate, rateMul);
             
             if (channels == 2 && rateMul == 1) {
                 // Optimized path for 44100Hz Stereo (common case)
@@ -1173,7 +1132,6 @@ void LoadSfx(char *filePath, byte sfxID)
                     }
                 }
             }
-            PrintLog("PS3: Decoded %s, written=%zu samples", filePath, samples_written);
             if (read < 0) {
                 free(audioBuf);
                 if (decodeBuf) free(decodeBuf);
@@ -1181,7 +1139,7 @@ void LoadSfx(char *filePath, byte sfxID)
                 free(sfxFile);
                 ov_clear(vf);
                 free(vf);
-                PrintLog("failed to read ogg sfx %s error %d!", filePath, read);
+                PrintLog("failed to read ogg sfx!");
                 return;
             }
 
@@ -1197,7 +1155,6 @@ void LoadSfx(char *filePath, byte sfxID)
             sfxList[sfxID].length = samples_written;
             sfxList[sfxID].loaded = true;
             UnlockAudioDevice();
-            PrintLog("PS3: Loaded OGG SFX %s (took %llu us)", filePath, GetSystemTime() - startTime);
         }
         else {
             CloseFile();
@@ -1219,8 +1176,6 @@ void PlaySfx(int sfx, bool loop)
 {
     if (sfx < 0 || sfx >= SFX_COUNT) return;
     if (!sfxList[sfx].loaded || !sfxList[sfx].buffer) return;
-
-    // PrintLog("PS3: PlaySfx id=%d (%s) loop=%d", sfx, sfxList[sfx].name, (int)loop);
 
     LockAudioDevice();
     int sfxChannelID = -1;

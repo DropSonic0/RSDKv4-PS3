@@ -1,4 +1,5 @@
 #include "RetroEngine.hpp"
+#include "Scene.hpp"
 
 int globalVariablesCount;
 int globalVariables[GLOBALVAR_COUNT];
@@ -19,11 +20,16 @@ MultiplayerData multiplayerDataOUT = MultiplayerData();
 int matchValueData[0x100];
 byte matchValueReadPos  = 0;
 byte matchValueWritePos = 0;
+bool receiveReady       = false;
 
 int vsGameLength = 4;
 int vsItemMode   = 1;
 int vsPlayerID   = 0;
 bool vsPlaying   = false;
+
+int partnerReadyList  = -1;
+int partnerReadyStage = -1;
+bool partnerIsLoading = false;
 
 int sendCounter = 0;
 
@@ -1036,6 +1042,9 @@ void Connect2PVS(int *gameLength, int *itemMode)
     PrintLog("Attempting to connect to 2P game (%d) (%d)", *gameLength, *itemMode);
     vsPlaying = false;
 
+    partnerReadyList  = -1;
+    partnerReadyStage = -1;
+
     multiplayerDataIN.type = 0;
     matchValueData[0]      = 0;
     matchValueData[1]      = 0;
@@ -1095,7 +1104,7 @@ void SendValue(int *value, int *verify)
 #endif
     }
 }
-bool receiveReady = false;
+
 void ReceiveEntity(int *entityID, int *incrementPos)
 {
     // PrintLog("Attempting to receive entity (%d) (%d)", *clearOnReceive, *entityID);
@@ -1139,7 +1148,24 @@ void TransmitGlobal(int *globalValue, const char *globalName)
     multiplayerDataOUT.data[1] = *globalValue;
     if (Engine.onlineActive) {
 #if RETRO_USE_NETWORKING
-        SendData();
+        // Use verified send for global variable transmissions
+        SendData(true);
+#endif
+    }
+}
+
+void SendStageReady(bool is_loading)
+{
+    if (Engine.onlineActive) {
+#if RETRO_USE_NETWORKING
+        ServerPacket send;
+        memset(&send, 0, sizeof(ServerPacket));
+        send.header = CL_DATA_VERIFIED;
+        send.data.multiData.type = 3; // STAGE_READY
+        send.data.multiData.data[0] = activeStageList;
+        send.data.multiData.data[1] = stageListPosition;
+        send.data.multiData.data[2] = is_loading;
+        SendServerPacket(send, true);
 #endif
     }
 }
@@ -1154,6 +1180,11 @@ void Receive2PVSData(MultiplayerData *data)
             memcpy(multiplayerDataIN.data, data->data, sizeof(Entity));
             break;
         case 2: globalVariables[data->data[0]] = data->data[1]; break;
+        case 3:
+            partnerReadyList  = data->data[0];
+            partnerReadyStage = data->data[1];
+            partnerIsLoading  = data->data[2];
+            break;
     }
 }
 

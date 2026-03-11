@@ -1169,6 +1169,12 @@ void RunNetwork()
 #endif
 }
 
+void UpdateNetwork()
+{
+    if (session)
+        session->run();
+}
+
 void SendData(bool verify)
 {
     if (!session)

@@ -414,13 +414,16 @@ int mulUnsignedHigh(uint arg1, int arg2) { return (int)(((unsigned long long)arg
 void FileRead(void *dest, int size)
 {
     byte *data = (byte *)dest;
-    memset(data, 0, size);
 
     if (readPos <= fileSize) {
         if (useEncryption) {
             while (size > 0) {
-                if (bufferPosition == readSize)
-                    FillFileBuffer();
+                if (bufferPosition == readSize) {
+                    if (FillFileBuffer() == 0) {
+                        memset(data, 0, size);
+                        return;
+                    }
+                }
 
                 *data = encryptionStringB[eStringPosB] ^ eStringNo ^ fileBuffer[bufferPosition++];
                 if (eNybbleSwap)
@@ -474,8 +477,28 @@ void FileRead(void *dest, int size)
         else {
             while (size > 0) {
                 if (bufferPosition == readSize) {
-                    if (FillFileBuffer() == 0)
-                        break;
+#if RETRO_PLATFORM == RETRO_PS3
+                    if (size >= 16384) {
+                        size_t toRead = (size_t)size;
+                        if (readPos + toRead > (size_t)fileSize) toRead = (size_t)fileSize - (size_t)readPos;
+                        
+                        if (toRead > 0) {
+                            size_t result = fRead(data, 1, toRead, cFileHandle);
+                            readPos += (int)result;
+                            data += result;
+                            size -= (int)result;
+                            if (result < toRead) {
+                                memset(data, 0, size);
+                                return;
+                            }
+                        }
+                        if (size == 0) return;
+                    }
+#endif
+                    if (FillFileBuffer() == 0) {
+                        memset(data, 0, size);
+                        return;
+                    }
                 }
 
                 int readCount = readSize - bufferPosition;
@@ -491,6 +514,8 @@ void FileRead(void *dest, int size)
                 bufferPosition += readCount;
             }
         }
+    } else {
+        memset(data, 0, size);
     }
 }
 

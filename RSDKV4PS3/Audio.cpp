@@ -619,6 +619,7 @@ void ProcessAudioMixing(Sint32 *dst, const Sint16 *src, int len, int volume, sby
 
 void LoadMusic(void *userdata)
 {
+    uint64_t startTime = GetSystemTime();
     int oldStreamID = currentStreamIndex;
 
     LockAudioDevice();
@@ -703,8 +704,8 @@ void LoadMusic(void *userdata)
             streamFilePtr       = &streamFile[currentStreamIndex];
             streamInfoPtr       = &streamInfo[currentStreamIndex];
 
-            PrintLog("PS3: LoadMusic success - slot=%d strmInfoPtr=%p loaded=%d loop=%d pos=%d", 
-                currentStreamIndex, streamInfoPtr, (int)strmInfo->loaded, (int)strmInfo->trackLoop, (int)ov_pcm_tell(&strmInfo->vorbisFile));
+            PrintLog("PS3: LoadMusic success - slot=%d strmInfoPtr=%p loaded=%d loop=%d pos=%d (took %llu us)", 
+                currentStreamIndex, streamInfoPtr, (int)strmInfo->loaded, (int)strmInfo->trackLoop, (int)ov_pcm_tell(&strmInfo->vorbisFile), GetSystemTime() - startTime);
 
             musicStatus         = MUSIC_PLAYING;
             masterVolume        = MAX_VOLUME;
@@ -714,7 +715,7 @@ void LoadMusic(void *userdata)
         }
         else {
             musicStatus = MUSIC_STOPPED;
-            PrintLog("Failed to load vorbis! error: %d", error);
+            PrintLog("Failed to load vorbis! error: %d (took %llu us)", error, GetSystemTime() - startTime);
             switch (error) {
                 default: PrintLog("Vorbis open error: Unknown (%d)", error); break;
                 case OV_EREAD: PrintLog("Vorbis open error: A read from media returned an error"); break;
@@ -821,6 +822,7 @@ void LoadSfx(char *filePath, byte sfxID)
     if (!audioEnabled || sfxID >= SFX_COUNT)
         return;
 
+    uint64_t startTime = GetSystemTime();
     FileInfo info;
     char fullPath[0x80];
 
@@ -1055,6 +1057,7 @@ void LoadSfx(char *filePath, byte sfxID)
                             sfxList[sfxID].length = (size_t)dstSampleCount;
                             sfxList[sfxID].loaded = true;
                             UnlockAudioDevice();
+                            PrintLog("PS3: Loaded WAV %s (took %llu us)", filePath, GetSystemTime() - startTime);
                         }
                         break;
                     }
@@ -1126,7 +1129,7 @@ void LoadSfx(char *filePath, byte sfxID)
             }
             
             // Temporary buffer for decoding
-            int decodeBufSize = 4096; // bytes
+            int decodeBufSize = 32768; // Increased for better performance
             Sint16 *decodeBuf = (Sint16 *)memalign(16, decodeBufSize);
             if (!decodeBuf) {
                 free(audioBuf);
@@ -1139,24 +1142,34 @@ void LoadSfx(char *filePath, byte sfxID)
 
             size_t samples_written = 0;
             PrintLog("PS3: Decoding %s (%ld samples, %d channels, %d rate, %d rateMul)", filePath, samples, channels, srcRate, rateMul);
-            while (samples_written < maxSamples && (read = (int)ov_read(vf, (char *)decodeBuf, decodeBufSize, 1, 2, 1, &bitstream)) > 0) {
-                int samples_read_per_channel = read / (channels * 2);
-                if (samples_read_per_channel == 0) break;
+            
+            if (channels == 2 && rateMul == 1) {
+                // Optimized path for 44100Hz Stereo (common case)
+                while (samples_written < maxSamples) {
+                    read = (int)ov_read(vf, (char *)(audioBuf + samples_written), (int)((maxSamples - samples_written) * 2), 1, 2, 1, &bitstream);
+                    if (read <= 0) break;
+                    samples_written += (read / 2);
+                }
+            } else {
+                while (samples_written < maxSamples && (read = (int)ov_read(vf, (char *)decodeBuf, decodeBufSize, 1, 2, 1, &bitstream)) > 0) {
+                    int samples_read_per_channel = read / (channels * 2);
+                    if (samples_read_per_channel == 0) break;
 
-                Sint16 *src = decodeBuf;
-                Sint16 *dst = audioBuf + samples_written;
+                    Sint16 *src = decodeBuf;
+                    Sint16 *dst = audioBuf + samples_written;
 
-                for (int s = 0; s < samples_read_per_channel; s++) {
-                    if (samples_written + 2 * rateMul > maxSamples) break;
+                    for (int s = 0; s < samples_read_per_channel; s++) {
+                        if (samples_written + 2 * rateMul > maxSamples) break;
 
-                    Sint16 valL = src[s * channels];
-                    Sint16 valR = (channels > 1) ? src[s * channels + 1] : valL;
-                    
-                    for (int r = 0; r < rateMul; r++) {
-                        dst[0] = valL;
-                        dst[1] = valR;
-                        dst += 2;
-                        samples_written += 2;
+                        Sint16 valL = src[s * channels];
+                        Sint16 valR = (channels > 1) ? src[s * channels + 1] : valL;
+                        
+                        for (int r = 0; r < rateMul; r++) {
+                            dst[0] = valL;
+                            dst[1] = valR;
+                            dst += 2;
+                            samples_written += 2;
+                        }
                     }
                 }
             }
@@ -1184,6 +1197,7 @@ void LoadSfx(char *filePath, byte sfxID)
             sfxList[sfxID].length = samples_written;
             sfxList[sfxID].loaded = true;
             UnlockAudioDevice();
+            PrintLog("PS3: Loaded OGG SFX %s (took %llu us)", filePath, GetSystemTime() - startTime);
         }
         else {
             CloseFile();

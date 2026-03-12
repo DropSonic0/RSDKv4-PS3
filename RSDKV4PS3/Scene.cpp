@@ -265,23 +265,6 @@ void ProcessStage(void)
 
             ProcessParallaxAutoScroll();
             DrawStageGFX();
-
-        if (vsPlaying) {
-            static uint64_t lastHeartbeat = 0;
-            if (GetSystemTime() > lastHeartbeat + 1000000) {
-                SendStageReady(false);
-                lastHeartbeat = GetSystemTime();
-            }
-
-            // Host Authority: Guest follows Host choices (including Game Over/Results transitions)
-            if (partnerReadyList != -1 && !partnerIsLoading && (partnerReadyList != activeStageList || partnerReadyStage != stageListPosition)) {
-                if (vsPlayerID != 0 && partnerPlayerID == 0) { // We are Guest, Partner is Host
-                    PrintLog("Match end or desync! Guest following Host to stage %d:%d", partnerReadyList, partnerReadyStage);
-                    InitStartingStage(partnerReadyList, partnerReadyStage, playerListPos);
-                    return;
-                }
-            }
-        }
             break;
 
         case STAGEMODE_PAUSED:
@@ -412,23 +395,6 @@ void ProcessStage(void)
 
             ProcessParallaxAutoScroll();
             DrawStageGFX();
-
-            if (vsPlaying) {
-                static uint64_t lastHeartbeat = 0;
-                if (GetSystemTime() > lastHeartbeat + 1000000) {
-                    SendStageReady(false);
-                    lastHeartbeat = GetSystemTime();
-                }
-
-                // Host Authority: Guest follows Host choices
-                if (partnerReadyList != -1 && !partnerIsLoading && (partnerReadyList != activeStageList || partnerReadyStage != stageListPosition)) {
-                    if (vsPlayerID != 0 && partnerPlayerID == 0) { // We are Guest, Partner is Host
-                        PrintLog("Match end or desync! Guest following Host to stage %d:%d", partnerReadyList, partnerReadyStage);
-                        InitStartingStage(partnerReadyList, partnerReadyStage, playerListPos);
-                        return;
-                    }
-                }
-            }
             break;
 #endif
 
@@ -866,95 +832,6 @@ void LoadStageFiles(void)
     else {
         PrintLog("Reloading Scene %s - %s", stageListNames[activeStageList], stageList[activeStageList][stageListPosition].name);
     }
-
-    if (vsPlaying) {
-        PrintLog("Synchronizing stage load with partner...");
-
-        // Initial update to see if partner already started loading something else
-        UpdateNetwork();
-
-        // Always reset to ensure we get a fresh signal for this specific load
-        partnerReadyList  = -1;
-        partnerReadyStage = -1;
-        partnerIsLoading  = false;
-
-        // Clear incoming buffers at the start to avoid stale data
-        multiplayerDataIN.type = 0;
-        matchValueReadPos      = 0;
-        matchValueWritePos     = 0;
-        receiveReady           = false;
-
-        SendStageReady(true);
-        uint64_t lastHandshake = GetSystemTime();
-        uint64_t startTime     = GetSystemTime();
-
-        while (true) {
-            UpdateNetwork();
-
-            if (!vsPlaying || dcError)
-                break;
-
-            // Continually reset script-related buffers during handshake to ensure
-            // NO stale game data (like match results) leaks into the next level.
-            multiplayerDataIN.type = 0;
-            matchValueReadPos      = 0;
-            matchValueWritePos     = 0;
-            receiveReady           = false;
-
-            // Host Authority Logic:
-            // 1. If Partner is LOADING a different stage
-            if (partnerIsLoading && (partnerReadyList != activeStageList || partnerReadyStage != stageListPosition)) {
-                // If we are Guest (vsPlayerID != 0) and Partner is Host (partnerPlayerID == 0), we yield.
-                if (vsPlayerID != 0 && partnerPlayerID == 0) {
-                    PrintLog("Yielding to Host's stage choice: %d:%d", partnerReadyList, partnerReadyStage);
-                    InitStartingStage(partnerReadyList, partnerReadyStage, playerListPos);
-                    return;
-                }
-            }
-            // 2. If Partner is ALREADY in a different stage (not loading anymore)
-            else if (partnerReadyList != -1 && !partnerIsLoading && (partnerReadyList != activeStageList || partnerReadyStage != stageListPosition)) {
-                // If we are Guest and Partner is Host, we MUST follow them.
-                if (vsPlayerID != 0 && partnerPlayerID == 0) {
-                    PrintLog("Host is already in stage %d:%d. Aborting current load to follow.", partnerReadyList, partnerReadyStage);
-                    InitStartingStage(partnerReadyList, partnerReadyStage, playerListPos);
-                    return;
-                }
-                // If we are Host and Partner (Guest) is already in a different stage, they are likely stuck 
-                // in an old state or desynced. We continue waiting for them to catch up to our choice.
-            }
-
-            // Success condition: Partner is ready for OUR stage (either loading or already there)
-            if (partnerReadyList == activeStageList && partnerReadyStage == stageListPosition) {
-                break;
-            }
-
-            // Timeout after 30 seconds
-            if (GetSystemTime() > startTime + 30000000) {
-                PrintLog("Stage synchronization timeout!");
-                break;
-            }
-
-            // Resend every 1 second
-            if (GetSystemTime() > lastHandshake + 1000000) {
-                SendStageReady(true);
-                lastHandshake = GetSystemTime();
-            }
-
-#if RETRO_PLATFORM == RETRO_PS3
-            sys_timer_usleep(1000);
-#else
-            // Fallback for other platforms (e.g. PC development)
-            SDL_Delay(1);
-#endif
-        }
-
-        // Final clear to ensure gameplay starts fresh
-        matchValueReadPos  = 0;
-        matchValueWritePos = 0;
-        receiveReady       = false;
-        PrintLog("Stage synchronization complete.");
-    }
-
     LoadStageChunks();
     for (int i = 0; i < TRACK_COUNT; ++i) SetMusicTrack("", i, false, 0);
 
@@ -1197,10 +1074,10 @@ void LoadStageBackground()
         for (byte i = 1; i < layerCount + 1; ++i) {
             FileRead(&fileBuffer, 1);
             stageLayouts[i].xsize = fileBuffer;
-            FileRead(&fileBuffer, 1); // Unused
+            FileRead(&fileBuffer, 1); // Unused (???)
             FileRead(&fileBuffer, 1);
             stageLayouts[i].ysize = fileBuffer;
-            FileRead(&fileBuffer, 1); // Unused
+            FileRead(&fileBuffer, 1); // Unused (???)
             FileRead(&fileBuffer, 1);
             stageLayouts[i].type = fileBuffer;
             FileRead(&fileBuffer, 1);
@@ -2320,9 +2197,12 @@ void SetPlayerHLockedScreenPosition(Entity *target)
 
     xScrollOffset = cameraShakeX + cameraXPos - SCREEN_CENTERX;
 
-    yScrollOffset = newCamY + target->lookPosY - SCREEN_SCROLL_UP;
-    if (yScrollOffset < curYBoundary1) {
+    int pos = newCamY + target->lookPosY - SCREEN_SCROLL_UP;
+    if (pos < curYBoundary1) {
         yScrollOffset = curYBoundary1;
+    }
+    else {
+        yScrollOffset = newCamY + target->lookPosY - SCREEN_SCROLL_UP;
     }
     int y1 = curYBoundary2 - (SCREEN_YSIZE - 1);
     int y2 = curYBoundary2 - SCREEN_YSIZE;

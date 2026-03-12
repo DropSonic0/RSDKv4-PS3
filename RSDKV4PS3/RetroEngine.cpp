@@ -56,7 +56,7 @@ void InitPS3Network()
         PrintLog("InitPS3Network() - Acting as Host Server (Built-in Relay enabled)");
         PrintLog("InitPS3Network() - Local IP: %s (Use this ONLY for LAN play)", info.ip_address);
         PrintLog("InitPS3Network() - For GLOBAL play, give your PUBLIC IP to the other player.");
-        PrintLog("InitPS3Network() - Important: UDP Port %d must be forwarded on your router to %s", networkPort, info.ip_address);
+        PrintLog("InitPS3Network() - Important: IF UPnP fails, UDP Port %d must be forwarded on your router to %s", networkPort, info.ip_address);
     }
     else {
         PrintLog("InitPS3Network() - Connecting to host: %s", networkHost);

@@ -1206,7 +1206,7 @@ void DisconnectNetwork(bool finalClose)
         sys_ppu_thread_join(upnpThread, &exit_code);
         upnpThreadRunning = false;
     }
-    if (useHostServer) {
+    if (finalClose && useHostServer) {
         UPnP_DeletePortMapping(networkPort);
     }
 

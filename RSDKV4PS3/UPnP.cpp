@@ -22,6 +22,12 @@ static char controlURL[256];
 static char serviceURN[128];
 static char routerIP[64];
 static int routerPort;
+static char baseDir[256];
+static bool isMapped = false;
+static uint16_t mappedPort = 0;
+
+bool UPnP_IsMapped() { return isMapped; }
+uint16_t UPnP_GetMappedPort() { return mappedPort; }
 
 static void ParseLocation(const char *location, char *ip, int *port, char *path)
 {
@@ -45,13 +51,25 @@ static void ParseLocation(const char *location, char *ip, int *port, char *path)
             *port = 80;
             strcpy(path, slash);
         }
+
+        // Extract base directory
+        strcpy(baseDir, path);
+        char *lastSlash = strrchr(baseDir, '/');
+        if (lastSlash) {
+            *(lastSlash + 1) = '\0';
+        } else {
+            strcpy(baseDir, "/");
+        }
     }
 }
 
 static bool SendSOAPRequest(const char *ip, int port, const char *path, const char *action, const char *body, const char *urn)
 {
     int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (sock < 0) return false;
+    if (sock < 0) {
+        PrintLog("UPnP - SOAP: Failed to create socket.");
+        return false;
+    }
 
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
@@ -67,6 +85,7 @@ static bool SendSOAPRequest(const char *ip, int port, const char *path, const ch
     setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv, sizeof(struct timeval));
 
     if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+        PrintLog("UPnP - SOAP: Failed to connect to %s:%d", ip, port);
         socketclose(sock);
         return false;
     }
@@ -91,14 +110,27 @@ static bool SendSOAPRequest(const char *ip, int port, const char *path, const ch
     send(sock, request, strlen(request), 0);
     free(request);
     
-    char response[1024];
-    int bytes = recv(sock, response, sizeof(response) - 1, 0);
+    char *response = (char *)malloc(2048);
+    if (!response) {
+        socketclose(sock);
+        return false;
+    }
+
+    int bytes = recv(sock, response, 2047, 0);
     socketclose(sock);
 
     if (bytes > 0) {
         response[bytes] = 0;
-        return strstr(response, "200 OK") != NULL;
+        bool success = strstr(response, "200 OK") != NULL;
+        if (!success) {
+            PrintLog("UPnP - SOAP: Request failed. Response: %.300s...", response);
+        }
+        free(response);
+        return success;
     }
+    
+    PrintLog("UPnP - SOAP: No response received.");
+    free(response);
     return false;
 }
 
@@ -125,33 +157,41 @@ void UPnP_AddPortMapping(uint16_t port)
         "ST: urn:schemas-upnp-org:device:InternetGatewayDevice:1\r\n"
         "\r\n";
 
-    sendto(sock, msg, strlen(msg), 0, (struct sockaddr *)&addr, sizeof(addr));
-
-    struct timeval tv;
-    tv.tv_sec = 2;
-    tv.tv_usec = 0;
-    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval));
-
+    int bytes = -1;
     char buffer[2048];
-    struct sockaddr_in from;
-    socklen_t fromlen = sizeof(from);
-    int bytes = recvfrom(sock, buffer, sizeof(buffer) - 1, 0, (struct sockaddr *)&from, &fromlen);
+    for (int retry = 0; retry < 3; ++retry) {
+        sendto(sock, msg, strlen(msg), 0, (struct sockaddr *)&addr, sizeof(addr));
+
+        struct timeval tv_ssdp;
+        tv_ssdp.tv_sec = 3;
+        tv_ssdp.tv_usec = 0;
+        setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv_ssdp, sizeof(struct timeval));
+
+        struct sockaddr_in from;
+        socklen_t fromlen = sizeof(from);
+        bytes = recvfrom(sock, buffer, sizeof(buffer) - 1, 0, (struct sockaddr *)&from, &fromlen);
+        if (bytes > 0) break;
+        PrintLog("UPnP - SSDP retry %d...", retry + 1);
+    }
     socketclose(sock);
 
     if (bytes <= 0) {
-        PrintLog("UPnP - No response from router.");
+        PrintLog("UPnP - No response from router after retries.");
         return;
     }
 
     buffer[bytes] = 0;
-    char *loc = strstr(buffer, "LOCATION: ");
-    if (!loc) loc = strstr(buffer, "location: ");
+    char *loc = strstr(buffer, "LOCATION:");
+    if (!loc) loc = strstr(buffer, "location:");
+    if (!loc) loc = strstr(buffer, "Location:");
     if (!loc) {
         PrintLog("UPnP - Location header not found.");
         return;
     }
 
-    loc += 10;
+    loc += 9;
+    while (*loc && (*loc == ' ' || *loc == '\t')) loc++;
+
     char *end = strchr(loc, '\r');
     if (!end) end = strchr(loc, '\n');
     if (!end) return;
@@ -176,23 +216,39 @@ void UPnP_AddPortMapping(uint16_t port)
     xmlAddr.sin_addr.s_addr = inet_addr(routerIP);
     
     // Timeout
-    tv.tv_sec = 3;
-    tv.tv_usec = 0;
-    setsockopt(xmlSock, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval));
+    struct timeval tv_xml;
+    tv_xml.tv_sec = 3;
+    tv_xml.tv_usec = 0;
+    setsockopt(xmlSock, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv_xml, sizeof(struct timeval));
 
     if (connect(xmlSock, (struct sockaddr *)&xmlAddr, sizeof(xmlAddr)) >= 0) {
         char xmlReq[512];
         sprintf(xmlReq, "GET %s HTTP/1.1\r\nHost: %s:%d\r\nConnection: close\r\n\r\n", path, routerIP, routerPort);
         send(xmlSock, xmlReq, strlen(xmlReq), 0);
         
-        char *xmlBuf = (char *)malloc(16384);
+        char *xmlBuf = (char *)malloc(32768);
         if (xmlBuf) {
             int totalBytes = 0;
             int r;
-            while (totalBytes < 16383 && (r = recv(xmlSock, xmlBuf + totalBytes, 16383 - totalBytes, 0)) > 0) {
+            while (totalBytes < 32767 && (r = recv(xmlSock, xmlBuf + totalBytes, 32767 - totalBytes, 0)) > 0) {
                 totalBytes += r;
             }
             xmlBuf[totalBytes] = 0;
+
+            // Check for URLBase
+            char *urlBaseTag = strstr(xmlBuf, "<URLBase>");
+            if (urlBaseTag) {
+                urlBaseTag += 9;
+                char *urlBaseEnd = strstr(urlBaseTag, "</URLBase>");
+                if (urlBaseEnd) {
+                    char urlBase[256];
+                    int baseLen = urlBaseEnd - urlBaseTag;
+                    if (baseLen >= 256) baseLen = 255;
+                    memcpy(urlBase, urlBaseTag, baseLen);
+                    urlBase[baseLen] = '\0';
+                    ParseLocation(urlBase, routerIP, &routerPort, path);
+                }
+            }
 
             const char *urns[] = { "urn:schemas-upnp-org:service:WANIPConnection:1", "urn:schemas-upnp-org:service:WANPPPConnection:1" };
             for (int i = 0; i < 2; ++i) {
@@ -215,6 +271,8 @@ void UPnP_AddPortMapping(uint16_t port)
             }
             free(xmlBuf);
         }
+    } else {
+        PrintLog("UPnP - Failed to connect to router to fetch XML.");
     }
     socketclose(xmlSock);
 
@@ -223,10 +281,15 @@ void UPnP_AddPortMapping(uint16_t port)
         return;
     }
 
-    if (controlURL[0] != '/' && strncmp(controlURL, "http", 4) != 0) {
-        char temp[256];
-        sprintf(temp, "/%s", controlURL);
-        strcpy(controlURL, temp);
+    if (strncmp(controlURL, "http", 4) != 0) {
+        if (controlURL[0] == '/') {
+            // Absolute path from host root, keep as is (most routers do this)
+        } else {
+            // Relative to baseDir
+            char temp[256];
+            sprintf(temp, "%s%s", baseDir, controlURL);
+            strcpy(controlURL, temp);
+        }
     }
 
     PrintLog("UPnP - Control URL: %s (URN: %s)", controlURL, serviceURN);
@@ -260,8 +323,12 @@ void UPnP_AddPortMapping(uint16_t port)
 
     if (SendSOAPRequest(routerIP, routerPort, controlURL, "AddPortMapping", soapBody, serviceURN)) {
         PrintLog("UPnP - Port %d (UDP) mapped successfully to %s", port, localIP);
+        isMapped = true;
+        mappedPort = port;
     } else {
         PrintLog("UPnP - Failed to map port %d.", port);
+        isMapped = false;
+        mappedPort = 0;
     }
 }
 
@@ -285,6 +352,8 @@ void UPnP_DeletePortMapping(uint16_t port)
 
     if (SendSOAPRequest(routerIP, routerPort, controlURL, "DeletePortMapping", soapBody, serviceURN)) {
         PrintLog("UPnP - Port %d (UDP) unmapped successfully.", port);
+        isMapped = false;
+        mappedPort = 0;
     } else {
         PrintLog("UPnP - Failed to unmap port %d.", port);
     }

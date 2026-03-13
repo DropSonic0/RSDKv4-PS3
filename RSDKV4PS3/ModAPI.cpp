@@ -9,6 +9,9 @@ byte playerCount = 0;
 
 #if RETRO_USE_MOD_LOADER
 std::vector<ModInfo> modList;
+#if RETRO_PLATFORM == RETRO_PS3
+std::vector<ModInfo> modInstallList;
+#endif
 int activeMod = -1;
 
 char modsPath[0x100];
@@ -90,8 +93,14 @@ void InitMods()
     Engine.forceSonic1 = false;
     sprintf(savePath, "");
 
-    char modBuf[0x100];
+    char modBuf[0x400];
+#if RETRO_PLATFORM == RETRO_PS3
+    snprintf(modBuf, sizeof(modBuf), "%smods", modsPath);
+#else
     sprintf(modBuf, "%smods", modsPath);
+#endif
+
+    PrintLog("InitMods: Scanning %s", modBuf);
 
 #if RETRO_PLATFORM != RETRO_PS3
     fs::path modPath = resolvePath(modBuf);
@@ -146,19 +155,21 @@ void InitMods()
 #else
     DIR *dir = opendir(modBuf);
     if (dir) {
-        char mod_config[0x100];
-        sprintf(mod_config, "%s/modconfig.ini", modBuf);
+        char mod_config[0x400];
+        snprintf(mod_config, sizeof(mod_config), "%s/modconfig.ini", modBuf);
         FileIO *configFile = fOpen(mod_config, "r");
         if (configFile) {
             fClose(configFile);
             IniParser modConfig(mod_config, false);
 
-            for (int m = 0; m < modConfig.items.size(); ++m) {
+            for (int m = 0; m < (int)modConfig.items.size(); ++m) {
                 bool active = false;
-                ModInfo info;
                 modConfig.GetBool("mods", modConfig.items[m].key, &active);
-                if (LoadMod(&info, modBuf, modConfig.items[m].key, active))
+                ModInfo info;
+                if (LoadMod(&info, modBuf, modConfig.items[m].key, active)) {
                     modList.push_back(info);
+                    PrintLog("InitMods: Loaded mod %s from config", info.name.c_str());
+                }
             }
         }
 
@@ -167,14 +178,13 @@ void InitMods()
             if (entry->d_name[0] == '.')
                 continue;
 
-            char fullPath[0x100];
-            sprintf(fullPath, "%s/%s", modBuf, entry->d_name);
+            char fullPath[0x400];
+            snprintf(fullPath, sizeof(fullPath), "%s/%s", modBuf, entry->d_name);
 
             struct stat st;
             if (stat(fullPath, &st) == 0 && S_ISDIR(st.st_mode)) {
-                ModInfo info;
                 bool flag = true;
-                for (int m = 0; m < modList.size(); ++m) {
+                for (int m = 0; m < (int)modList.size(); ++m) {
                     if (modList[m].folder == entry->d_name) {
                         flag = false;
                         break;
@@ -182,12 +192,18 @@ void InitMods()
                 }
 
                 if (flag) {
-                    if (LoadMod(&info, modBuf, entry->d_name, false))
+                    ModInfo info;
+                    if (LoadMod(&info, modBuf, entry->d_name, false)) {
                         modList.push_back(info);
+                        PrintLog("InitMods: Found mod folder %s", info.name.c_str());
+                    }
                 }
             }
         }
         closedir(dir);
+    }
+    else {
+        PrintLog("InitMods: Failed to open mods directory %s", modBuf);
     }
 #endif
 
@@ -197,7 +213,7 @@ void InitMods()
     redirectSave       = false;
     Engine.forceSonic1 = false;
     sprintf(savePath, "");
-    for (int m = 0; m < modList.size(); ++m) {
+    for (int m = 0; m < (int)modList.size(); ++m) {
         if (!modList[m].active)
             continue;
         if (modList[m].useScripts)
@@ -303,8 +319,11 @@ bool LoadMod(ModInfo *info, std::string modsPath, std::string folder, bool activ
 }
 
 #if RETRO_PLATFORM == RETRO_PS3
-void ScanModFolder_Recursive(ModInfo *info, const char *path, const char *folderName)
+static char scanPathPool[16][0x400];
+void ScanModFolder_Recursive(ModInfo *info, const char *path, const char *folderName, int depth)
 {
+    if (depth >= 16) return;
+
     DIR *dir = opendir(path);
     if (!dir)
         return;
@@ -314,21 +333,21 @@ void ScanModFolder_Recursive(ModInfo *info, const char *path, const char *folder
         if (entry->d_name[0] == '.')
             continue;
 
-        char fullPath[0x100];
-        sprintf(fullPath, "%s/%s", path, entry->d_name);
+        char *fullPath = scanPathPool[depth];
+        snprintf(fullPath, 0x400, "%s/%s", path, entry->d_name);
 
         struct stat st;
         if (stat(fullPath, &st) == 0) {
             if (S_ISDIR(st.st_mode)) {
-                ScanModFolder_Recursive(info, fullPath, folderName);
+                ScanModFolder_Recursive(info, fullPath, folderName, depth + 1);
             }
             else if (S_ISREG(st.st_mode)) {
-                char modBuf[0x100];
+                char modBuf[0x400];
                 StrCopy(modBuf, fullPath);
 
-                char folderTest[4][0x10];
-                sprintf(folderTest[0], "%s/", folderName);
-                sprintf(folderTest[1], "%s\\", folderName);
+                char folderTest[4][0x40];
+                snprintf(folderTest[0], 0x40, "%s/", folderName);
+                snprintf(folderTest[1], 0x40, "%s\\", folderName);
                 StringLowerCase(folderTest[2], folderTest[0]);
                 StringLowerCase(folderTest[3], folderTest[1]);
 
@@ -340,15 +359,15 @@ void ScanModFolder_Recursive(ModInfo *info, const char *path, const char *folder
                 }
 
                 if (tokenPos >= 0) {
-                    char buffer[0x100];
+                    char buffer[0x400];
                     for (int i = StrLength(modBuf); i >= tokenPos; --i) {
                         buffer[i - tokenPos] = modBuf[i] == '\\' ? '/' : modBuf[i];
                     }
 
                     std::string path(buffer);
-                    char pathLower[0x100];
-                    memset(pathLower, 0, sizeof(char) * 0x100);
-                    for (int c = 0; c < path.size(); ++c) {
+                    char pathLower[0x400];
+                    memset(pathLower, 0, sizeof(char) * 0x400);
+                    for (int c = 0; c < (int)path.size(); ++c) {
                         pathLower[c] = tolower(path.c_str()[c]);
                     }
 
@@ -361,13 +380,128 @@ void ScanModFolder_Recursive(ModInfo *info, const char *path, const char *folder
 }
 #endif
 
+#if RETRO_PLATFORM == RETRO_PS3
+static byte copyBuffer[0x4000];
+static char srcPathPool[16][0x400];
+static char dstPathPool[16][0x400];
+
+void CopyDirectory(const char *src, const char *dst, int depth)
+{
+    if (depth >= 16) {
+        PrintLog("CopyDirectory: Maximum depth reached!");
+        return;
+    }
+
+    DIR *dir = opendir(src);
+    if (!dir) {
+        PrintLog("CopyDirectory: Failed to open source dir: %s", src);
+        return;
+    }
+
+    mkdir(dst, 0777);
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+            continue;
+
+        char *srcPath = srcPathPool[depth];
+        char *dstPath = dstPathPool[depth];
+        snprintf(srcPath, 0x400, "%s/%s", src, entry->d_name);
+        snprintf(dstPath, 0x400, "%s/%s", dst, entry->d_name);
+
+        struct stat st;
+        if (stat(srcPath, &st) == 0) {
+            if (S_ISDIR(st.st_mode)) {
+                CopyDirectory(srcPath, dstPath, depth + 1);
+            }
+            else if (S_ISREG(st.st_mode)) {
+                FILE *srcFile = fopen(srcPath, "rb");
+                if (srcFile) {
+                    FILE *dstFile = fopen(dstPath, "wb");
+                    if (dstFile) {
+                        size_t bytesRead;
+                        while ((bytesRead = fread(copyBuffer, 1, sizeof(copyBuffer), srcFile)) > 0) {
+                            fwrite(copyBuffer, 1, bytesRead, dstFile);
+                        }
+                        fclose(dstFile);
+                    }
+                    else {
+                        PrintLog("CopyDirectory: Failed to open destination file: %s", dstPath);
+                    }
+                    fclose(srcFile);
+                }
+                else {
+                    PrintLog("CopyDirectory: Failed to open source file: %s", srcPath);
+                }
+            }
+        }
+    }
+    closedir(dir);
+}
+
+bool InstallMod(ModInfo *info)
+{
+    if (!info)
+        return false;
+
+    PrintLog("Installing mod: %s", info->name.c_str());
+
+    char srcPath[0x400];
+    snprintf(srcPath, sizeof(srcPath), "/dev_usb000/%s", info->folder.c_str());
+
+    char modsDir[0x400];
+    snprintf(modsDir, sizeof(modsDir), "%smods", modsPath);
+    mkdir(modsDir, 0777);
+
+    char dstPath[0x400];
+    snprintf(dstPath, sizeof(dstPath), "%s/%s", modsDir, info->folder.c_str());
+
+    CopyDirectory(srcPath, dstPath, 0);
+
+    PrintLog("Installation complete, reloading mods...");
+    InitMods();
+    return true;
+}
+
+void InitModInstallList()
+{
+    modInstallList.clear();
+
+    const char *packagesPath = "/dev_usb000";
+    DIR *dir                 = opendir(packagesPath);
+    if (dir) {
+        struct dirent *entry;
+        while ((entry = readdir(dir)) != NULL) {
+            if (entry->d_name[0] == '.')
+                continue;
+
+            char fullPath[0x400];
+            snprintf(fullPath, sizeof(fullPath), "%s/%s", packagesPath, entry->d_name);
+
+            struct stat st;
+            if (stat(fullPath, &st) == 0 && S_ISDIR(st.st_mode)) {
+                ModInfo info;
+                if (LoadMod(&info, packagesPath, entry->d_name, false))
+                    modInstallList.push_back(info);
+            }
+        }
+        closedir(dir);
+    }
+}
+#endif
+
 void ScanModFolder(ModInfo *info)
 {
     if (!info)
         return;
 
-    char modBuf[0x100];
+    char modBuf[0x400];
+#if RETRO_PLATFORM == RETRO_PS3
+    snprintf(modBuf, sizeof(modBuf), "%smods", modsPath);
+#else
     sprintf(modBuf, "%smods", modsPath);
+#endif
 
 #if RETRO_PLATFORM != RETRO_PS3
     fs::path modPath = resolvePath(modBuf);
@@ -472,25 +606,29 @@ void ScanModFolder(ModInfo *info)
         }
     }
 #else
-    char modDir[0x100];
-    sprintf(modDir, "%s/%s", modBuf, info->folder.c_str());
+    char modDir[0x400];
+    snprintf(modDir, sizeof(modDir), "%s/%s", modBuf, info->folder.c_str());
 
     info->fileMap.clear();
 
-    char dataPath[0x100];
-    sprintf(dataPath, "%s/Data", modDir);
-    ScanModFolder_Recursive(info, dataPath, "Data");
+    char dataPath[0x400];
+    snprintf(dataPath, sizeof(dataPath), "%s/Data", modDir);
+    ScanModFolder_Recursive(info, dataPath, "Data", 0);
 
-    char bytecodePath[0x100];
-    sprintf(bytecodePath, "%s/Bytecode", modDir);
-    ScanModFolder_Recursive(info, bytecodePath, "Bytecode");
+    char bytecodePath[0x400];
+    snprintf(bytecodePath, sizeof(bytecodePath), "%s/Bytecode", modDir);
+    ScanModFolder_Recursive(info, bytecodePath, "Bytecode", 0);
 #endif
 }
 
 void SaveMods()
 {
-    char modBuf[0x100];
+    char modBuf[0x400];
+#if RETRO_PLATFORM == RETRO_PS3
+    snprintf(modBuf, sizeof(modBuf), "%smods", modsPath);
+#else
     sprintf(modBuf, "%smods", modsPath);
+#endif
 #if RETRO_PLATFORM != RETRO_PS3
     fs::path modPath = resolvePath(modBuf);
 
@@ -510,11 +648,11 @@ void SaveMods()
     DIR *dir = opendir(modBuf);
     if (dir) {
         closedir(dir);
-        char mod_config[0x100];
-        sprintf(mod_config, "%s/modconfig.ini", modBuf);
+        char mod_config[0x400];
+        snprintf(mod_config, sizeof(mod_config), "%s/modconfig.ini", modBuf);
         IniParser modConfig;
 
-        for (int m = 0; m < modList.size(); ++m) {
+        for (int m = 0; m < (int)modList.size(); ++m) {
             ModInfo *info = &modList[m];
 
             modConfig.SetBool("mods", info->folder.c_str(), info->active);
@@ -572,7 +710,7 @@ void RefreshEngine()
     redirectSave       = false;
     Engine.forceSonic1 = false;
     sprintf(savePath, "");
-    for (int m = 0; m < modList.size(); ++m) {
+    for (int m = 0; m < (int)modList.size(); ++m) {
         if (!modList[m].active)
             continue;
         if (modList[m].useScripts)

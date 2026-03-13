@@ -127,35 +127,9 @@ void RetroGameLoop_Main(void *objPtr)
         case ENGINE_INITMODMENU:
             Engine.LoadGameConfig("Data/Game/GameConfig.bin");
             InitDevMenu();
-
             ResetCurrentStageFolder();
-
-            SetupTextMenu(&gameMenu[0], 0);
-            AddTextMenuEntry(&gameMenu[0], "MOD LIST");
-            SetupTextMenu(&gameMenu[1], 0);
             InitMods(); // reload mods
-
-            char buffer[0x100];
-            for (int m = 0; m < modList.size(); ++m) {
-                StrCopy(buffer, modList[m].name.c_str());
-                StrAdd(buffer, ": ");
-                StrAdd(buffer, modList[m].active ? "  Active" : "Inactive");
-                AddTextMenuEntry(&gameMenu[1], buffer);
-            }
-
-            gameMenu[1].alignment      = MENU_ALIGN_RIGHT;
-            gameMenu[1].selectionCount = 3;
-            gameMenu[1].selection1     = 0;
-            if (gameMenu[1].rowCount > 18)
-                gameMenu[1].visibleRowCount = 18;
-            else
-                gameMenu[1].visibleRowCount = 0;
-
-            gameMenu[0].alignment        = MENU_ALIGN_CENTER;
-            gameMenu[0].selectionCount   = 1;
-            gameMenu[1].timer            = 0;
-            gameMenu[1].visibleRowOffset = 0;
-            stageMode                    = DEVMENU_MODMENU;
+            SetTextMenu(DEVMENU_MODMENU);
             break;
 #endif
         default:

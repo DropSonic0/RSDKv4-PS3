@@ -32,6 +32,9 @@ struct ModInfo {
 };
 
 extern std::vector<ModInfo> modList;
+#if RETRO_PLATFORM == RETRO_PS3
+extern std::vector<ModInfo> modInstallList;
+#endif
 extern int activeMod;
 
 extern char modsPath[0x100];
@@ -46,7 +49,13 @@ extern byte modObjCount;
 inline void SetActiveMod(int id) { activeMod = id; }
 
 void InitMods();
+#if RETRO_PLATFORM == RETRO_PS3
+void InitModInstallList();
+#endif
 bool LoadMod(ModInfo *info, std::string modsPath, std::string folder, bool active);
+#if RETRO_PLATFORM == RETRO_PS3
+bool InstallMod(ModInfo *info);
+#endif
 void ScanModFolder(ModInfo *info);
 void SaveMods();
 

@@ -479,6 +479,7 @@ void ProcessStageSelect()
 #if RETRO_USE_MOD_LOADER
         case DEVMENU_MODMENU: // Mod Menu
         {
+            stageMode     = DEVMENU_MODMENU;
             int preOption = gameMenu[1].selection1;
             if (keyDown.down) {
                 gameMenu[1].timer++;
@@ -537,12 +538,39 @@ void ProcessStageSelect()
             gameMenu[1].selection2 = gameMenu[1].selection1; // its a bug fix LOL
 
             char buffer[0x100];
+#if RETRO_PLATFORM == RETRO_PS3
+            if (gameMenu[1].selection1 == 0 && (keyPress.A || keyPress.start)) {
+                SetTextMenu(DEVMENU_MODCOPY);
+            }
+            else if (gameMenu[1].selection1 >= 2 && gameMenu[1].selection1 < (int)modList.size() + 2 && (keyPress.A || keyPress.start || keyPress.left || keyPress.right)) {
+                int modID = gameMenu[1].selection1 - 2;
+                modList[modID].active ^= 1;
+                StrCopy(buffer, modList[modID].name.c_str());
+                StrAdd(buffer, ": ");
+                StrAdd(buffer, (modList[modID].active ? "  Active" : "Inactive"));
+                EditTextMenuEntry(&gameMenu[1], buffer, gameMenu[1].selection1);
+                gameMenu[1].entryHighlight[gameMenu[1].selection1] = modList[modID].active;
+            }
+            else if (keyDown.C && gameMenu[1].selection1 >= 2 && preOption >= 2 && gameMenu[1].selection1 != preOption) {
+                int visibleOffset  = gameMenu[1].visibleRowOffset;
+                int option         = gameMenu[1].selection1;
+                int modID1         = preOption - 2;
+                int modID2         = option - 2;
+                ModInfo swap       = modList[modID1];
+                modList[modID1]    = modList[modID2];
+                modList[modID2]    = swap;
+                SetTextMenu(DEVMENU_MODMENU);
+                gameMenu[1].selection1       = option;
+                gameMenu[1].visibleRowOffset = visibleOffset;
+            }
+#else
             if (gameMenu[1].selection1 < modList.size() && (keyPress.A || keyPress.start || keyPress.left || keyPress.right)) {
                 modList[gameMenu[1].selection1].active ^= 1;
                 StrCopy(buffer, modList[gameMenu[1].selection1].name.c_str());
                 StrAdd(buffer, ": ");
                 StrAdd(buffer, (modList[gameMenu[1].selection1].active ? "  Active" : "Inactive"));
                 EditTextMenuEntry(&gameMenu[1], buffer, gameMenu[1].selection1);
+                gameMenu[1].entryHighlight[gameMenu[1].selection1] = modList[gameMenu[1].selection1].active;
             }
             else if (keyDown.C && gameMenu[1].selection1 != preOption) {
                 int visibleOffset  = gameMenu[1].visibleRowOffset;
@@ -554,6 +582,7 @@ void ProcessStageSelect()
                 gameMenu[1].selection1       = option;
                 gameMenu[1].visibleRowOffset = visibleOffset;
             }
+#endif
             else if (keyPress.B) {
                 if (Engine.modMenuCalled) {
                     Engine.modMenuCalled = false;
@@ -573,6 +602,67 @@ void ProcessStageSelect()
             DrawTextMenu(&gameMenu[1], SCREEN_CENTERX + 100, 64);
             break;
         }
+#if RETRO_PLATFORM == RETRO_PS3
+        case DEVMENU_MODCOPY: {
+            stageMode = DEVMENU_MODCOPY;
+            if (keyDown.down) {
+                gameMenu[1].timer++;
+                if (gameMenu[1].timer > 8) {
+                    gameMenu[1].timer = 0;
+                    keyPress.down   = true;
+                }
+            }
+            else {
+                if (keyDown.up) {
+                    gameMenu[1].timer--;
+                    if (gameMenu[1].timer < -8) {
+                        gameMenu[1].timer = 0;
+                        keyPress.up     = true;
+                    }
+                }
+                else {
+                    gameMenu[1].timer = 0;
+                }
+            }
+
+            if (keyPress.down) {
+                gameMenu[1].selection1++;
+                if (gameMenu[1].selection1 - gameMenu[1].visibleRowOffset >= gameMenu[1].visibleRowCount) {
+                    gameMenu[1].visibleRowOffset++;
+                }
+            }
+
+            if (keyPress.up) {
+                gameMenu[1].selection1--;
+                if (gameMenu[1].selection1 - gameMenu[1].visibleRowOffset < 0 && gameMenu[1].visibleRowOffset > 0) {
+                    gameMenu[1].visibleRowOffset--;
+                }
+            }
+
+            if (gameMenu[1].selection1 >= gameMenu[1].rowCount) {
+                gameMenu[1].selection1       = 0;
+                gameMenu[1].visibleRowOffset = 0;
+            }
+
+            if (gameMenu[1].selection1 < 0) {
+                gameMenu[1].selection1       = gameMenu[1].rowCount - 1;
+                gameMenu[1].visibleRowOffset = gameMenu[1].rowCount - gameMenu[1].visibleRowCount;
+            }
+
+            if (!modInstallList.empty() && (keyPress.A || keyPress.start)) {
+                if (InstallMod(&modInstallList[gameMenu[1].selection1])) {
+                    SetTextMenu(DEVMENU_MODMENU);
+                }
+            }
+            else if (keyPress.B) {
+                SetTextMenu(DEVMENU_MODMENU);
+            }
+
+            DrawTextMenu(&gameMenu[0], SCREEN_CENTERX - 4, 40);
+            DrawTextMenu(&gameMenu[1], SCREEN_CENTERX + 100, 64);
+            break;
+        }
+#endif
 #endif
         default: break;
     }
@@ -639,9 +729,16 @@ void SetTextMenu(int sm)
             break;
 #if RETRO_USE_MOD_LOADER
         case DEVMENU_MODMENU:
+            stageMode = DEVMENU_MODMENU;
             SetupTextMenu(&gameMenu[0], 0);
             AddTextMenuEntry(&gameMenu[0], "MOD LIST");
             SetupTextMenu(&gameMenu[1], 0);
+
+#if RETRO_PLATFORM == RETRO_PS3
+            AddTextMenuEntry(&gameMenu[1], "INSTALL MODS FROM USB TO HDD0");
+            gameMenu[1].entryHighlight[0] = false;
+            AddTextMenuEntry(&gameMenu[1], "-----------------------------");
+#endif
 
             char buffer[0x100];
             for (int m = 0; m < modList.size(); ++m) {
@@ -649,7 +746,11 @@ void SetTextMenu(int sm)
                 StrAdd(buffer, ": ");
                 StrAdd(buffer, modList[m].active ? "  Active" : "Inactive");
                 AddTextMenuEntry(&gameMenu[1], buffer);
-                gameMenu[1].entryHighlight[m] = false;
+#if RETRO_PLATFORM == RETRO_PS3
+                gameMenu[1].entryHighlight[m + 2] = modList[m].active;
+#else
+                gameMenu[1].entryHighlight[m] = modList[m].active;
+#endif
             }
 
             gameMenu[1].alignment      = 1;
@@ -658,13 +759,45 @@ void SetTextMenu(int sm)
             if (gameMenu[1].rowCount > 18)
                 gameMenu[1].visibleRowCount = 18;
             else
-                gameMenu[1].visibleRowCount = 0;
+                gameMenu[1].visibleRowCount = gameMenu[1].rowCount;
 
             gameMenu[0].alignment        = 2;
             gameMenu[0].selectionCount   = 1;
             gameMenu[1].timer            = 0;
             gameMenu[1].visibleRowOffset = 0;
             break;
+#if RETRO_PLATFORM == RETRO_PS3
+        case DEVMENU_MODCOPY:
+            stageMode = DEVMENU_MODCOPY;
+            SetupTextMenu(&gameMenu[0], 0);
+            AddTextMenuEntry(&gameMenu[0], "INSTALL MODS FROM /dev_usb000/");
+            SetupTextMenu(&gameMenu[1], 0);
+
+            InitModInstallList();
+
+            if (modInstallList.empty()) {
+                AddTextMenuEntry(&gameMenu[1], "No mods found");
+            }
+            else {
+                for (int m = 0; m < modInstallList.size(); ++m) {
+                    AddTextMenuEntry(&gameMenu[1], modInstallList[m].name.c_str());
+                }
+            }
+
+            gameMenu[1].alignment      = 1;
+            gameMenu[1].selectionCount = 1;
+            gameMenu[1].selection1     = 0;
+            if (gameMenu[1].rowCount > 18)
+                gameMenu[1].visibleRowCount = 18;
+            else
+                gameMenu[1].visibleRowCount = gameMenu[1].rowCount;
+
+            gameMenu[0].alignment        = 2;
+            gameMenu[0].selectionCount   = 1;
+            gameMenu[1].timer            = 0;
+            gameMenu[1].visibleRowOffset = 0;
+            break;
+#endif
 #endif
     }
 }

@@ -198,8 +198,16 @@ void InitUserdata()
     {
         CellGameSetInitParams init;
         memset(&init, 0, sizeof(CellGameSetInitParams));
+#if defined(SONIC_1)
+        strncpy(init.title, "Sonic 1 Saves", CELL_GAME_SYSP_TITLE_SIZE);
+        strncpy(init.titleId, "STH01SAVE", CELL_GAME_SYSP_TITLEID_SIZE);
+#elif defined(SONIC_2)
+        strncpy(init.title, "Sonic 2 Saves", CELL_GAME_SYSP_TITLE_SIZE);
+        strncpy(init.titleId, "STH02SAVE", CELL_GAME_SYSP_TITLEID_SIZE);
+#else
         strncpy(init.title, "RSDKV4 Saves", CELL_GAME_SYSP_TITLE_SIZE);
         strncpy(init.titleId, "RSDKV4SVE", CELL_GAME_SYSP_TITLEID_SIZE);
+#endif
         strncpy(init.version, "01.00", CELL_GAME_SYSP_VERSION_SIZE);
 
         char contentInfoPath[128];
@@ -207,7 +215,7 @@ void InitUserdata()
         CellGameContentSize size;
 
         // Check if game data already exists
-        int ret = cellGameDataCheck(CELL_GAME_GAMETYPE_GAMEDATA, "RSDKV4SVE", &size);
+        int ret = cellGameDataCheck(CELL_GAME_GAMETYPE_GAMEDATA, init.titleId, &size);
         bool shouldPermit = (ret == 0);
 
         if (ret != 0) {
@@ -253,8 +261,16 @@ void InitUserdata()
     {
         CellGameSetInitParams init;
         memset(&init, 0, sizeof(CellGameSetInitParams));
+#if defined(SONIC_1)
+        strncpy(init.title, "Sonic 1 Mods", CELL_GAME_SYSP_TITLE_SIZE);
+        strncpy(init.titleId, "STH01MODS", CELL_GAME_SYSP_TITLEID_SIZE);
+#elif defined(SONIC_2)
+        strncpy(init.title, "Sonic 2 Mods", CELL_GAME_SYSP_TITLE_SIZE);
+        strncpy(init.titleId, "STH02MODS", CELL_GAME_SYSP_TITLEID_SIZE);
+#else
         strncpy(init.title, "RSDKV4 Mods", CELL_GAME_SYSP_TITLE_SIZE);
         strncpy(init.titleId, "RSDKV4MOD", CELL_GAME_SYSP_TITLEID_SIZE);
+#endif
         strncpy(init.version, "01.00", CELL_GAME_SYSP_VERSION_SIZE);
 
         char contentInfoPath[128];
@@ -262,7 +278,7 @@ void InitUserdata()
         CellGameContentSize size;
 
         // Check if game data already exists
-        int ret = cellGameDataCheck(CELL_GAME_GAMETYPE_GAMEDATA, "RSDKV4MOD", &size);
+        int ret = cellGameDataCheck(CELL_GAME_GAMETYPE_GAMEDATA, init.titleId, &size);
         bool shouldPermit = (ret == 0);
 
         if (ret != 0) {

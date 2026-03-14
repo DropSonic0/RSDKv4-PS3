@@ -738,6 +738,7 @@ void SetTextMenu(int sm)
             AddTextMenuEntry(&gameMenu[1], "INSTALL MODS FROM USB TO HDD0");
             gameMenu[1].entryHighlight[0] = false;
             AddTextMenuEntry(&gameMenu[1], "-----------------------------");
+            gameMenu[1].entryHighlight[1] = false;
 #endif
 
             char buffer[0x100];

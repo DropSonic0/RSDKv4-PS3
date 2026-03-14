@@ -5,14 +5,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RSDKV4PS3", "RSDKV4PS3\RSDK
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|PS3 = Debug|PS3
-		Release|PS3 = Release|PS3
+		RSDKv4|PS3 = RSDKv4|PS3
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{8AE0500B-26A3-4CF2-94BE-A96A94FA9C1C}.Debug|PS3.ActiveCfg = Debug|PS3
-		{8AE0500B-26A3-4CF2-94BE-A96A94FA9C1C}.Debug|PS3.Build.0 = Debug|PS3
-		{8AE0500B-26A3-4CF2-94BE-A96A94FA9C1C}.Release|PS3.ActiveCfg = Release|PS3
-		{8AE0500B-26A3-4CF2-94BE-A96A94FA9C1C}.Release|PS3.Build.0 = Release|PS3
+		{8AE0500B-26A3-4CF2-94BE-A96A94FA9C1C}.RSDKv4|PS3.ActiveCfg = RSDKv4|PS3
+		{8AE0500B-26A3-4CF2-94BE-A96A94FA9C1C}.RSDKv4|PS3.Build.0 = RSDKv4|PS3
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -114,7 +114,15 @@ typedef unsigned int uint;
 #define RETRO_USING_TOUCH
 
 #ifndef BASE_PATH
+#if defined(SONIC_1)
+#define BASE_PATH "/dev_hdd0/game/STH012013/USRDIR/"
+#elif defined(SONIC_2)
+#define BASE_PATH "/dev_hdd0/game/STH022013/USRDIR/"
+#elif defined(BLURAY)
+#define BASE_PATH "/dev_bdvd/PS3_GAME/USRDIR/"
+#else
 #define BASE_PATH "/dev_hdd0/game/RSDKV4PS3/USRDIR/"
+#endif
 #endif
 
 #if !defined(RETRO_USE_SDL2) && !defined(RETRO_USE_SDL1)

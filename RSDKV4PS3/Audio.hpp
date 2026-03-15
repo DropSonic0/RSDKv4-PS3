@@ -95,7 +95,15 @@ struct RETRO_AUDIO_ALIGN StreamInfo {
 #if RETRO_USING_SDL1
     SDL_AudioSpec spec;
 #endif
-    byte padding[4752]; // Offset 0x12a0 (4768 + 4752 = 9520 bytes total)
+#if RETRO_PLATFORM == RETRO_PS3
+    double ratio;
+    double resamplePos;
+    Sint16 lastL;
+    Sint16 lastR;
+    int inputPos;
+    int inputCount;
+#endif
+    byte padding[4724]; // Offset 0x12a0 (4768 + 4724 = 9492 bytes total)
 };
 
 struct RETRO_AUDIO_ALIGN SFXInfo {

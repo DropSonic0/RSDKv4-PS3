@@ -770,9 +770,20 @@ void RetroEngine::Run()
             nativeEntityCountBackup  = 0;
             nativeEntityCountBackupS = 0;
 
+#if RETRO_SOFTWARE_RENDER
+            if (frameBuffer)
+                memset(frameBuffer, 0, GFX_FRAMEBUFFERSIZE * sizeof(ushort));
+#endif
+
 #if RETRO_USE_MOD_LOADER
             // RefreshEngine reloads GameConfig, SFX, GFX, etc. and re-scans mods
             RefreshEngine();
+#endif
+
+            TransferRetroBuffer();
+#if RETRO_PLATFORM == RETRO_PS3
+            // PS3 uses double buffering for the retro buffer texture, clear both
+            TransferRetroBuffer();
 #endif
 
             // Reset engine states

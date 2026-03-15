@@ -29,6 +29,7 @@ struct ModInfo {
     std::string savePath;
     bool forceSonic1;
     bool active;
+    bool scanned;
 };
 
 extern std::vector<ModInfo> modList;

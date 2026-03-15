@@ -545,6 +545,8 @@ void ProcessStageSelect()
             else if (gameMenu[1].selection1 >= 2 && gameMenu[1].selection1 < (int)modList.size() + 2 && (keyPress.A || keyPress.start || keyPress.left || keyPress.right)) {
                 int modID = gameMenu[1].selection1 - 2;
                 modList[modID].active ^= 1;
+                if (modList[modID].active)
+                    ScanModFolder(&modList[modID]);
                 StrCopy(buffer, modList[modID].name.c_str());
                 StrAdd(buffer, ": ");
                 StrAdd(buffer, (modList[modID].active ? "  Active" : "Inactive"));
@@ -566,6 +568,8 @@ void ProcessStageSelect()
 #else
             if (gameMenu[1].selection1 < modList.size() && (keyPress.A || keyPress.start || keyPress.left || keyPress.right)) {
                 modList[gameMenu[1].selection1].active ^= 1;
+                if (modList[gameMenu[1].selection1].active)
+                    ScanModFolder(&modList[gameMenu[1].selection1]);
                 StrCopy(buffer, modList[gameMenu[1].selection1].name.c_str());
                 StrAdd(buffer, ": ");
                 StrAdd(buffer, (modList[gameMenu[1].selection1].active ? "  Active" : "Inactive"));

@@ -381,61 +381,84 @@ int closeVorbis(void *ptr) { return 1; }
                 musicStatus = MUSIC_STOPPED;
                 break;
             }
+
             int channels = streamInfoPtr->vorbisFile.vi->channels;
-            size_t samples_wanted = (size_t)sampleCount;
-            size_t samples_gotten = 0;
-            while (samples_gotten < samples_wanted) {
-                size_t samples_to_read = (samples_wanted - samples_gotten);
-                if (channels == 1) {
-                    // Capping to half to ensure expansion doesn't overflow mix_buffer
-                    if (samples_to_read > (MIX_BUFFER_SAMPLES / 2)) samples_to_read = (MIX_BUFFER_SAMPLES / 2);
-                    samples_to_read /= 2;
-                }
+            int frames_wanted = (int)sampleCount / 2; // sampleCount is in total samples, we want stereo frames
 
-                if (samples_to_read > (MIX_BUFFER_SAMPLES / channels))
-                    samples_to_read = (MIX_BUFFER_SAMPLES / channels);
-                if (samples_to_read == 0) break;
+            static Sint16 resample_buffer[MIX_BUFFER_SAMPLES];
+            int frames_done = 0;
 
-                // Ensure we read an even number of bytes (complete samples)
-                long bytes_read = ov_read(&streamInfoPtr->vorbisFile, (char *)streamInfoPtr->buffer, (int)(samples_to_read * sizeof(Sint16)), 1,
-                                          2, 1, &streamInfoPtr->vorbBitstream);
-                if (bytes_read > 0 && bytes_read % 2 != 0) bytes_read--; // Align to sample
-
-                if (bytes_read == 0) {
-                    if (streamInfoPtr->trackLoop) {
-                        int seek_err = ov_pcm_seek(&streamInfoPtr->vorbisFile, (ogg_int64_t)streamInfoPtr->loopPoint);
-                        if (seek_err != 0) {
-                            musicStatus = MUSIC_STOPPED;
-                            break;
+            while (frames_done < frames_wanted) {
+                while (streamInfoPtr->inputPos >= streamInfoPtr->inputCount) {
+                    if (streamInfoPtr->inputCount > 0) {
+                        // Keep last sample from previous block for interpolation
+                        if (channels == 1) {
+                            streamInfoPtr->lastL = streamInfoPtr->buffer[streamInfoPtr->inputCount - 1];
+                            streamInfoPtr->lastR = streamInfoPtr->lastL;
+                        } else {
+                            streamInfoPtr->lastL = streamInfoPtr->buffer[(streamInfoPtr->inputCount - 1) * 2];
+                            streamInfoPtr->lastR = streamInfoPtr->buffer[(streamInfoPtr->inputCount - 1) * 2 + 1];
                         }
-                        continue;
                     }
-                    else {
-                        musicStatus = MUSIC_STOPPED;
-                        break;
+                    streamInfoPtr->inputPos = 0;
+
+                    int max_samples = MIX_BUFFER_SAMPLES;
+                    long bytes_read = ov_read(&streamInfoPtr->vorbisFile, (char *)streamInfoPtr->buffer, max_samples * sizeof(Sint16), 1, 2, 1, &streamInfoPtr->vorbBitstream);
+                    
+                    if (bytes_read <= 0) {
+                        if (bytes_read == 0 && streamInfoPtr->trackLoop) {
+                            ov_pcm_seek(&streamInfoPtr->vorbisFile, streamInfoPtr->loopPoint);
+                            streamInfoPtr->inputCount = 0;
+                            continue;
+                        } else {
+                            musicStatus = MUSIC_STOPPED;
+                            goto music_done;
+                        }
+                    }
+
+                    streamInfoPtr->inputCount = (int)(bytes_read / (channels * sizeof(Sint16)));
+                }
+
+                double fract = streamInfoPtr->resamplePos - (int)streamInfoPtr->resamplePos;
+                Sint16 s1L, s1R, s2L, s2R;
+
+                if (streamInfoPtr->inputPos == 0) {
+                    s1L = streamInfoPtr->lastL;
+                    s1R = streamInfoPtr->lastR;
+                } else {
+                    if (channels == 1) {
+                        s1L = streamInfoPtr->buffer[streamInfoPtr->inputPos - 1];
+                        s1R = s1L;
+                    } else {
+                        s1L = streamInfoPtr->buffer[(streamInfoPtr->inputPos - 1) * 2];
+                        s1R = streamInfoPtr->buffer[(streamInfoPtr->inputPos - 1) * 2 + 1];
                     }
                 }
 
-                if (bytes_read > 0) {
-                    int samples_read = (int)(bytes_read / sizeof(Sint16));
-                    if (channels == 1) {
-                         Sint16 *buf = streamInfoPtr->buffer;
-                         for (int s = samples_read - 1; s >= 0; s--) {
-                             buf[s*2 + 0] = buf[s];
-                             buf[s*2 + 1] = buf[s];
-                         }
-                         ProcessAudioMixing(stream + samples_gotten, buf, samples_read * 2, (bgmVolume * masterVolume) / MAX_VOLUME, 0);
-                         samples_gotten += samples_read * 2;
-                    } else {
-                         ProcessAudioMixing(stream + samples_gotten, streamInfoPtr->buffer, samples_read, (bgmVolume * masterVolume) / MAX_VOLUME, 0);
-                         samples_gotten += samples_read;
-                    }
+                if (channels == 1) {
+                    s2L = streamInfoPtr->buffer[streamInfoPtr->inputPos];
+                    s2R = s2L;
+                } else {
+                    s2L = streamInfoPtr->buffer[streamInfoPtr->inputPos * 2];
+                    s2R = streamInfoPtr->buffer[streamInfoPtr->inputPos * 2 + 1];
                 }
-                else if (bytes_read < 0) {
-                    // Vorbis error, stop to avoid infinite loop
-                    musicStatus = MUSIC_STOPPED;
-                    break;
+
+                resample_buffer[frames_done * 2] = (Sint16)(s1L + (s2L - s1L) * fract);
+                resample_buffer[frames_done * 2 + 1] = (Sint16)(s1R + (s2R - s1R) * fract);
+
+                frames_done++;
+                streamInfoPtr->resamplePos += streamInfoPtr->ratio;
+                while (streamInfoPtr->resamplePos >= 1.0) {
+                    streamInfoPtr->resamplePos -= 1.0;
+                    streamInfoPtr->inputPos++;
+                    if (streamInfoPtr->inputPos >= streamInfoPtr->inputCount && frames_done < frames_wanted)
+                        break; // Need to refill
                 }
+            }
+
+music_done:
+            if (frames_done > 0) {
+                ProcessAudioMixing(stream, resample_buffer, frames_done * 2, (bgmVolume * masterVolume) / MAX_VOLUME, 0);
             }
 #endif
 
@@ -657,6 +680,15 @@ void LoadMusic(void *userdata)
             playbackInfo->spec.format   = AUDIO_S16;
             playbackInfo->spec.channels = playbackInfo->vorbisFile.vi->channels;
             playbackInfo->spec.freq     = (int)playbackInfo->vorbisFile.vi->rate;
+#endif
+
+#if RETRO_PLATFORM == RETRO_PS3
+            strmInfo->ratio = (double)strmInfo->vorbisFile.vi->rate / (double)AUDIO_FREQUENCY;
+            strmInfo->resamplePos = 0.0;
+            strmInfo->lastL = 0;
+            strmInfo->lastR = 0;
+            strmInfo->inputPos = 0;
+            strmInfo->inputCount = 0;
 #endif
 
             if (musicStartPos) {
@@ -979,39 +1011,40 @@ void LoadSfx(char *filePath, byte sfxID)
                         
                         if (srcChannels > 0 && (bitsPerSample == 16 || bitsPerSample == 8)) {
                             int sampleSize = bitsPerSample / 8;
-                            int sampleCount = (int)(dataLen / sampleSize);
+                            int srcFrameCount = (int)(dataLen / (srcChannels * sampleSize));
                             
                             // We want 44100Hz Stereo
-                            int rateMul = 1;
-                            if (srcRate <= 11025) rateMul = 4;
-                            else if (srcRate <= 22050) rateMul = 2;
-
-                            int dstSampleCount = (sampleCount / srcChannels) * 2 * rateMul;
+                            double ratio = (double)srcRate / (double)AUDIO_FREQUENCY;
+                            int dstFrameCount = (int)(srcFrameCount / ratio);
+                            int dstSampleCount = dstFrameCount * 2;
                             
                             Sint16 *buffer = (Sint16 *)memalign(16, dstSampleCount * sizeof(Sint16));
                             
-                            for (int s = 0; s < dstSampleCount / 2; s++) {
-                                int srcIdx = (s / rateMul) * srcChannels;
-                                byte *samplePtr = ptr + (srcIdx * sampleSize);
+                            for (int f = 0; f < dstFrameCount; f++) {
+                                double pos = f * ratio;
+                                int i = (int)pos;
+                                double fract = pos - i;
                                 
-                                Sint16 valL = 0;
-                                if (bitsPerSample == 16) {
-                                    valL = (Sint16)READ_LE16(samplePtr);
-                                } else {
-                                    valL = (Sint16)((samplePtr[0] - 128) << 8);
+                                if (i + 1 >= srcFrameCount) {
+                                    // Last frame
+                                    byte *samplePtr = ptr + (i * srcChannels * sampleSize);
+                                    Sint16 valL = (bitsPerSample == 16) ? (Sint16)READ_LE16(samplePtr) : (Sint16)((samplePtr[0] - 128) << 8);
+                                    Sint16 valR = (srcChannels > 1) ? ((bitsPerSample == 16) ? (Sint16)READ_LE16(samplePtr + sampleSize) : (Sint16)((samplePtr[1] - 128) << 8)) : valL;
+                                    buffer[f * 2 + 0] = valL;
+                                    buffer[f * 2 + 1] = valR;
+                                    continue;
                                 }
-                                
-                                Sint16 valR = valL;
-                                if (srcChannels > 1) {
-                                    if (bitsPerSample == 16) {
-                                        valR = (Sint16)READ_LE16(samplePtr + 2);
-                                    } else {
-                                        valR = (Sint16)((samplePtr[1] - 128) << 8);
-                                    }
-                                }
-                                
-                                buffer[s * 2 + 0] = valL;
-                                buffer[s * 2 + 1] = valR;
+
+                                byte *p1 = ptr + (i * srcChannels * sampleSize);
+                                byte *p2 = ptr + ((i + 1) * srcChannels * sampleSize);
+
+                                Sint16 s1L = (bitsPerSample == 16) ? (Sint16)READ_LE16(p1) : (Sint16)((p1[0] - 128) << 8);
+                                Sint16 s1R = (srcChannels > 1) ? ((bitsPerSample == 16) ? (Sint16)READ_LE16(p1 + sampleSize) : (Sint16)((p1[1] - 128) << 8)) : s1L;
+                                Sint16 s2L = (bitsPerSample == 16) ? (Sint16)READ_LE16(p2) : (Sint16)((p2[0] - 128) << 8);
+                                Sint16 s2R = (srcChannels > 1) ? ((bitsPerSample == 16) ? (Sint16)READ_LE16(p2 + sampleSize) : (Sint16)((p2[1] - 128) << 8)) : s2L;
+
+                                buffer[f * 2 + 0] = (Sint16)(s1L + (s2L - s1L) * fract);
+                                buffer[f * 2 + 1] = (Sint16)(s1R + (s2R - s1R) * fract);
                             }
                             
                             LockAudioDevice();
@@ -1072,13 +1105,12 @@ void LoadSfx(char *filePath, byte sfxID)
 
             int channels = vinfo->channels;
             int srcRate = vinfo->rate;
-            int rateMul = 1;
-            if (srcRate <= 11025) rateMul = 4;
-            else if (srcRate <= 22050) rateMul = 2;
             
             // Always convert to stereo (2 channels) for the engine's mixer
-            // Add a safety margin to prevent overflow
-            size_t maxSamples = (size_t)(samples * 2 * rateMul) + 2048; 
+            double ratio = (double)srcRate / (double)AUDIO_FREQUENCY;
+            int dstFrameCount = (int)(samples / ratio);
+            size_t maxSamples = (size_t)(dstFrameCount * 2) + 16; 
+            
             Sint16 *audioBuf = (Sint16 *)memalign(16, maxSamples * sizeof(Sint16));
             if (!audioBuf) {
                 ov_clear(vf);
@@ -1088,53 +1120,72 @@ void LoadSfx(char *filePath, byte sfxID)
                 return;
             }
             
-            // Temporary buffer for decoding
-            int decodeBufSize = 32768; // Increased for better performance
-            Sint16 *decodeBuf = (Sint16 *)memalign(16, decodeBufSize);
-            if (!decodeBuf) {
-                free(audioBuf);
-                ov_clear(vf);
-                free(vf);
-                if (sfxFile->buffer) free(sfxFile->buffer);
-                free(sfxFile);
-                return;
-            }
-
-            size_t samples_written = 0;
-            
-            if (channels == 2 && rateMul == 1) {
+            if (channels == 2 && srcRate == 44100) {
                 // Optimized path for 44100Hz Stereo (common case)
+                size_t samples_written = 0;
                 while (samples_written < maxSamples) {
                     read = (int)ov_read(vf, (char *)(audioBuf + samples_written), (int)((maxSamples - samples_written) * 2), 1, 2, 1, &bitstream);
                     if (read <= 0) break;
                     samples_written += (read / 2);
                 }
+                
+                LockAudioDevice();
+                StrCopy(sfxList[sfxID].name, filePath);
+                sfxList[sfxID].buffer = audioBuf;
+                sfxList[sfxID].length = samples_written;
+                sfxList[sfxID].loaded = true;
+                UnlockAudioDevice();
             } else {
-                while (samples_written < maxSamples && (read = (int)ov_read(vf, (char *)decodeBuf, decodeBufSize, 1, 2, 1, &bitstream)) > 0) {
-                    int samples_read_per_channel = read / (channels * 2);
-                    if (samples_read_per_channel == 0) break;
-
-                    Sint16 *src = decodeBuf;
-                    Sint16 *dst = audioBuf + samples_written;
-
-                    for (int s = 0; s < samples_read_per_channel; s++) {
-                        if (samples_written + 2 * rateMul > maxSamples) break;
-
-                        Sint16 valL = src[s * channels];
-                        Sint16 valR = (channels > 1) ? src[s * channels + 1] : valL;
-                        
-                        for (int r = 0; r < rateMul; r++) {
-                            dst[0] = valL;
-                            dst[1] = valR;
-                            dst += 2;
-                            samples_written += 2;
-                        }
-                    }
+                // Linear Resampler for OGG SFX
+                Sint16 *srcBuf = (Sint16 *)memalign(16, (samples + 1) * channels * sizeof(Sint16));
+                if (!srcBuf) {
+                    free(audioBuf);
+                    ov_clear(vf);
+                    free(vf);
+                    if (sfxFile->buffer) free(sfxFile->buffer);
+                    free(sfxFile);
+                    return;
                 }
+                
+                long samples_read = 0;
+                while (samples_read < samples) {
+                    read = (int)ov_read(vf, (char *)(srcBuf + samples_read * channels), (int)((samples - samples_read) * channels * 2), 1, 2, 1, &bitstream);
+                    if (read <= 0) break;
+                    samples_read += (read / (channels * 2));
+                }
+                
+                for (int f = 0; f < dstFrameCount; f++) {
+                    double pos = f * ratio;
+                    int i = (int)pos;
+                    double fract = pos - i;
+                    
+                    Sint16 s1L, s1R, s2L, s2R;
+                    s1L = srcBuf[i * channels];
+                    s1R = (channels > 1) ? srcBuf[i * channels + 1] : s1L;
+                    
+                    if (i + 1 < samples_read) {
+                        s2L = srcBuf[(i + 1) * channels];
+                        s2R = (channels > 1) ? srcBuf[(i + 1) * channels + 1] : s2L;
+                    } else {
+                        s2L = s1L;
+                        s2R = s1R;
+                    }
+                    
+                    audioBuf[f * 2 + 0] = (Sint16)(s1L + (s2L - s1L) * fract);
+                    audioBuf[f * 2 + 1] = (Sint16)(s1R + (s2R - s1R) * fract);
+                }
+                
+                free(srcBuf);
+                
+                LockAudioDevice();
+                StrCopy(sfxList[sfxID].name, filePath);
+                sfxList[sfxID].buffer = audioBuf;
+                sfxList[sfxID].length = dstFrameCount * 2;
+                sfxList[sfxID].loaded = true;
+                UnlockAudioDevice();
             }
             if (read < 0) {
                 free(audioBuf);
-                if (decodeBuf) free(decodeBuf);
                 if (sfxFile->buffer) free(sfxFile->buffer);
                 free(sfxFile);
                 ov_clear(vf);
@@ -1145,16 +1196,8 @@ void LoadSfx(char *filePath, byte sfxID)
 
             ov_clear(vf);
             free(vf);
-            if (decodeBuf) free(decodeBuf);
             if (sfxFile->buffer) free(sfxFile->buffer);
             free(sfxFile);
-
-            LockAudioDevice();
-            StrCopy(sfxList[sfxID].name, filePath);
-            sfxList[sfxID].buffer = audioBuf;
-            sfxList[sfxID].length = samples_written;
-            sfxList[sfxID].loaded = true;
-            UnlockAudioDevice();
         }
         else {
             CloseFile();

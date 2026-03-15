@@ -255,6 +255,7 @@ bool LoadMod(ModInfo *info, std::string modsPath, std::string folder, bool activ
     info->version = "";
     info->folder  = "";
     info->active  = false;
+    info->scanned = false;
 
     const std::string modDir = modsPath + "/" + folder;
 
@@ -347,6 +348,7 @@ void ScanModFolder_Recursive(ModInfo *info, const char *path, const char *folder
 
     struct dirent *entry;
     while ((entry = readdir(dir)) != NULL) {
+        cellSysutilCheckCallback();
         if (entry->d_name[0] == '.')
             continue;
 
@@ -517,7 +519,7 @@ void InitModInstallList()
 
 void ScanModFolder(ModInfo *info)
 {
-    if (!info)
+    if (!info || !info->active || info->scanned)
         return;
 
     char modBuf[0x400];
@@ -652,6 +654,7 @@ void ScanModFolder(ModInfo *info)
     snprintf(bytecodePath, sizeof(bytecodePath), "%s/Bytecode", modDir);
     ScanModFolder_Recursive(info, bytecodePath, "Bytecode", 0);
 #endif
+    info->scanned = true;
 }
 
 void SaveMods()
@@ -707,6 +710,8 @@ void SaveMods()
 
 void RefreshEngine()
 {
+    for (int m = 0; m < (int)modList.size(); ++m) ScanModFolder(&modList[m]);
+
     // Reload entire engine
     Engine.LoadGameConfig("Data/Game/GameConfig.bin");
 #if RETRO_USING_SDL2
@@ -867,6 +872,8 @@ void SetModActive(uint *id, int *active)
         return;
 
     modList[*id].active = *active;
+    if (modList[*id].active)
+        ScanModFolder(&modList[*id]);
 }
 
 void MoveMod(uint *id, int *up)

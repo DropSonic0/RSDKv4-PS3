@@ -203,6 +203,7 @@ void TransmitGlobal(int *globalValue, const char *globalName);
 
 void Receive2PVSData(MultiplayerData *data);
 void Receive2PVSMatchCode(int code);
+void ResetMultiplayerInfo();
 
 void ShowPromoPopup(int *id, const char *popupName);
 void ShowSegaIDPopup();

@@ -848,7 +848,8 @@ void LoadStageFiles(void)
     LoadActLayout();
 
     Init3DFloorBuffer(0);
-
+    if (vsPlaying)
+        ResetMultiplayerInfo();
     ProcessStartupObjects();
 }
 int LoadActFile(const char *ext, int stageID, FileInfo *info)

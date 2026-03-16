@@ -1300,6 +1300,14 @@ void Receive2PVSData(MultiplayerData *data)
     }
 }
 
+void ResetMultiplayerInfo()
+{
+    multiplayerDataIN.type = 0;
+    memset(multiplayerDataIN.data, 0, sizeof(multiplayerDataIN.data));
+    matchValueReadPos  = 0;
+    matchValueWritePos = 0;
+}
+
 void Receive2PVSMatchCode(int code)
 {
     PrintLog("Receive2PVSMatchCode(0x%08X) - vsPlayerID=%d", code, vsPlayerID);

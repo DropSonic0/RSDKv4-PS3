@@ -15,6 +15,7 @@ int musicStatus   = MUSIC_STOPPED;
 int musicStartPos = 0;
 int musicPosition = 0;
 int musicRatio    = 0;
+uint64_t musicLoadStartTime = 0;
 
 #if RETRO_PLATFORM == RETRO_PS3
 TrackInfo musicTracks[TRACK_COUNT] __attribute__((aligned(16)));
@@ -37,6 +38,8 @@ StreamFile *streamFilePtr = NULL;
 StreamInfo *streamInfoPtr = NULL;
 
 int currentMusicTrack = -1;
+int nextMusicTrack    = -1;
+int nextMusicStartPos = 0;
 
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2
 
@@ -621,115 +624,147 @@ void ProcessAudioMixing(Sint32 *dst, const Sint16 *src, int len, int volume, sby
 
 void LoadMusic(void *userdata)
 {
-    int oldStreamID = currentStreamIndex;
-
-    LockAudioDevice();
-    streamInfoPtr = NULL;
-    musicStatus = MUSIC_LOADING;
-
-    currentStreamIndex++;
-    currentStreamIndex %= STREAMFILE_COUNT;
-
-    if (streamFile[currentStreamIndex].vsize > 0) {
-        musicPosition = 0;
-        FreeMusInfo(false);
-    }
-    UnlockAudioDevice();
-
-    FileInfo info;
-    if (LoadFile(musicTracks[currentMusicTrack].fileName, &info)) {
-        StreamFile *musFile = &streamFile[currentStreamIndex];
-        musFile->vpos       = 0;
-        musFile->vsize      = info.vfileSize;
-        if (info.vfileSize > MUSBUFFER_SIZE) {
-            musFile->vsize = MUSBUFFER_SIZE;
-        }
-
-        FileRead(streamFile[currentStreamIndex].buffer, musFile->vsize);
-        CloseFile();
+    while (currentMusicTrack >= 0) {
+        int oldStreamID = currentStreamIndex;
 
         LockAudioDevice();
+        streamInfoPtr = NULL;
+        musicStatus   = MUSIC_LOADING;
 
-        StreamInfo *strmInfo = &streamInfo[currentStreamIndex];
+        currentStreamIndex++;
+        currentStreamIndex %= STREAMFILE_COUNT;
 
-        unsigned long long samples = 0;
-        ov_callbacks callbacks;
+        if (streamFile[currentStreamIndex].vsize > 0) {
+            musicPosition = 0;
+            FreeMusInfo(false);
+        }
+        UnlockAudioDevice();
 
-        callbacks.read_func  = readVorbis;
-        callbacks.seek_func  = seekVorbis;
-        callbacks.tell_func  = tellVorbis;
-        callbacks.close_func = closeVorbis;
+#if RETRO_PLATFORM == RETRO_PS3
+        uint64_t startTime = GetSystemTime();
+        uint64_t openTime, readTime, decodeTime;
+#endif
 
-        memset(&strmInfo->vorbisFile, 0, sizeof(strmInfo->vorbisFile));
-        strmInfo->loaded = false;
-        int error = ov_open_callbacks(musFile, &strmInfo->vorbisFile, NULL, 0, callbacks);
-        if (error == 0) {
-            strmInfo->vorbBitstream = -1;
-            strmInfo->vorbisFile.vi = ov_info(&strmInfo->vorbisFile, -1);
+        FileInfo info;
+        if (LoadFile(musicTracks[currentMusicTrack].fileName, &info)) {
+#if RETRO_PLATFORM == RETRO_PS3
+            openTime = GetSystemTime();
+#endif
+            StreamFile *musFile = &streamFile[currentStreamIndex];
+            musFile->vpos       = 0;
+            musFile->vsize      = info.vfileSize;
+            if (info.vfileSize > MUSBUFFER_SIZE) {
+                musFile->vsize = MUSBUFFER_SIZE;
+            }
 
-            samples = (unsigned long long)ov_pcm_total(&strmInfo->vorbisFile, -1);
+            FileRead(streamFile[currentStreamIndex].buffer, musFile->vsize);
+            CloseFile();
+
+#if RETRO_PLATFORM == RETRO_PS3
+            readTime = GetSystemTime();
+#endif
+
+            LockAudioDevice();
+
+            StreamInfo *strmInfo = &streamInfo[currentStreamIndex];
+
+            unsigned long long samples = 0;
+            ov_callbacks callbacks;
+
+            callbacks.read_func  = readVorbis;
+            callbacks.seek_func  = seekVorbis;
+            callbacks.tell_func  = tellVorbis;
+            callbacks.close_func = closeVorbis;
+
+            memset(&strmInfo->vorbisFile, 0, sizeof(strmInfo->vorbisFile));
+            strmInfo->loaded = false;
+            int error        = ov_open_callbacks(musFile, &strmInfo->vorbisFile, NULL, 0, callbacks);
+            if (error == 0) {
+                strmInfo->vorbBitstream = -1;
+                strmInfo->vorbisFile.vi = ov_info(&strmInfo->vorbisFile, -1);
+
+                samples = (unsigned long long)ov_pcm_total(&strmInfo->vorbisFile, -1);
 
 #if RETRO_USING_SDL2
-            strmInfo->stream = SDL_NewAudioStream(AUDIO_S16, strmInfo->vorbisFile.vi->channels, (int)strmInfo->vorbisFile.vi->rate,
-                                                  audioDeviceFormat.format, audioDeviceFormat.channels, audioDeviceFormat.freq);
-            if (!strmInfo->stream)
-                PrintLog("Failed to create stream: %s", SDL_GetError());
+                strmInfo->stream = SDL_NewAudioStream(AUDIO_S16, strmInfo->vorbisFile.vi->channels, (int)strmInfo->vorbisFile.vi->rate,
+                                                      audioDeviceFormat.format, audioDeviceFormat.channels, audioDeviceFormat.freq);
+                if (!strmInfo->stream)
+                    PrintLog("Failed to create stream: %s", SDL_GetError());
 #endif
 
 #if RETRO_USING_SDL1
-            playbackInfo->spec.format   = AUDIO_S16;
-            playbackInfo->spec.channels = playbackInfo->vorbisFile.vi->channels;
-            playbackInfo->spec.freq     = (int)playbackInfo->vorbisFile.vi->rate;
+                playbackInfo->spec.format   = AUDIO_S16;
+                playbackInfo->spec.channels = playbackInfo->vorbisFile.vi->channels;
+                playbackInfo->spec.freq     = (int)playbackInfo->vorbisFile.vi->rate;
 #endif
 
 #if RETRO_PLATFORM == RETRO_PS3
-            strmInfo->ratio = (double)strmInfo->vorbisFile.vi->rate / (double)AUDIO_FREQUENCY;
-            strmInfo->resamplePos = 0.0;
-            strmInfo->lastL = 0;
-            strmInfo->lastR = 0;
-            strmInfo->inputPos = 0;
-            strmInfo->inputCount = 0;
+                strmInfo->ratio       = (double)strmInfo->vorbisFile.vi->rate / (double)AUDIO_FREQUENCY;
+                strmInfo->resamplePos = 0.0;
+                strmInfo->lastL       = 0;
+                strmInfo->lastR       = 0;
+                strmInfo->inputPos    = 0;
+                strmInfo->inputCount  = 0;
 #endif
 
-            if (musicStartPos) {
-                uint oldPos = (uint)ov_pcm_tell(&streamInfo[oldStreamID].vorbisFile);
+                if (musicStartPos) {
+                    uint oldPos = (uint)ov_pcm_tell(&streamInfo[oldStreamID].vorbisFile);
 
-                float newPos  = oldPos * ((float)musicRatio * 0.0001f); // 8,000 == 0.8, 10,000 == 1.0 (ratio / 10,000)
-                musicStartPos = (int)fmod((double)newPos, (double)samples);
+                    float newPos  = oldPos * ((float)musicRatio * 0.0001f); // 8,000 == 0.8, 10,000 == 1.0 (ratio / 10,000)
+                    musicStartPos = (int)fmod((double)newPos, (double)samples);
 
-                ov_pcm_seek(&strmInfo->vorbisFile, musicStartPos);
+                    ov_pcm_seek(&strmInfo->vorbisFile, musicStartPos);
+                }
+                musicStartPos = 0;
+
+                strmInfo->trackLoop = musicTracks[currentMusicTrack].trackLoop;
+                strmInfo->loopPoint = musicTracks[currentMusicTrack].loopPoint;
+                strmInfo->loaded    = true;
+                streamFilePtr       = &streamFile[currentStreamIndex];
+                streamInfoPtr       = &streamInfo[currentStreamIndex];
+
+                musicStatus       = MUSIC_PLAYING;
+                masterVolume      = MAX_VOLUME;
+                trackID           = currentMusicTrack;
+                currentMusicTrack = -1;
+                musicPosition     = 0;
+
+#if RETRO_PLATFORM == RETRO_PS3
+                decodeTime = GetSystemTime();
+                PrintLog("Music load took %llu us (Open: %llu, Read: %llu, Decode: %llu, Total: %llu)", decodeTime - musicLoadStartTime,
+                         openTime - startTime, readTime - openTime, decodeTime - readTime, decodeTime - startTime);
+#endif
+                UnlockAudioDevice();
             }
-            musicStartPos = 0;
-
-            strmInfo->trackLoop = musicTracks[currentMusicTrack].trackLoop;
-            strmInfo->loopPoint = musicTracks[currentMusicTrack].loopPoint;
-            strmInfo->loaded    = true;
-            streamFilePtr       = &streamFile[currentStreamIndex];
-            streamInfoPtr       = &streamInfo[currentStreamIndex];
-
-            musicStatus         = MUSIC_PLAYING;
-            masterVolume        = MAX_VOLUME;
-            trackID             = currentMusicTrack;
-            currentMusicTrack   = -1;
-            musicPosition       = 0;
+            else {
+                musicStatus = MUSIC_STOPPED;
+                PrintLog("Failed to load vorbis! error: %d", error);
+                switch (error) {
+                    default: PrintLog("Vorbis open error: Unknown (%d)", error); break;
+                    case OV_EREAD: PrintLog("Vorbis open error: A read from media returned an error"); break;
+                    case OV_ENOTVORBIS: PrintLog("Vorbis open error: Bitstream does not contain any Vorbis data"); break;
+                    case OV_EVERSION: PrintLog("Vorbis open error: Vorbis version mismatch"); break;
+                    case OV_EBADHEADER: PrintLog("Vorbis open error: Invalid Vorbis bitstream header"); break;
+                    case OV_EFAULT: PrintLog("Vorbis open error: Internal logic fault; indicates a bug or heap / stack corruption"); break;
+                }
+                currentMusicTrack = -1;
+                UnlockAudioDevice();
+            }
         }
         else {
-            musicStatus = MUSIC_STOPPED;
-            PrintLog("Failed to load vorbis! error: %d", error);
-            switch (error) {
-                default: PrintLog("Vorbis open error: Unknown (%d)", error); break;
-                case OV_EREAD: PrintLog("Vorbis open error: A read from media returned an error"); break;
-                case OV_ENOTVORBIS: PrintLog("Vorbis open error: Bitstream does not contain any Vorbis data"); break;
-                case OV_EVERSION: PrintLog("Vorbis open error: Vorbis version mismatch"); break;
-                case OV_EBADHEADER: PrintLog("Vorbis open error: Invalid Vorbis bitstream header"); break;
-                case OV_EFAULT: PrintLog("Vorbis open error: Internal logic fault; indicates a bug or heap / stack corruption"); break;
-            }
+            musicStatus       = MUSIC_STOPPED;
+            currentMusicTrack = -1;
+        }
+
+        if (nextMusicTrack >= 0) {
+            LockAudioDevice();
+            currentMusicTrack = nextMusicTrack;
+            musicStartPos     = nextMusicStartPos;
+            nextMusicTrack    = -1;
+            nextMusicStartPos = 0;
+            UnlockAudioDevice();
         }
     }
-    else {
-        musicStatus = MUSIC_STOPPED;
-    }
-    UnlockAudioDevice();
 }
 
 void SetMusicTrack(const char *filePath, byte trackID, bool loop, uint loopPoint)
@@ -784,6 +819,7 @@ bool PlayMusic(int track, int musStartPos)
             currentMusicTrack = track;
             musicStatus       = MUSIC_LOADING;
 #if RETRO_PLATFORM == RETRO_PS3
+            musicLoadStartTime = GetSystemTime();
             sys_ppu_thread_t thread;
             sys_ppu_thread_create(&thread, LoadMusic_Thread, 0, 100, 0x10000, SYS_PPU_THREAD_CREATE_JOINABLE, "MusicLoadThread");
 #else
@@ -792,7 +828,9 @@ bool PlayMusic(int track, int musStartPos)
             return true;
         }
         else {
-            PrintLog("WARNING music tried to play while music was loading!");
+            nextMusicTrack    = track;
+            nextMusicStartPos = musStartPos;
+            PrintLog("Music queued: track %d", track);
         }
     }
     else {

@@ -1,4 +1,5 @@
 #include "RetroEngine.hpp"
+#include "BackgroundLoader.hpp"
 
 int stageListCount[STAGELIST_MAX];
 char stageListNames[STAGELIST_MAX][0x20] = {
@@ -265,6 +266,7 @@ void ProcessStage(void)
 
             ProcessParallaxAutoScroll();
             DrawStageGFX();
+            CheckStagePreload();
             break;
 
         case STAGEMODE_PAUSED:
@@ -851,6 +853,9 @@ void LoadStageFiles(void)
     if (vsPlaying)
         ResetMultiplayerInfo();
     ProcessStartupObjects();
+
+    // End preloading once we are done with LoadStageFiles
+    preloadStatus = PRELOAD_IDLE;
 }
 int LoadActFile(const char *ext, int stageID, FileInfo *info)
 {

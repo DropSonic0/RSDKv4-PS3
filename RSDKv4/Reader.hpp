@@ -62,6 +62,8 @@ struct FileInfo {
     FileIO *cFileHandle;
     bool usingDataPack;
 #endif
+    byte *preloadedPtr;
+    int preloadedSize;
 };
 
 struct RSDKFileInfo {
@@ -100,6 +102,8 @@ extern byte encryptionStringA[0x10];
 extern byte encryptionStringB[0x10];
 
 extern FileIO *cFileHandle;
+extern byte *preloadedPtr;
+extern int preloadedSize;
 
 inline void CopyFilePath(char *dest, const char *src)
 {
@@ -136,6 +140,9 @@ int CheckFileInfo(const char *filepath);
 bool LoadFile(const char *filePath, FileInfo *fileInfo);
 inline bool CloseFile()
 {
+    preloadedPtr = nullptr;
+    preloadedSize = 0;
+
     int result = 0;
     if (cFileHandle) {
 #if RETRO_PLATFORM == RETRO_PS3
@@ -168,8 +175,16 @@ inline size_t FillFileBuffer()
     else
         readSize = fileSize - readPos;
 
-    size_t result = fRead(fileBuffer, 1u, readSize, cFileHandle);
-    readPos += readSize;
+    if (readSize <= 0) return 0;
+
+    size_t result = 0;
+    if (preloadedPtr) {
+        memcpy(fileBuffer, &preloadedPtr[readPos], readSize);
+        result = readSize;
+    } else {
+        result = fRead(fileBuffer, 1u, readSize, cFileHandle);
+    }
+    readPos += (int)result;
     bufferPosition = 0;
     return result;
 }

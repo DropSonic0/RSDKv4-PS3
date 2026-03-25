@@ -42,6 +42,31 @@ int disableFocusPause_Config = 0;
 
 bool useSGame = false;
 
+#if RETRO_PLATFORM == RETRO_PS3
+int GetPS3SystemLanguage()
+{
+    int lang = CELL_SYSUTIL_LANG_ENGLISH_US;
+    cellSysutilGetSystemParamInt(CELL_SYSUTIL_SYSTEMPARAM_ID_LANG, &lang);
+
+    switch (lang) {
+        case CELL_SYSUTIL_LANG_JAPANESE: return RETRO_JP;
+        case CELL_SYSUTIL_LANG_ENGLISH_US:
+        case CELL_SYSUTIL_LANG_ENGLISH_GB: return RETRO_EN;
+        case CELL_SYSUTIL_LANG_FRENCH: return RETRO_FR;
+        case CELL_SYSUTIL_LANG_SPANISH: return RETRO_ES;
+        case CELL_SYSUTIL_LANG_GERMAN: return RETRO_DE;
+        case CELL_SYSUTIL_LANG_ITALIAN: return RETRO_IT;
+        case CELL_SYSUTIL_LANG_PORTUGUESE_PT:
+        case CELL_SYSUTIL_LANG_PORTUGUESE_BR: return RETRO_PT;
+        case CELL_SYSUTIL_LANG_RUSSIAN: return RETRO_RU;
+        case CELL_SYSUTIL_LANG_KOREAN: return RETRO_KO;
+        case CELL_SYSUTIL_LANG_CHINESE_T: return RETRO_ZH;
+        case CELL_SYSUTIL_LANG_CHINESE_S: return RETRO_ZS;
+        default: return RETRO_EN;
+    }
+}
+#endif
+
 bool ReadSaveRAMData()
 {
     useSGame = false;
@@ -393,7 +418,11 @@ void InitUserdata()
             StrCopy(Engine.dataFile[3], "Data4.rsdk");
         }
 
+#if RETRO_PLATFORM == RETRO_PS3
+        ini.SetInteger("Game", "Language", Engine.language = GetPS3SystemLanguage());
+#else
         ini.SetInteger("Game", "Language", Engine.language = RETRO_EN);
+#endif
         ini.SetInteger("Game", "GameType", Engine.gameTypeID = 0);
         ini.SetBool("Game", "SkipStartMenu", skipStartMenu = false);
         skipStartMenu_Config = skipStartMenu;
@@ -547,6 +576,15 @@ void InitUserdata()
 
         if (!ini.GetInteger("Game", "Language", &Engine.language))
             Engine.language = RETRO_EN;
+
+#if RETRO_PLATFORM == RETRO_PS3
+        int sysLang = GetPS3SystemLanguage();
+        if (Engine.language != sysLang) {
+            Engine.language = sysLang;
+            ini.SetInteger("Game", "Language", Engine.language);
+            ini.Write(buffer, false);
+        }
+#endif
         if (!ini.GetInteger("Game", "GameType", &Engine.gameTypeID))
             Engine.gameTypeID = 0;
         Engine.releaseType = Engine.gameTypeID ? "USE_ORIGINS" : "USE_STANDALONE";

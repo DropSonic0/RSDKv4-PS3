@@ -1,4 +1,5 @@
 #include "RetroEngine.hpp"
+#include "BackgroundLoader.hpp"
 #include <string>
 #include <algorithm>
 
@@ -146,12 +147,49 @@ inline bool ends_with(std::string const &value, std::string const &ending)
 }
 #endif
 
+byte *preloadedPtr = nullptr;
+int preloadedSize  = 0;
+
 bool LoadFile(const char *filePath, FileInfo *fileInfo)
 {
     MEM_ZEROP(fileInfo);
 
     if (cFileHandle)
         fClose(cFileHandle);
+
+    bool encrypted = false;
+    preloadedPtr = GetPreloadedFile(filePath, &preloadedSize, &encrypted);
+    if (preloadedPtr) {
+        StrCopy(fileName, filePath);
+        StrCopy(fileInfo->fileName, filePath);
+        fileSize = fileInfo->fileSize = preloadedSize;
+        vFileSize = fileInfo->vfileSize = preloadedSize;
+        virtualFileOffset = 0;
+        readPos = 0;
+        fileInfo->readPos = 0;
+        packID = fileInfo->packID = -1;
+        fileInfo->usingDataPack = false;
+        useEncryption = fileInfo->useEncryption = encrypted;
+        
+        fileInfo->preloadedPtr = preloadedPtr;
+        fileInfo->preloadedSize = preloadedSize;
+
+        bufferPosition = 0;
+        readSize = 0;
+
+        if (useEncryption) {
+            GenerateELoadKeys(vFileSize, (vFileSize >> 1) + 1);
+            eStringNo   = (vFileSize & 0x1FC) >> 2;
+            eStringPosA = 0;
+            eStringPosB = 8;
+            eNybbleSwap = 0;
+            memcpy(fileInfo->encryptionStringA, encryptionStringA, 0x10 * sizeof(byte));
+            memcpy(fileInfo->encryptionStringB, encryptionStringB, 0x10 * sizeof(byte));
+        }
+
+        PrintLog("Loaded Preloaded File '%s'", filePath);
+        return true;
+    }
 
     char filePathBuf[0x100];
     StrCopy(filePathBuf, filePath);
@@ -477,7 +515,7 @@ void FileRead(void *dest, int size)
             while (size > 0) {
                 if (bufferPosition == readSize) {
 #if RETRO_PLATFORM == RETRO_PS3
-                    if (size >= 16384) {
+                    if (!preloadedPtr && size >= 16384) {
                         size_t toRead = (size_t)size;
                         if (readPos + toRead > (size_t)fileSize) toRead = (size_t)fileSize - (size_t)readPos;
                         
@@ -606,12 +644,41 @@ void GetFileInfo(FileInfo *fileInfo)
     fileInfo->useEncryption     = useEncryption;
     fileInfo->packID            = packID;
     fileInfo->usingDataPack     = Engine.usingDataFile;
-    memcpy(encryptionStringA, fileInfo->encryptionStringA, 0x10 * sizeof(byte));
-    memcpy(encryptionStringB, fileInfo->encryptionStringB, 0x10 * sizeof(byte));
+    fileInfo->preloadedPtr      = preloadedPtr;
+    fileInfo->preloadedSize     = preloadedSize;
+    memcpy(fileInfo->encryptionStringA, encryptionStringA, 0x10 * sizeof(byte));
+    memcpy(fileInfo->encryptionStringB, encryptionStringB, 0x10 * sizeof(byte));
 }
 
 void SetFileInfo(FileInfo *fileInfo)
 {
+    preloadedPtr  = fileInfo->preloadedPtr;
+    preloadedSize = fileInfo->preloadedSize;
+
+    if (preloadedPtr) {
+        StrCopy(fileName, fileInfo->fileName);
+        fileSize = fileInfo->fileSize;
+        vFileSize = fileInfo->vfileSize;
+        virtualFileOffset = 0;
+        readPos = fileInfo->readPos;
+        bufferPosition = fileInfo->bufferPosition;
+        useEncryption = fileInfo->useEncryption;
+        packID = fileInfo->packID;
+        Engine.usingDataFile = fileInfo->usingDataPack;
+
+        eStringPosA          = fileInfo->eStringPosA;
+        eStringPosB          = fileInfo->eStringPosB;
+        eStringNo            = fileInfo->eStringNo;
+        eNybbleSwap          = fileInfo->eNybbleSwap;
+        memcpy(encryptionStringA, fileInfo->encryptionStringA, 0x10 * sizeof(byte));
+        memcpy(encryptionStringB, fileInfo->encryptionStringB, 0x10 * sizeof(byte));
+
+        // Refill the buffer from memory
+        FillFileBuffer();
+        bufferPosition = fileInfo->bufferPosition;
+        return;
+    }
+
 #if !RETRO_USE_ORIGINAL_CODE
     if (fileInfo->usingDataPack) {
 #else
@@ -673,6 +740,53 @@ size_t GetFilePosition()
 
 void SetFilePosition(int newPos)
 {
+    if (preloadedPtr) {
+        readPos = newPos;
+        if (useEncryption) {
+            eStringNo   = (vFileSize & 0x1FC) >> 2;
+            eStringPosA = 0;
+            eStringPosB = 8;
+            eNybbleSwap = false;
+            while (newPos--) {
+                ++eStringPosA;
+                ++eStringPosB;
+                if (eStringPosA <= 0x0F) {
+                    if (eStringPosB > 0x0C) {
+                        eStringPosB = 0;
+                        eNybbleSwap ^= 0x01;
+                    }
+                }
+                else if (eStringPosB <= 0x08) {
+                    eStringPosA = 0;
+                    eNybbleSwap ^= 0x01;
+                }
+                else {
+                    eStringNo += 2;
+                    eStringNo &= 0x7F;
+
+                    int key1 = mulUnsignedHigh(ENC_KEY_1, eStringNo);
+                    int key2 = mulUnsignedHigh(ENC_KEY_2, eStringNo);
+
+                    int temp1 = key2 + (eStringNo - key2) / 2;
+                    int temp2 = (key1 >> 3) * 3;
+
+                    if (eNybbleSwap != 0) {
+                        eNybbleSwap = 0;
+                        eStringPosA = eStringNo - (temp1 >> 2) * 7;
+                        eStringPosB = eStringNo - (temp2 << 2) + 2;
+                    }
+                    else {
+                        eNybbleSwap = 1;
+                        eStringPosB = eStringNo - (temp1 >> 2) * 7;
+                        eStringPosA = eStringNo - (temp2 << 2) + 3;
+                    }
+                }
+            }
+        }
+        FillFileBuffer();
+        return;
+    }
+
     if (useEncryption) {
         readPos     = virtualFileOffset + newPos;
         eStringNo   = (vFileSize & 0x1FC) >> 2;
@@ -728,7 +842,7 @@ void SetFilePosition(int newPos)
         else
             readPos = newPos;
     }
-    fSeek(cFileHandle, readPos, SEEK_SET);
+    if (cFileHandle) fSeek(cFileHandle, readPos, SEEK_SET);
     FillFileBuffer();
 }
 

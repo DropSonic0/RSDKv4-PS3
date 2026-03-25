@@ -796,12 +796,6 @@ void SwapMusicTrack(const char *filePath, byte trackID, uint loopPoint, uint rat
     }
 }
 
-#if RETRO_PLATFORM == RETRO_PS3
-void LoadMusic_Thread(uint64_t arg) {
-    LoadMusic(NULL);
-    sys_ppu_thread_exit(0);
-}
-#endif
 
 bool PlayMusic(int track, int musStartPos)
 {
@@ -819,9 +813,9 @@ bool PlayMusic(int track, int musStartPos)
             currentMusicTrack = track;
             musicStatus       = MUSIC_LOADING;
 #if RETRO_PLATFORM == RETRO_PS3
-            musicLoadStartTime = GetSystemTime();
-            sys_ppu_thread_t thread;
-            sys_ppu_thread_create(&thread, LoadMusic_Thread, 0, 100, 0x10000, 0, "MusicLoadThread");
+            // Loading music in a thread is unsafe on PS3 because the Reader and global engine state are not thread-safe.
+            // This causes corruption and "Bitstream does not contain any Vorbis data" errors after many loads.
+            LoadMusic(NULL);
 #else
             LoadMusic(NULL);
 #endif

@@ -1,4 +1,5 @@
 #include "RetroEngine.hpp"
+#include "BackgroundLoader.hpp"
 
 #if RETRO_PLATFORM == RETRO_PS3
 #include "AudioPS3.hpp"
@@ -545,6 +546,7 @@ void RetroEngine::Init()
     if (LoadGameConfig("Data/Game/GameConfig.bin")) {
         if (InitRenderDevice()) {
             if (InitAudioPlayback()) {
+                InitBackgroundLoader();
                 InitFirstStage();
                 ClearScriptData();
                 initialised = true;

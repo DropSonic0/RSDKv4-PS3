@@ -689,12 +689,40 @@ void LoadStageFiles(void)
                     FileRead(&fileBuffer2, 1);
                     FileRead(strBuffer, fileBuffer2);
                     strBuffer[fileBuffer2] = 0;
-                    GetFileInfo(&infoStore);
-                    CloseFile();
-                    ParseScriptFile(strBuffer, scriptID++);
-                    SetFileInfo(&infoStore);
-                    if (Engine.gameMode == ENGINE_SCRIPTERROR)
-                        return;
+                    
+                    char pathBuffer[0x100];
+                    StrCopy(pathBuffer, strBuffer);
+                    for (int c = 0; pathBuffer[c]; ++c) if (pathBuffer[c] == '\\') pathBuffer[c] = '/';
+
+                    int loadedIdx = -1;
+                    for (int o = 0; o < scriptID; o++) {
+                        if (strcasecmp(objectScriptList[o].name, pathBuffer) == 0) {
+                            loadedIdx = o;
+                            break;
+                        }
+                    }
+
+                    if (loadedIdx == -1) {
+                        GetFileInfo(&infoStore);
+                        CloseFile();
+                        ParseScriptFile(strBuffer, scriptID);
+                        SetFileInfo(&infoStore);
+                        if (Engine.gameMode == ENGINE_SCRIPTERROR)
+                            return;
+                        strncpy(objectScriptList[scriptID].name, pathBuffer, 0xFF);
+                        objectScriptList[scriptID].name[0xFF] = 0;
+                        scriptID++;
+                    }
+                    else {
+                        objectScriptList[scriptID] = objectScriptList[loadedIdx];
+                        // Ensure we carry over the path for future checks
+                        strncpy(objectScriptList[scriptID].name, pathBuffer, 0xFF);
+                        objectScriptList[scriptID].name[0xFF] = 0;
+                        // Log with a slight delay or only in debug to avoid excessive spam if desired,
+                        // but for now let's keep it to confirm deduplication works.
+                        PrintLog("Reused script for object slot %d (matches slot %d): %s", scriptID, loadedIdx, pathBuffer);
+                        scriptID++;
+                    }
                 }
             }
 #else
@@ -715,12 +743,36 @@ void LoadStageFiles(void)
             for (byte i = 0; i < modObjCount && loadGlobalScripts; ++i) {
                 SetObjectTypeName(modTypeNames[i], scriptID);
 
-                GetFileInfo(&infoStore);
-                CloseFile();
-                ParseScriptFile(modScriptPaths[i], scriptID++);
-                SetFileInfo(&infoStore);
-                if (Engine.gameMode == ENGINE_SCRIPTERROR)
-                    return;
+                char pathBuffer[0x100];
+                StrCopy(pathBuffer, modScriptPaths[i]);
+                for (int c = 0; pathBuffer[c]; ++c) if (pathBuffer[c] == '\\') pathBuffer[c] = '/';
+
+                int loadedIdx = -1;
+                for (int o = 0; o < scriptID; o++) {
+                    if (strcasecmp(objectScriptList[o].name, pathBuffer) == 0) {
+                        loadedIdx = o;
+                        break;
+                    }
+                }
+
+                if (loadedIdx == -1) {
+                    GetFileInfo(&infoStore);
+                    CloseFile();
+                    ParseScriptFile(modScriptPaths[i], scriptID);
+                    SetFileInfo(&infoStore);
+                    if (Engine.gameMode == ENGINE_SCRIPTERROR)
+                        return;
+                    strncpy(objectScriptList[scriptID].name, pathBuffer, 0xFF);
+                    objectScriptList[scriptID].name[0xFF] = 0;
+                    scriptID++;
+                }
+                else {
+                    objectScriptList[scriptID] = objectScriptList[loadedIdx];
+                    strncpy(objectScriptList[scriptID].name, pathBuffer, 0xFF);
+                    objectScriptList[scriptID].name[0xFF] = 0;
+                    PrintLog("Reused script for mod object slot %d (matches slot %d): %s", scriptID, loadedIdx, pathBuffer);
+                    scriptID++;
+                }
             }
 #endif
         }
@@ -805,12 +857,35 @@ void LoadStageFiles(void)
                     FileRead(&fileBuffer2, 1);
                     FileRead(strBuffer, fileBuffer2);
                     strBuffer[fileBuffer2] = 0;
-                    GetFileInfo(&infoStore);
-                    CloseFile();
-                    ParseScriptFile(strBuffer, scriptID + i);
-                    SetFileInfo(&infoStore);
-                    if (Engine.gameMode == ENGINE_SCRIPTERROR)
-                        return;
+
+                    char pathBuffer[0x100];
+                    StrCopy(pathBuffer, strBuffer);
+                    for (int c = 0; pathBuffer[c]; ++c) if (pathBuffer[c] == '\\') pathBuffer[c] = '/';
+
+                    int loadedIdx = -1;
+                    for (int o = 0; o < scriptID + i; o++) {
+                        if (strcasecmp(objectScriptList[o].name, pathBuffer) == 0) {
+                            loadedIdx = o;
+                            break;
+                        }
+                    }
+
+                    if (loadedIdx == -1) {
+                        GetFileInfo(&infoStore);
+                        CloseFile();
+                        ParseScriptFile(strBuffer, scriptID + i);
+                        SetFileInfo(&infoStore);
+                        if (Engine.gameMode == ENGINE_SCRIPTERROR)
+                            return;
+                        strncpy(objectScriptList[scriptID + i].name, pathBuffer, 0xFF);
+                        objectScriptList[scriptID + i].name[0xFF] = 0;
+                    }
+                    else {
+                        objectScriptList[scriptID + i] = objectScriptList[loadedIdx];
+                        strncpy(objectScriptList[scriptID + i].name, pathBuffer, 0xFF);
+                        objectScriptList[scriptID + i].name[0xFF] = 0;
+                        PrintLog("Reused script for object slot %d (matches slot %d): %s", scriptID + i, loadedIdx, pathBuffer);
+                    }
                 }
             }
 #else

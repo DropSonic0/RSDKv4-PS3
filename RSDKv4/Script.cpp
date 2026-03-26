@@ -2918,9 +2918,6 @@ void ParseScriptFile(char *scriptName, int scriptID)
     StrCopy(scriptPath, "Data/Scripts/");
     StrAdd(scriptPath, scriptName);
     if (LoadFile(scriptPath, &info)) {
-        if (info.preloadedPtr) {
-            PrintLog("Loaded Preloaded File '%s'", scriptPath);
-        }
         int readMode   = READMODE_NORMAL;
         int parseMode  = PARSEMODE_SCOPELESS;
         char prevChar  = 0;
@@ -3480,6 +3477,7 @@ void ClearScriptData()
 
     for (int o = 0; o < OBJECT_COUNT; ++o) {
         ObjectScript *scriptInfo               = &objectScriptList[o];
+        scriptInfo->name[0]                    = 0;
         scriptInfo->eventUpdate.scriptCodePtr  = SCRIPTCODE_COUNT - 1;
         scriptInfo->eventUpdate.jumpTablePtr   = JUMPTABLE_COUNT - 1;
         scriptInfo->eventDraw.scriptCodePtr    = SCRIPTCODE_COUNT - 1;

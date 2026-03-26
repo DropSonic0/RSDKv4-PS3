@@ -3,8 +3,8 @@
 
 #include "RetroEngine.hpp"
 
-#define PRELOAD_FILE_COUNT (128)
-#define PRELOAD_BUF_SIZE   (0x40000) // 256KB per buffer, 32MB total
+#define PRELOAD_FILE_COUNT (112)
+#define PRELOAD_BUF_SIZE   (0x40000) // 256KB per buffer, 28MB total
 
 enum PreloadStatus {
     PRELOAD_IDLE,

@@ -154,8 +154,7 @@ bool LoadFile(const char *filePath, FileInfo *fileInfo)
 {
     MEM_ZEROP(fileInfo);
 
-    if (cFileHandle)
-        fClose(cFileHandle);
+    CloseFile();
 
     bool encrypted = false;
     preloadedPtr = GetPreloadedFile(filePath, &preloadedSize, &encrypted);
@@ -227,6 +226,7 @@ bool LoadFile(const char *filePath, FileInfo *fileInfo)
             std::string fStr     = std::string(filePathBuf);
             fStr.erase(fStr.begin(), fStr.begin() + 5); // remove "Data/"
             StrCopy(filePathBuf, fStr.c_str());
+            for (int i = 0; filePathBuf[i]; i++) if (filePathBuf[i] == '\\') filePathBuf[i] = '/';
         }
     }
 #endif

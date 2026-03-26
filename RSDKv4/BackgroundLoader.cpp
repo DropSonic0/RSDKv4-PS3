@@ -101,6 +101,7 @@ static bool ThreadedResolvePath(char *dest, const char *filePath, int *packID, i
             char scriptPath[0x100];
             strncpy(scriptPath, filePathBuf + 5, 0xFF); // Skip "Data/"
             scriptPath[0xFF] = 0;
+    for (int i = 0; scriptPath[i]; i++) if (scriptPath[i] == '\\') scriptPath[i] = '/';
             strncpy(filePathBuf, scriptPath, 0xFF);
         }
     }
@@ -242,10 +243,18 @@ static void ReadDecrypted(void *dest, int size, FILE *f, DecryptionState *s, boo
 
 static void AddRelPath(char relPaths[PRELOAD_FILE_COUNT][0x100], int *count, const char *path) {
     if (*count >= PRELOAD_FILE_COUNT || !path || !path[0]) return;
-    for (int i = 0; i < *count; i++) {
-        if (strcasecmp(relPaths[i], path) == 0) return;
+
+    char normalized[0x100];
+    strncpy(normalized, path, 0xFF);
+    normalized[0xFF] = 0;
+    for (int i = 0; normalized[i]; i++) {
+        if (normalized[i] == '\\') normalized[i] = '/';
     }
-    strncpy(relPaths[(*count)++], path, 0xFF);
+
+    for (int i = 0; i < *count; i++) {
+        if (strcasecmp(relPaths[i], normalized) == 0) return;
+    }
+    strncpy(relPaths[(*count)++], normalized, 0xFF);
 }
 
 static void GetScriptsFromConfig(const char *relPath, char scriptPaths[PRELOAD_FILE_COUNT][0x100], int *count) {
@@ -281,20 +290,44 @@ static void GetScriptsFromConfig(const char *relPath, char scriptPaths[PRELOAD_F
         
         ReadDecrypted(buf, 1, f, &s, encrypted); // Object count
         int objCount = buf[0];
+        if (objCount > OBJECT_COUNT) objCount = OBJECT_COUNT;
+        
+        char (*objNames)[0x100] = (char (*)[0x100])malloc(objCount * 0x100);
+        if (!objNames) { fclose(f); return; }
+
         for (int i = 0; i < objCount; i++) {
             ReadDecrypted(buf, 1, f, &s, encrypted);
-            ReadDecrypted(NULL, buf[0], f, &s, encrypted);
+            int len = buf[0];
+            if (len > 0xFF) len = 0xFF;
+            ReadDecrypted(objNames[i], len, f, &s, encrypted);
+            objNames[i][len] = 0;
         }
+
+        // Read script paths (TxtScripts mode second list)
         for (int i = 0; i < objCount; i++) {
             ReadDecrypted(buf, 1, f, &s, encrypted);
-            ReadDecrypted(buf + 1, buf[0], f, &s, encrypted);
-            buf[buf[0] + 1] = 0;
-            if (buf[1] && *count < PRELOAD_FILE_COUNT) {
+            int len = buf[0];
+            if (len > 0) {
+                char scriptName[0x100];
+                if (len > 0xFF) len = 0xFF;
+                ReadDecrypted(scriptName, len, f, &s, encrypted);
+                scriptName[len] = 0;
+
                 char scriptPath[0x100];
-                snprintf(scriptPath, sizeof(scriptPath), "Data/Scripts/%s.txt", (char*)(buf + 1));
+                if (retro_strcasestr(scriptName, ".txt"))
+                    snprintf(scriptPath, sizeof(scriptPath), "Data/Scripts/%s", scriptName);
+                else
+                    snprintf(scriptPath, sizeof(scriptPath), "Data/Scripts/%s.txt", scriptName);
+                AddRelPath(scriptPaths, count, scriptPath);
+            }
+            else {
+                // Fallback for Global scripts - they usually have explicit paths, but just in case
+                char scriptPath[0x100];
+                snprintf(scriptPath, sizeof(scriptPath), "Data/Scripts/Global/%s.txt", objNames[i]);
                 AddRelPath(scriptPaths, count, scriptPath);
             }
         }
+        free(objNames);
         // Skip Global Variables
         ReadDecrypted(buf, 1, f, &s, encrypted);
         int varCount = buf[0];
@@ -305,6 +338,7 @@ static void GetScriptsFromConfig(const char *relPath, char scriptPaths[PRELOAD_F
         }
     } else {
         ReadDecrypted(buf, 1, f, &s, encrypted); // Load Globals
+        // StageConfig palette uses 0x20 * 3 bytes (indices 0x60-0x7F)
         ReadDecrypted(NULL, 0x20 * 3, f, &s, encrypted); // Palette
         ReadDecrypted(buf, 1, f, &s, encrypted); // SFX count
         int sfxCount = buf[0];
@@ -317,26 +351,60 @@ static void GetScriptsFromConfig(const char *relPath, char scriptPaths[PRELOAD_F
             ReadDecrypted(NULL, buf[0], f, &s, encrypted);
         }
         
-        ReadDecrypted(buf, 1, f, &s, encrypted); // Object names count
+        ReadDecrypted(buf, 1, f, &s, encrypted); // Object count
         int objCount = buf[0];
+        if (objCount > OBJECT_COUNT) objCount = OBJECT_COUNT;
+
+        char (*objNames)[0x100] = (char (*)[0x100])malloc(objCount * 0x100);
+        if (!objNames) { fclose(f); return; }
+
         for (int i = 0; i < objCount; i++) {
             ReadDecrypted(buf, 1, f, &s, encrypted);
-            ReadDecrypted(NULL, buf[0], f, &s, encrypted);
+            int len = buf[0];
+            if (len > 0xFF) len = 0xFF;
+            ReadDecrypted(objNames[i], len, f, &s, encrypted);
+            objNames[i][len] = 0;
         }
-        // Read script paths (TxtScripts mode second list)
-        ReadDecrypted(buf, 1, f, &s, encrypted);
-        if (buf[0] == objCount) {
-            for (int i = 0; i < objCount; i++) {
-                ReadDecrypted(buf, 1, f, &s, encrypted);
-                ReadDecrypted(buf + 1, buf[0], f, &s, encrypted);
-                buf[buf[0] + 1] = 0;
-                if (buf[1] && *count < PRELOAD_FILE_COUNT) {
-                    char scriptPath[0x100];
-                    snprintf(scriptPath, sizeof(scriptPath), "Data/Scripts/%s.txt", (char*)(buf + 1));
-                    AddRelPath(scriptPaths, count, scriptPath);
-                }
+
+        char folder[0x80];
+        folder[0] = 0;
+        const char *p1 = retro_strcasestr(relPath, "Stages/");
+        if (p1) {
+            p1 += 7;
+            const char *p2 = strchr(p1, '/');
+            if (p2) {
+                int flen = p2 - p1;
+                if (flen > 0x7F) flen = 0x7F;
+                strncpy(folder, p1, flen);
+                folder[flen] = 0;
             }
         }
+
+        // Read script paths (TxtScripts mode second list)
+        for (int i = 0; i < objCount; i++) {
+            ReadDecrypted(buf, 1, f, &s, encrypted);
+            int len = buf[0];
+            if (len > 0) {
+                char scriptName[0x100];
+                if (len > 0xFF) len = 0xFF;
+                ReadDecrypted(scriptName, len, f, &s, encrypted);
+                scriptName[len] = 0;
+
+                char scriptPath[0x100];
+                if (retro_strcasestr(scriptName, ".txt"))
+                    snprintf(scriptPath, sizeof(scriptPath), "Data/Scripts/%s", scriptName);
+                else
+                    snprintf(scriptPath, sizeof(scriptPath), "Data/Scripts/%s.txt", scriptName);
+                AddRelPath(scriptPaths, count, scriptPath);
+            }
+            else if (folder[0]) {
+                // Fallback for Stage scripts: use folder and object name convention
+                char scriptPath[0x100];
+                snprintf(scriptPath, sizeof(scriptPath), "Data/Scripts/%s/%s.txt", folder, objNames[i]);
+                AddRelPath(scriptPaths, count, scriptPath);
+            }
+        }
+        free(objNames);
     }
     fclose(f);
 }
@@ -430,7 +498,7 @@ void StartStagePreload(int listID, int stageID)
 
 #if RETRO_PLATFORM == RETRO_PS3
     preloadThreadRunning = true;
-    sys_ppu_thread_create(&preloadThread, PreloadThreadFunc, 0, 1001, 0x40000, SYS_PPU_THREAD_CREATE_JOINABLE, "PreloadThread");
+    sys_ppu_thread_create(&preloadThread, PreloadThreadFunc, 0, 1001, 0x10000, SYS_PPU_THREAD_CREATE_JOINABLE, "PreloadThread");
 #else
     preloadStatus = PRELOAD_IDLE;
 #endif
@@ -456,7 +524,10 @@ void PreloadThreadFunc(uint64_t arg)
     }
 
     // List of files to preload
-    char relPaths[PRELOAD_FILE_COUNT][0x100];
+    // Use heap to avoid stack overflow with reduced thread stack size
+    typedef char PathBuf[0x100];
+    PathBuf *relPaths = (PathBuf*)malloc(sizeof(PathBuf) * PRELOAD_FILE_COUNT);
+    if (!relPaths) { preloadStatus = PRELOAD_IDLE; preloadThreadRunning = false; sys_ppu_thread_exit(0); }
     for (int i=0; i<PRELOAD_FILE_COUNT; i++) relPaths[i][0] = 0;
 
     int pathIdx = 0;
@@ -536,6 +607,7 @@ void PreloadThreadFunc(uint64_t arg)
     }
 
     PrintLog("Background Loading READY for %s - %s", stageListNames[preloadListID], stageList[preloadListID][preloadStageID].name);
+    free(relPaths);
     preloadStatus = PRELOAD_READY;
     preloadThreadRunning = false;
     sys_ppu_thread_exit(0);
@@ -545,10 +617,17 @@ void PreloadThreadFunc(uint64_t arg)
 byte* GetPreloadedFile(const char *fileName, int *size, bool *encrypted)
 {
     if (preloadStatus != PRELOAD_READY || !preloadedData) return nullptr;
+
+    char searchNameBuf[0x100];
+    strncpy(searchNameBuf, fileName, 0xFF);
+    searchNameBuf[0xFF] = 0;
+    for (int i = 0; searchNameBuf[i]; i++) {
+        if (searchNameBuf[i] == '\\') searchNameBuf[i] = '/';
+    }
     
     // Normalize requested filename (case-insensitive and strip "Data/")
-    const char *searchName = fileName;
-    if (strncasecmp(fileName, "Data/", 5) == 0) searchName = fileName + 5;
+    const char *searchName = searchNameBuf;
+    if (strncasecmp(searchName, "Data/", 5) == 0) searchName += 5;
     int reqLen = strlen(searchName);
 
     for (int i = 0; i < PRELOAD_FILE_COUNT; i++) {
@@ -564,7 +643,7 @@ byte* GetPreloadedFile(const char *fileName, int *size, bool *encrypted)
             // Case-insensitive match on the end of the path
             if (strcasecmp(preEnd, searchName) == 0) {
                 // Ensure it's an exact file match (start of string or preceded by /)
-                if (preLen == reqLen || (preEnd > preName && (preEnd[-1] == '/' || preEnd[-1] == '\\'))) {
+                if (preLen == reqLen || (preEnd > preName && (preEnd[-1] == '/'))) {
                     if (size) *size = preloadedData->files[i].size;
                     if (encrypted) *encrypted = preloadedData->files[i].encrypted;
                     return preloadedData->files[i].buffer;

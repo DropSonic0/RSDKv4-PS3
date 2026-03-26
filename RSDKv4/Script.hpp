@@ -26,6 +26,7 @@ struct ScriptFunction {
 };
 
 struct ObjectScript {
+    char name[0x100];
     int frameCount;
     int spriteSheetID;
     ScriptPtr eventUpdate;

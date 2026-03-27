@@ -664,27 +664,40 @@ void LoadStageFiles(void)
 
 #if RETRO_USE_COMPILER
 #if !RETRO_USE_ORIGINAL_CODE
-            bool bytecodeExists = false;
+            char modHash[33];
+            GetModHash(modHash);
+            char globalBytecodePath[0x100];
+            if (modHash[0])
+                snprintf(globalBytecodePath, sizeof(globalBytecodePath), "Bytecode/GlobalCode_%s.bin", modHash);
+            else
+                snprintf(globalBytecodePath, sizeof(globalBytecodePath), "Bytecode/GlobalCode.bin");
+
+            bool bytecodeExists  = false;
             FileInfo bytecodeInfo;
             GetFileInfo(&bytecodeInfo);
             CloseFile();
-            if (LoadFile("Bytecode/GlobalCode.bin", &info)) {
+            if (LoadFile(globalBytecodePath, &info)) {
                 bytecodeExists = true;
                 CloseFile();
             }
             SetFileInfo(&bytecodeInfo);
 
-            if (bytecodeExists && !forceUseScripts) {
-#else
-            if (Engine.usingBytecode) {
-#endif
+            if (bytecodeExists) {
                 GetFileInfo(&infoStore);
                 CloseFile();
-                LoadBytecode(4, scriptID);
-                scriptID += globalObjectCount;
+                int loadedScriptCount = LoadBytecode(4, scriptID, globalBytecodePath, 0);
+                scriptID += loadedScriptCount;
                 SetFileInfo(&infoStore);
             }
             else {
+                bool parsedGlobalTxt = false;
+                int startGlobalScriptCodePos = scriptCodePos;
+                int startGlobalJumpTablePos  = jumpTablePos;
+                int startGlobalFuncID        = scriptFunctionCount;
+                int startGlobalAliasID       = scriptValueListCount;
+                scriptCodeOffset = scriptCodePos;
+                jumpTableOffset = jumpTablePos;
+
                 for (byte i = 0; i < globalObjectCount; ++i) {
                     FileRead(&fileBuffer2, 1);
                     FileRead(strBuffer, fileBuffer2);
@@ -712,19 +725,83 @@ void LoadStageFiles(void)
                         strncpy(objectScriptList[scriptID].name, pathBuffer, 0xFF);
                         objectScriptList[scriptID].name[0xFF] = 0;
                         scriptID++;
+                        parsedGlobalTxt = true;
                     }
                     else {
                         objectScriptList[scriptID] = objectScriptList[loadedIdx];
-                        // Ensure we carry over the path for future checks
                         strncpy(objectScriptList[scriptID].name, pathBuffer, 0xFF);
                         objectScriptList[scriptID].name[0xFF] = 0;
-                        // Log with a slight delay or only in debug to avoid excessive spam if desired,
-                        // but for now let's keep it to confirm deduplication works.
                         PrintLog("Reused script for object slot %d (matches slot %d): %s", scriptID, loadedIdx, pathBuffer);
                         scriptID++;
                     }
                 }
+
+#if RETRO_USE_MOD_LOADER
+                bool parsedModTxt = false;
+                for (byte i = 0; i < modObjCount && loadGlobalScripts; ++i) {
+                    SetObjectTypeName(modTypeNames[i], scriptID);
+
+                    char pathBuffer[0x100];
+                    StrCopy(pathBuffer, modScriptPaths[i]);
+                    for (int c = 0; pathBuffer[c]; ++c) if (pathBuffer[c] == '\\') pathBuffer[c] = '/';
+
+                    int loadedIdx = -1;
+                    for (int o = 0; o < scriptID; o++) {
+                        if (strcasecmp(objectScriptList[o].name, pathBuffer) == 0) {
+                            loadedIdx = o;
+                            break;
+                        }
+                    }
+
+                    if (loadedIdx == -1) {
+                        GetFileInfo(&infoStore);
+                        CloseFile();
+                        ParseScriptFile(modScriptPaths[i], scriptID);
+                        SetFileInfo(&infoStore);
+                        if (Engine.gameMode == ENGINE_SCRIPTERROR)
+                            return;
+                        strncpy(objectScriptList[scriptID].name, pathBuffer, 0xFF);
+                        objectScriptList[scriptID].name[0xFF] = 0;
+                        scriptID++;
+                        parsedModTxt = true;
+                    }
+                    else {
+                        objectScriptList[scriptID] = objectScriptList[loadedIdx];
+                        strncpy(objectScriptList[scriptID].name, pathBuffer, 0xFF);
+                        objectScriptList[scriptID].name[0xFF] = 0;
+                        PrintLog("Reused script for mod object slot %d (matches slot %d): %s", scriptID, loadedIdx, pathBuffer);
+                        scriptID++;
+                    }
+                }
+#endif
+
+                if (parsedGlobalTxt || parsedModTxt) {
+                    SaveBytecode(globalBytecodePath, 1, scriptID - 1, startGlobalScriptCodePos, startGlobalJumpTablePos, startGlobalFuncID, startGlobalAliasID);
+                }
             }
+#else
+            if (Engine.usingBytecode) {
+                GetFileInfo(&infoStore);
+                CloseFile();
+                LoadBytecode(4, scriptID);
+                scriptID += globalObjectCount;
+                SetFileInfo(&infoStore);
+            }
+            else {
+                for (byte i = 0; i < globalObjectCount; ++i) {
+                    FileRead(&fileBuffer2, 1);
+                    FileRead(strBuffer, fileBuffer2);
+                    strBuffer[fileBuffer2] = 0;
+                    GetFileInfo(&infoStore);
+                    CloseFile();
+                    ParseScriptFile(strBuffer, scriptID);
+                    SetFileInfo(&infoStore);
+                    if (Engine.gameMode == ENGINE_SCRIPTERROR)
+                        return;
+                    scriptID++;
+                }
+            }
+#endif
 #else
             GetFileInfo(&infoStore);
             CloseFile();
@@ -736,44 +813,6 @@ void LoadStageFiles(void)
 
 #if RETRO_USE_MOD_LOADER
             Engine.LoadXMLPalettes();
-#endif
-
-#if RETRO_USE_MOD_LOADER && RETRO_USE_COMPILER
-            globalObjCount = globalObjectCount;
-            for (byte i = 0; i < modObjCount && loadGlobalScripts; ++i) {
-                SetObjectTypeName(modTypeNames[i], scriptID);
-
-                char pathBuffer[0x100];
-                StrCopy(pathBuffer, modScriptPaths[i]);
-                for (int c = 0; pathBuffer[c]; ++c) if (pathBuffer[c] == '\\') pathBuffer[c] = '/';
-
-                int loadedIdx = -1;
-                for (int o = 0; o < scriptID; o++) {
-                    if (strcasecmp(objectScriptList[o].name, pathBuffer) == 0) {
-                        loadedIdx = o;
-                        break;
-                    }
-                }
-
-                if (loadedIdx == -1) {
-                    GetFileInfo(&infoStore);
-                    CloseFile();
-                    ParseScriptFile(modScriptPaths[i], scriptID);
-                    SetFileInfo(&infoStore);
-                    if (Engine.gameMode == ENGINE_SCRIPTERROR)
-                        return;
-                    strncpy(objectScriptList[scriptID].name, pathBuffer, 0xFF);
-                    objectScriptList[scriptID].name[0xFF] = 0;
-                    scriptID++;
-                }
-                else {
-                    objectScriptList[scriptID] = objectScriptList[loadedIdx];
-                    strncpy(objectScriptList[scriptID].name, pathBuffer, 0xFF);
-                    objectScriptList[scriptID].name[0xFF] = 0;
-                    PrintLog("Reused script for mod object slot %d (matches slot %d): %s", scriptID, loadedIdx, pathBuffer);
-                    scriptID++;
-                }
-            }
 #endif
         }
 
@@ -816,32 +855,33 @@ void LoadStageFiles(void)
 
 #if RETRO_USE_COMPILER
 #if !RETRO_USE_ORIGINAL_CODE
-            char scriptPath[0x40];
+            char modHash[33];
+            GetModHash(modHash);
+            char stageBytecodePath[0x100];
+            stageBytecodePath[0] = 0;
             switch (activeStageList) {
                 case STAGELIST_PRESENTATION:
                 case STAGELIST_REGULAR:
                 case STAGELIST_BONUS:
                 case STAGELIST_SPECIAL:
-                    StrCopy(scriptPath, "Bytecode/");
-                    StrAdd(scriptPath, stageList[activeStageList][stageListPosition].folder);
-                    StrAdd(scriptPath, ".bin");
+                    if (modHash[0])
+                        snprintf(stageBytecodePath, sizeof(stageBytecodePath), "Bytecode/%s_%s.bin", stageList[activeStageList][stageListPosition].folder, modHash);
+                    else
+                        snprintf(stageBytecodePath, sizeof(stageBytecodePath), "Bytecode/%s.bin", stageList[activeStageList][stageListPosition].folder);
                     break;
                 default: break;
             }
-            bool bytecodeExists = false;
-            FileInfo bytecodeInfo;
-            GetFileInfo(&bytecodeInfo);
+            bool stageBytecodeExists = false;
+            FileInfo stageBytecodeInfo;
+            GetFileInfo(&stageBytecodeInfo);
             CloseFile();
-            if (LoadFile(scriptPath, &info)) {
-                bytecodeExists = true;
+            if (LoadFile(stageBytecodePath, &info)) {
+                stageBytecodeExists = true;
                 CloseFile();
             }
-            SetFileInfo(&bytecodeInfo);
+            SetFileInfo(&stageBytecodeInfo);
 
-            if (bytecodeExists && !forceUseScripts) {
-#else
-            if (Engine.usingBytecode) {
-#endif
+            if (stageBytecodeExists) {
                 for (byte i = 0; i < stageObjectCount; ++i) {
                     FileRead(&fileBuffer2, 1);
                     FileRead(strBuffer, fileBuffer2);
@@ -849,10 +889,18 @@ void LoadStageFiles(void)
                 }
                 GetFileInfo(&infoStore);
                 CloseFile();
-                LoadBytecode(activeStageList, scriptID);
+                LoadBytecode(activeStageList, scriptID, stageBytecodePath, scriptFunctionCount);
                 SetFileInfo(&infoStore);
             }
             else {
+                int startStageScriptCodePos = scriptCodePos;
+                int startStageJumpTablePos = jumpTablePos;
+                int startStageFuncID       = scriptFunctionCount;
+                int startStageAliasID      = scriptValueListCount;
+                scriptCodeOffset = scriptCodePos;
+                jumpTableOffset = jumpTablePos;
+                bool parsedStageTxt = false;
+
                 for (byte i = 0; i < stageObjectCount; ++i) {
                     FileRead(&fileBuffer2, 1);
                     FileRead(strBuffer, fileBuffer2);
@@ -879,6 +927,7 @@ void LoadStageFiles(void)
                             return;
                         strncpy(objectScriptList[scriptID + i].name, pathBuffer, 0xFF);
                         objectScriptList[scriptID + i].name[0xFF] = 0;
+                        parsedStageTxt = true;
                     }
                     else {
                         objectScriptList[scriptID + i] = objectScriptList[loadedIdx];
@@ -887,7 +936,36 @@ void LoadStageFiles(void)
                         PrintLog("Reused script for object slot %d (matches slot %d): %s", scriptID + i, loadedIdx, pathBuffer);
                     }
                 }
+                if (parsedStageTxt) {
+                    SaveBytecode(stageBytecodePath, scriptID, stageObjectCount, startStageScriptCodePos, startStageJumpTablePos, startStageFuncID, startStageAliasID);
+                }
             }
+#else
+            if (Engine.usingBytecode) {
+                for (byte i = 0; i < stageObjectCount; ++i) {
+                    FileRead(&fileBuffer2, 1);
+                    FileRead(strBuffer, fileBuffer2);
+                    strBuffer[fileBuffer2] = 0;
+                }
+                GetFileInfo(&infoStore);
+                CloseFile();
+                LoadBytecode(activeStageList, scriptID);
+                SetFileInfo(&infoStore);
+            }
+            else {
+                for (byte i = 0; i < stageObjectCount; ++i) {
+                    FileRead(&fileBuffer2, 1);
+                    FileRead(strBuffer, fileBuffer2);
+                    strBuffer[fileBuffer2] = 0;
+                    GetFileInfo(&infoStore);
+                    CloseFile();
+                    ParseScriptFile(strBuffer, scriptID + i);
+                    SetFileInfo(&infoStore);
+                    if (Engine.gameMode == ENGINE_SCRIPTERROR)
+                        return;
+                }
+            }
+#endif
 #else
             for (byte i = 0; i < stageObjectCount; ++i) {
                 FileRead(&fileBuffer2, 1);
@@ -1160,10 +1238,10 @@ void LoadStageBackground()
         for (byte i = 1; i < layerCount + 1; ++i) {
             FileRead(&fileBuffer, 1);
             stageLayouts[i].xsize = fileBuffer;
-            FileRead(&fileBuffer, 1); // Unused (???)
+            FileRead(&fileBuffer, 1); // Unused
             FileRead(&fileBuffer, 1);
             stageLayouts[i].ysize = fileBuffer;
-            FileRead(&fileBuffer, 1); // Unused (???)
+            FileRead(&fileBuffer, 1); // Unused
             FileRead(&fileBuffer, 1);
             stageLayouts[i].type = fileBuffer;
             FileRead(&fileBuffer, 1);

@@ -60,6 +60,7 @@ bool InstallMod(ModInfo *info);
 #endif
 void ScanModFolder(ModInfo *info);
 void SaveMods();
+void GetModHash(char *hashBuf);
 
 void OpenModMenu();
 

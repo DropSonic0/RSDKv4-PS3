@@ -242,6 +242,10 @@ void InitMods()
 
     ReadSaveRAMData();
     ReadUserdata();
+
+    // Reset mod script metadata to prevent contamination between loads
+    modObjCount = 0;
+    memset(modScriptFlags, 0, sizeof(modScriptFlags));
 }
 bool LoadMod(ModInfo *info, std::string modsPath, std::string folder, bool active)
 {
@@ -675,6 +679,29 @@ void ScanModFolder(ModInfo *info)
     ScanModFolder_Recursive(info, bytecodePath, "Bytecode", 0);
 #endif
     info->scanned = true;
+}
+
+void GetModHash(char *hashBuf)
+{
+    if (!hashBuf)
+        return;
+    hashBuf[0] = 0;
+
+#if RETRO_USE_MOD_LOADER
+    std::string modStr = "";
+    for (int m = 0; m < (int)modList.size(); ++m) {
+        if (modList[m].active) {
+            modStr += modList[m].folder;
+            modStr += "|";
+        }
+    }
+
+    if (modStr != "") {
+        uint h[4];
+        GenerateMD5FromString(modStr.c_str(), (int)modStr.length(), &h[0], &h[1], &h[2], &h[3]);
+        sprintf(hashBuf, "%08x%08x%08x%08x", h[0], h[1], h[2], h[3]);
+    }
+#endif
 }
 
 void SaveMods()

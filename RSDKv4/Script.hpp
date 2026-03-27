@@ -69,6 +69,7 @@ extern char scriptText[0x4000];
 bool ConvertStringToInteger(const char *text, int *value);
 
 #if RETRO_USE_COMPILER
+extern int scriptValueListCount;
 extern int scriptFunctionCount;
 extern char scriptFunctionNames[FUNCTION_COUNT][0x40];
 
@@ -90,8 +91,9 @@ void CopyAliasStr(char *dest, char *text, bool arrayIndex);
 bool CheckOpcodeType(char *text); // Never actually used
 
 void ParseScriptFile(char *scriptName, int scriptID);
+void SaveBytecode(const char *filePath, int scriptID, int scriptCount, int startScriptCodePos, int startJumpTablePos, int startFuncID, int startAliasID);
 #endif
-void LoadBytecode(int stageListID, int scriptID);
+int LoadBytecode(int stageListID, int scriptID, const char *customPath = nullptr, int startFuncID = 0);
 
 void ProcessScript(int scriptCodeStart, int jumpTableStart, byte scriptEvent);
 

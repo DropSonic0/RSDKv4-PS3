@@ -1,6 +1,16 @@
 #include "RetroEngine.hpp"
 #include <cmath>
 
+#if RETRO_PLATFORM == RETRO_PS3 || RETRO_PLATFORM == RETRO_ANDROID || RETRO_PLATFORM == RETRO_LINUX || RETRO_PLATFORM == RETRO_OSX
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#endif
+
+#if defined(_WIN32)
+#include <direct.h>
+#endif
+
 #if RETRO_USE_COMPILER
 #if !RETRO_REV00
 #define COMMON_SCRIPT_VAR_COUNT (34)
@@ -3232,24 +3242,32 @@ void ParseScriptFile(char *scriptName, int scriptID)
 }
 #endif
 
-void LoadBytecode(int stageListID, int scriptID)
+int LoadBytecode(int stageListID, int scriptID, const char *customPath, int startFuncID)
 {
-    char scriptPath[0x40];
-    switch (stageListID) {
-        case STAGELIST_PRESENTATION:
-        case STAGELIST_REGULAR:
-        case STAGELIST_BONUS:
-        case STAGELIST_SPECIAL:
-            StrCopy(scriptPath, "Bytecode/");
-            StrAdd(scriptPath, stageList[stageListID][stageListPosition].folder);
-            StrAdd(scriptPath, ".bin");
-            break;
-        case 4: StrCopy(scriptPath, "Bytecode/GlobalCode.bin"); break;
-        default: break;
+    char scriptPath[0x100];
+    if (customPath) {
+        StrCopy(scriptPath, customPath);
+    }
+    else {
+        switch (stageListID) {
+            case STAGELIST_PRESENTATION:
+            case STAGELIST_REGULAR:
+            case STAGELIST_BONUS:
+            case STAGELIST_SPECIAL:
+                StrCopy(scriptPath, "Bytecode/");
+                StrAdd(scriptPath, stageList[stageListID][stageListPosition].folder);
+                StrAdd(scriptPath, ".bin");
+                break;
+            case 4: StrCopy(scriptPath, "Bytecode/GlobalCode.bin"); break;
+            default: return 0;
+        }
     }
 
     FileInfo info;
     if (LoadFile(scriptPath, &info)) {
+        scriptCodeOffset = scriptCodePos;
+        jumpTableOffset  = jumpTablePos;
+
         byte fileBuffer    = 0;
         int *scriptCodePtr = &scriptCode[scriptCodePos];
         int *jumpTablePtr  = &jumpTable[jumpTablePos];
@@ -3355,6 +3373,7 @@ void LoadBytecode(int stageListID, int scriptID)
             script->eventUpdate.scriptCodePtr |= fileBuffer << 16;
             FileRead(&fileBuffer, 1);
             script->eventUpdate.scriptCodePtr |= fileBuffer << 24;
+            script->eventUpdate.scriptCodePtr += scriptCodeOffset;
 
             FileRead(&fileBuffer, 1);
             script->eventDraw.scriptCodePtr = fileBuffer;
@@ -3364,6 +3383,7 @@ void LoadBytecode(int stageListID, int scriptID)
             script->eventDraw.scriptCodePtr |= fileBuffer << 16;
             FileRead(&fileBuffer, 1);
             script->eventDraw.scriptCodePtr |= fileBuffer << 24;
+            script->eventDraw.scriptCodePtr += scriptCodeOffset;
 
             FileRead(&fileBuffer, 1);
             script->eventStartup.scriptCodePtr = fileBuffer;
@@ -3373,6 +3393,7 @@ void LoadBytecode(int stageListID, int scriptID)
             script->eventStartup.scriptCodePtr |= (fileBuffer << 16);
             FileRead(&fileBuffer, 1);
             script->eventStartup.scriptCodePtr |= fileBuffer << 24;
+            script->eventStartup.scriptCodePtr += scriptCodeOffset;
         }
 
         for (int s = 0; s < scriptCount; ++s) {
@@ -3386,6 +3407,7 @@ void LoadBytecode(int stageListID, int scriptID)
             script->eventUpdate.jumpTablePtr |= fileBuffer << 16;
             FileRead(&fileBuffer, 1);
             script->eventUpdate.jumpTablePtr |= fileBuffer << 24;
+            script->eventUpdate.jumpTablePtr += jumpTableOffset;
 
             FileRead(&fileBuffer, 1);
             script->eventDraw.jumpTablePtr = fileBuffer;
@@ -3395,6 +3417,7 @@ void LoadBytecode(int stageListID, int scriptID)
             script->eventDraw.jumpTablePtr |= fileBuffer << 16;
             FileRead(&fileBuffer, 1);
             script->eventDraw.jumpTablePtr |= fileBuffer << 24;
+            script->eventDraw.jumpTablePtr += jumpTableOffset;
 
             FileRead(&fileBuffer, 1);
             script->eventStartup.jumpTablePtr = fileBuffer;
@@ -3404,6 +3427,7 @@ void LoadBytecode(int stageListID, int scriptID)
             script->eventStartup.jumpTablePtr |= fileBuffer << 16;
             FileRead(&fileBuffer, 1);
             script->eventStartup.jumpTablePtr |= fileBuffer << 24;
+            script->eventStartup.jumpTablePtr += jumpTableOffset;
         }
 
         FileRead(&fileBuffer, 1);
@@ -3411,8 +3435,12 @@ void LoadBytecode(int stageListID, int scriptID)
         FileRead(&fileBuffer, 1);
         functionCount |= fileBuffer << 8;
 
+#if RETRO_USE_COMPILER
+        scriptFunctionCount = startFuncID + functionCount;
+#endif
+
         for (int f = 0; f < functionCount; ++f) {
-            ScriptFunction *function = &scriptFunctionList[f];
+            ScriptFunction *function = &scriptFunctionList[startFuncID + f];
 
             FileRead(&fileBuffer, 1);
             function->ptr.scriptCodePtr = fileBuffer;
@@ -3422,10 +3450,11 @@ void LoadBytecode(int stageListID, int scriptID)
             function->ptr.scriptCodePtr |= fileBuffer << 16;
             FileRead(&fileBuffer, 1);
             function->ptr.scriptCodePtr |= fileBuffer << 24;
+            function->ptr.scriptCodePtr += scriptCodeOffset;
         }
 
         for (int f = 0; f < functionCount; ++f) {
-            ScriptFunction *function = &scriptFunctionList[f];
+            ScriptFunction *function = &scriptFunctionList[startFuncID + f];
 
             FileRead(&fileBuffer, 1);
             function->ptr.jumpTablePtr = fileBuffer;
@@ -3435,11 +3464,261 @@ void LoadBytecode(int stageListID, int scriptID)
             function->ptr.jumpTablePtr |= fileBuffer << 16;
             FileRead(&fileBuffer, 1);
             function->ptr.jumpTablePtr |= fileBuffer << 24;
+            function->ptr.jumpTablePtr += jumpTableOffset;
+        }
+
+        // Load aliases (symbols)
+        FileRead(&fileBuffer, 1);
+        int aliasCount = fileBuffer;
+        FileRead(&fileBuffer, 1);
+        aliasCount |= fileBuffer << 8;
+
+        for (int a = 0; a < aliasCount; ++a) {
+            if (scriptValueListCount < SCRIPT_VAR_COUNT) {
+                ScriptVariableInfo *alias = &scriptValueList[scriptValueListCount];
+                FileRead(&alias->type, 1);
+                FileRead(&alias->access, 1);
+                FileRead(alias->name, 0x20);
+                FileRead(alias->value, 0x20);
+                AddAliasToHash(scriptValueListCount);
+                scriptValueListCount++;
+            }
+            else {
+                FileSkip(1 + 1 + 0x20 + 0x20);
+            }
+        }
+
+        // Load function metadata
+        FileRead(&fileBuffer, 1);
+        int funcMetaCount = fileBuffer;
+        FileRead(&fileBuffer, 1);
+        funcMetaCount |= fileBuffer << 8;
+
+        for (int f = 0; f < funcMetaCount; ++f) {
+            FileRead(&scriptFunctionList[startFuncID + f].access, 1);
+            FileRead(scriptFunctionList[startFuncID + f].name, 0x20);
+            AddScriptFuncToHash(startFuncID + f);
         }
 
         CloseFile();
+        return scriptCount;
     }
+    return 0;
 }
+
+#if RETRO_USE_COMPILER
+void SaveBytecode(const char *filePath, int scriptID, int scriptCount, int startScriptCodePos, int startJumpTablePos, int startFuncID,
+                  int startAliasID)
+{
+    char fullPath[0x200];
+#if RETRO_PLATFORM == RETRO_PS3 || RETRO_PLATFORM == RETRO_ANDROID || RETRO_PLATFORM == RETRO_OSX
+    sprintf(fullPath, "%s%s", gamePath, filePath);
+#else
+    sprintf(fullPath, "%s", filePath);
+#endif
+
+    // Ensure directory exists
+    char dirPath[0x200];
+    StrCopy(dirPath, fullPath);
+    for (int i = StrLength(dirPath) - 1; i >= 0; i--) {
+        if (dirPath[i] == '/' || dirPath[i] == '\\') {
+            dirPath[i] = 0;
+            break;
+        }
+    }
+
+#if RETRO_PLATFORM == RETRO_PS3
+    mkdir(dirPath, 0777);
+#elif defined(_WIN32)
+    _mkdir(dirPath);
+#else
+    mkdir(dirPath, 0777);
+#endif
+
+    FileIO *f = fOpen(fullPath, "wb");
+    if (!f) {
+        PrintLog("Failed to open file for saving bytecode: %s", fullPath);
+        return;
+    }
+
+    int scriptCodeSize = scriptCodePos - startScriptCodePos;
+    byte buf[4];
+    buf[0] = scriptCodeSize & 0xFF;
+    buf[1] = (scriptCodeSize >> 8) & 0xFF;
+    buf[2] = (scriptCodeSize >> 16) & 0xFF;
+    buf[3] = (scriptCodeSize >> 24) & 0xFF;
+    fWrite(buf, 1, 4, f);
+
+    int pos = startScriptCodePos;
+    while (pos < scriptCodePos) {
+        int blockSize = scriptCodePos - pos;
+        if (blockSize > 0x7F)
+            blockSize = 0x7F;
+
+        // Determine if we can use 8-bit mode
+        bool use8Bit = true;
+        for (int i = 0; i < blockSize; ++i) {
+            if (scriptCode[pos + i] < 0 || scriptCode[pos + i] > 0x7F) { // LoadBytecode uses fileBuffer >= 0x80 as 32-bit flag
+                use8Bit = false;
+                break;
+            }
+        }
+
+        if (use8Bit) {
+            byte b = (byte)blockSize;
+            fWrite(&b, 1, 1, f);
+            for (int i = 0; i < blockSize; ++i) {
+                b = (byte)scriptCode[pos + i];
+                fWrite(&b, 1, 1, f);
+            }
+        }
+        else {
+            byte b = (byte)(blockSize | 0x80);
+            fWrite(&b, 1, 1, f);
+            for (int i = 0; i < blockSize; ++i) {
+                int val = scriptCode[pos + i];
+                buf[0]  = val & 0xFF;
+                buf[1]  = (val >> 8) & 0xFF;
+                buf[2]  = (val >> 16) & 0xFF;
+                buf[3]  = (val >> 24) & 0xFF;
+                fWrite(buf, 1, 4, f);
+            }
+        }
+        pos += blockSize;
+    }
+
+    int jumpTableSize = jumpTablePos - startJumpTablePos;
+    buf[0]            = jumpTableSize & 0xFF;
+    buf[1]            = (jumpTableSize >> 8) & 0xFF;
+    buf[2]            = (jumpTableSize >> 16) & 0xFF;
+    buf[3]            = (jumpTableSize >> 24) & 0xFF;
+    fWrite(buf, 1, 4, f);
+
+    pos = startJumpTablePos;
+    while (pos < jumpTablePos) {
+        int blockSize = jumpTablePos - pos;
+        if (blockSize > 0x7F)
+            blockSize = 0x7F;
+
+        bool use8Bit = true;
+        for (int i = 0; i < blockSize; ++i) {
+            if (jumpTable[pos + i] < 0 || jumpTable[pos + i] > 0x7F) {
+                use8Bit = false;
+                break;
+            }
+        }
+
+        if (use8Bit) {
+            byte b = (byte)blockSize;
+            fWrite(&b, 1, 1, f);
+            for (int i = 0; i < blockSize; ++i) {
+                b = (byte)jumpTable[pos + i];
+                fWrite(&b, 1, 1, f);
+            }
+        }
+        else {
+            byte b = (byte)(blockSize | 0x80);
+            fWrite(&b, 1, 1, f);
+            for (int i = 0; i < blockSize; ++i) {
+                int val = jumpTable[pos + i];
+                buf[0]  = val & 0xFF;
+                buf[1]  = (val >> 8) & 0xFF;
+                buf[2]  = (val >> 16) & 0xFF;
+                buf[3]  = (val >> 24) & 0xFF;
+                fWrite(buf, 1, 4, f);
+            }
+        }
+        pos += blockSize;
+    }
+
+    // scriptCount
+    buf[0] = scriptCount & 0xFF;
+    buf[1] = (scriptCount >> 8) & 0xFF;
+    fWrite(buf, 1, 2, f);
+
+    // script pointers
+    for (int s = 0; s < scriptCount; ++s) {
+        ObjectScript *script = &objectScriptList[scriptID + s];
+        int ptrs[3]          = { script->eventUpdate.scriptCodePtr - startScriptCodePos, script->eventDraw.scriptCodePtr - startScriptCodePos,
+                                 script->eventStartup.scriptCodePtr - startScriptCodePos };
+        for (int i = 0; i < 3; ++i) {
+            buf[0] = ptrs[i] & 0xFF;
+            buf[1] = (ptrs[i] >> 8) & 0xFF;
+            buf[2] = (ptrs[i] >> 16) & 0xFF;
+            buf[3] = (ptrs[i] >> 24) & 0xFF;
+            fWrite(buf, 1, 4, f);
+        }
+    }
+    for (int s = 0; s < scriptCount; ++s) {
+        ObjectScript *script = &objectScriptList[scriptID + s];
+        int ptrs[3]          = { script->eventUpdate.jumpTablePtr - startJumpTablePos, script->eventDraw.jumpTablePtr - startJumpTablePos,
+                                 script->eventStartup.jumpTablePtr - startJumpTablePos };
+        for (int i = 0; i < 3; ++i) {
+            buf[0] = ptrs[i] & 0xFF;
+            buf[1] = (ptrs[i] >> 8) & 0xFF;
+            buf[2] = (ptrs[i] >> 16) & 0xFF;
+            buf[3] = (ptrs[i] >> 24) & 0xFF;
+            fWrite(buf, 1, 4, f);
+        }
+    }
+
+    // functionCount
+    int funcCountToSave = scriptFunctionCount - startFuncID;
+    buf[0]              = funcCountToSave & 0xFF;
+    buf[1]              = (funcCountToSave >> 8) & 0xFF;
+    fWrite(buf, 1, 2, f);
+
+    // function pointers
+    for (int f_id = startFuncID; f_id < scriptFunctionCount; ++f_id) {
+        ScriptFunction *function = &scriptFunctionList[f_id];
+        int ptr                  = function->ptr.scriptCodePtr - startScriptCodePos;
+        buf[0]                   = ptr & 0xFF;
+        buf[1]                   = (ptr >> 8) & 0xFF;
+        buf[2]                   = (ptr >> 16) & 0xFF;
+        buf[3]                   = (ptr >> 24) & 0xFF;
+        fWrite(buf, 1, 4, f);
+    }
+    for (int f_id = startFuncID; f_id < scriptFunctionCount; ++f_id) {
+        ScriptFunction *function = &scriptFunctionList[f_id];
+        int ptr                  = function->ptr.jumpTablePtr - startJumpTablePos;
+        buf[0]                   = ptr & 0xFF;
+        buf[1]                   = (ptr >> 8) & 0xFF;
+        buf[2]                   = (ptr >> 16) & 0xFF;
+        buf[3]                   = (ptr >> 24) & 0xFF;
+        fWrite(buf, 1, 4, f);
+    }
+
+    // Save aliases (symbols)
+    int aliasCountToSave = scriptValueListCount - startAliasID;
+    if (aliasCountToSave < 0)
+        aliasCountToSave = 0;
+    buf[0] = aliasCountToSave & 0xFF;
+    buf[1] = (aliasCountToSave >> 8) & 0xFF;
+    fWrite(buf, 1, 2, f);
+
+    for (int a = startAliasID; a < scriptValueListCount; ++a) {
+        ScriptVariableInfo *alias = &scriptValueList[a];
+        fWrite(&alias->type, 1, 1, f);
+        fWrite(&alias->access, 1, 1, f);
+        fWrite(alias->name, 1, 0x20, f);
+        fWrite(alias->value, 1, 0x20, f);
+    }
+
+    // Save function metadata
+    int funcMetaCount = scriptFunctionCount - startFuncID;
+    buf[0]            = funcMetaCount & 0xFF;
+    buf[1]            = (funcMetaCount >> 8) & 0xFF;
+    fWrite(buf, 1, 2, f);
+
+    for (int f_id = startFuncID; f_id < scriptFunctionCount; ++f_id) {
+        fWrite(&scriptFunctionList[f_id].access, 1, 1, f);
+        fWrite(scriptFunctionList[f_id].name, 1, 0x20, f);
+    }
+
+    fClose(f);
+    PrintLog("Saved bytecode to %s", filePath);
+}
+#endif
 
 void ClearScriptData()
 {

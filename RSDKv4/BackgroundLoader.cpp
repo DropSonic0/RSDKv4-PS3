@@ -551,15 +551,27 @@ void PreloadThreadFunc(uint64_t arg)
         GetScriptsFromConfig(stageConfigPath, relPaths, &pathIdx);
     }
     else {
-        snprintf(relPaths[0], 0x100, "Data/Stages/%s/StageConfig.bin", folder);
-        snprintf(relPaths[1], 0x100, "Bytecode/%s.bin", folder);
-        snprintf(relPaths[2], 0x100, "Data/Stages/%s/128x128Tiles.bin", folder);
-        snprintf(relPaths[3], 0x100, "Data/Stages/%s/CollisionMasks.bin", folder);
-        snprintf(relPaths[4], 0x100, "Data/Stages/%s/Act%s.bin", folder, stageID);
-        snprintf(relPaths[5], 0x100, "Data/Stages/%s/Backgrounds.bin", folder);
-        snprintf(relPaths[6], 0x100, "Data/Stages/%s/16x16Tiles.gif", folder);
-        snprintf(relPaths[7], 0x100, "Bytecode/GlobalCode.bin");
-        relPaths[8][0] = 0;
+        char modHash[33];
+        GetModHash(modHash);
+
+        snprintf(relPaths[pathIdx++], 0x100, "Data/Stages/%s/StageConfig.bin", folder);
+        if (modHash[0])
+            snprintf(relPaths[pathIdx++], 0x100, "Bytecode/%s_%s.bin", folder, modHash);
+        else
+            snprintf(relPaths[pathIdx++], 0x100, "Bytecode/%s.bin", folder);
+
+        snprintf(relPaths[pathIdx++], 0x100, "Data/Stages/%s/128x128Tiles.bin", folder);
+        snprintf(relPaths[pathIdx++], 0x100, "Data/Stages/%s/CollisionMasks.bin", folder);
+        snprintf(relPaths[pathIdx++], 0x100, "Data/Stages/%s/Act%s.bin", folder, stageID);
+        snprintf(relPaths[pathIdx++], 0x100, "Data/Stages/%s/Backgrounds.bin", folder);
+        snprintf(relPaths[pathIdx++], 0x100, "Data/Stages/%s/16x16Tiles.gif", folder);
+        
+        if (modHash[0])
+            snprintf(relPaths[pathIdx++], 0x100, "Bytecode/GlobalCode_%s.bin", modHash);
+        else
+            snprintf(relPaths[pathIdx++], 0x100, "Bytecode/GlobalCode.bin");
+
+        relPaths[pathIdx][0] = 0;
     }
 
     for (int i = 0; i < PRELOAD_FILE_COUNT; i++) {

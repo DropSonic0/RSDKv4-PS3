@@ -21,8 +21,8 @@ typedef struct {
     volatile bool quit_thread;
     sys_ppu_thread_t thread;
     
-    double ratio;
-    double pos;
+    uint32_t ratio_fp;
+    uint32_t pos_fp;
     
     // Aligned for safety and padded to avoid overflows
     int16_t input_buffer[INPUT_BUFFER_SAMPLES * AUDIO_CHANNELS + 32] __attribute__((aligned(16))); 
@@ -75,20 +75,23 @@ static void audio_event_loop(uint64_t arg) {
                 }
             }
 
-            double fract = ctx->pos - (int)ctx->pos;
+            uint32_t fract_fp = ctx->pos_fp & 0xFFFF;
             // Base offset is 6 (carry-over samples are at 6,7; new data at 8,9...)
             int p1 = (ctx->input_pos) * AUDIO_CHANNELS + 6;
             int p2 = (ctx->input_pos + 1) * AUDIO_CHANNELS + 6;
 
             for (int c = 0; c < AUDIO_CHANNELS; c++) {
-                float s1 = (float)ctx->input_buffer[p1 + c] / 32768.0f;
-                float s2 = (float)ctx->input_buffer[p2 + c] / 32768.0f;
-                ctx->out_tmp[i * AUDIO_CHANNELS + c] = s1 + (s2 - s1) * (float)fract;
+                int16_t s1 = ctx->input_buffer[p1 + c];
+                int16_t s2 = ctx->input_buffer[p2 + c];
+                // Linear interpolation in fixed point. 
+                // Cast to avoid overflow before shift (s2-s1 is max 65535, fract_fp is max 65535).
+                int32_t res = (int32_t)s1 + (((int64_t)(s2 - s1) * (int64_t)fract_fp) >> 16);
+                ctx->out_tmp[i * AUDIO_CHANNELS + c] = (float)res * (1.0f / 32768.0f);
             }
 
-            ctx->pos += ctx->ratio;
-            while (ctx->pos >= 1.0) {
-                ctx->pos -= 1.0;
+            ctx->pos_fp += ctx->ratio_fp;
+            while (ctx->pos_fp >= 0x10000) {
+                ctx->pos_fp -= 0x10000;
                 ctx->input_pos++;
             }
         }
@@ -121,8 +124,8 @@ bool InitPS3Audio(uint32_t samplerate, uint32_t buffersize) {
         return false;
     }
 
-    aud_ctx->ratio = (double)samplerate / (double)AUDIO_OUT_RATE;
-    aud_ctx->pos = 0.0;
+    aud_ctx->ratio_fp = (uint32_t)(((double)samplerate / (double)AUDIO_OUT_RATE) * 65536.0);
+    aud_ctx->pos_fp = 0;
     aud_ctx->input_pos = 0;
     aud_ctx->input_count = 0;
     aud_ctx->quit_thread = false;

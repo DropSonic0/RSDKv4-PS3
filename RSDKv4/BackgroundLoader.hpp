@@ -30,10 +30,12 @@ extern int preloadStatus;
 extern int preloadListID;
 extern int preloadStageID;
 extern int preloadDelayTimer;
+extern volatile bool abortPreload;
 extern PreloadScene *preloadedData;
 
 void InitBackgroundLoader();
 void StartStagePreload(int listID, int stageID);
+void AbortPreload();
 void CheckStagePreload();
 bool IsScenePreloaded(int listID, int stageID);
 byte* GetPreloadedFile(const char *fileName, int *size, bool *encrypted);

@@ -47,6 +47,7 @@ int preloadStatus = PRELOAD_IDLE;
 int preloadListID = -1;
 int preloadStageID = -1;
 int preloadDelayTimer = 0;
+volatile bool abortPreload = false;
 
 PreloadScene *preloadedData = nullptr;
 
@@ -57,6 +58,7 @@ static bool preloadMutexCreated = false;
 
 sys_ppu_thread_t preloadThread;
 bool preloadThreadRunning = false;
+static bool preloadThreadNeedsJoin = false;
 
 void PreloadThreadFunc(uint64_t arg);
 
@@ -94,6 +96,7 @@ static bool ThreadedResolvePath(char *dest, const char *filePath, int *packID, i
         }
     }
     if (preloadMutexCreated) sys_lwmutex_unlock(&preloadMutex);
+    if (abortPreload) return false;
 
     if (forceUseScripts && !forceFolder) {
         if (strncasecmp(filePathBuf, "Data/Scripts/", 13) == 0 && (strcasestr(filePathBuf, ".txt"))) {
@@ -125,6 +128,7 @@ static bool ThreadedResolvePath(char *dest, const char *filePath, int *packID, i
             strncpy(dest, rsdkContainer.packNames[*packID], 0x1FF);
         }
         if (preloadMutexCreated) sys_lwmutex_unlock(&preloadMutex);
+        if (abortPreload) return false;
     }
 
     if (fileIndex != -1 && !forceFolder) {
@@ -296,6 +300,7 @@ static void GetScriptsFromConfig(const char *relPath, char scriptPaths[PRELOAD_F
         if (!objNames) { fclose(f); return; }
 
         for (int i = 0; i < objCount; i++) {
+            if (abortPreload) { free(objNames); fclose(f); return; }
             ReadDecrypted(buf, 1, f, &s, encrypted);
             int len = buf[0];
             if (len > 0xFF) len = 0xFF;
@@ -305,6 +310,7 @@ static void GetScriptsFromConfig(const char *relPath, char scriptPaths[PRELOAD_F
 
         // Read script paths (TxtScripts mode second list)
         for (int i = 0; i < objCount; i++) {
+            if (abortPreload) { free(objNames); fclose(f); return; }
             ReadDecrypted(buf, 1, f, &s, encrypted);
             int len = buf[0];
             if (len > 0) {
@@ -328,6 +334,27 @@ static void GetScriptsFromConfig(const char *relPath, char scriptPaths[PRELOAD_F
             }
         }
         free(objNames);
+        // Read SFX Paths
+        ReadDecrypted(buf, 1, f, &s, encrypted);
+        int sfxCount = buf[0];
+        // Skip SFX Names
+        for (int i = 0; i < sfxCount; i++) {
+            ReadDecrypted(buf, 1, f, &s, encrypted);
+            ReadDecrypted(NULL, buf[0], f, &s, encrypted);
+        }
+        // Read SFX Paths
+        for (int i = 0; i < sfxCount; i++) {
+            ReadDecrypted(buf, 1, f, &s, encrypted);
+            int len = buf[0];
+            if (len > 0) {
+                if (len > 0xFF) len = 0xFF;
+                ReadDecrypted(buf, len, f, &s, encrypted);
+                buf[len] = 0;
+                char sfxPath[0x100];
+                snprintf(sfxPath, sizeof(sfxPath), "Data/SoundFX/%s", (char*)buf);
+                AddRelPath(scriptPaths, count, sfxPath);
+            }
+        }
         // Skip Global Variables
         ReadDecrypted(buf, 1, f, &s, encrypted);
         int varCount = buf[0];
@@ -342,13 +369,23 @@ static void GetScriptsFromConfig(const char *relPath, char scriptPaths[PRELOAD_F
         ReadDecrypted(NULL, 0x20 * 3, f, &s, encrypted); // Palette
         ReadDecrypted(buf, 1, f, &s, encrypted); // SFX count
         int sfxCount = buf[0];
+        // Skip SFX Names
         for (int i = 0; i < sfxCount; i++) {
             ReadDecrypted(buf, 1, f, &s, encrypted);
             ReadDecrypted(NULL, buf[0], f, &s, encrypted);
         }
+        // Read SFX Paths
         for (int i = 0; i < sfxCount; i++) {
             ReadDecrypted(buf, 1, f, &s, encrypted);
-            ReadDecrypted(NULL, buf[0], f, &s, encrypted);
+            int len = buf[0];
+            if (len > 0) {
+                if (len > 0xFF) len = 0xFF;
+                ReadDecrypted(buf, len, f, &s, encrypted);
+                buf[len] = 0;
+                char sfxPath[0x100];
+                snprintf(sfxPath, sizeof(sfxPath), "Data/SoundFX/%s", (char*)buf);
+                AddRelPath(scriptPaths, count, sfxPath);
+            }
         }
         
         ReadDecrypted(buf, 1, f, &s, encrypted); // Object count
@@ -359,6 +396,7 @@ static void GetScriptsFromConfig(const char *relPath, char scriptPaths[PRELOAD_F
         if (!objNames) { fclose(f); return; }
 
         for (int i = 0; i < objCount; i++) {
+            if (abortPreload) { free(objNames); fclose(f); return; }
             ReadDecrypted(buf, 1, f, &s, encrypted);
             int len = buf[0];
             if (len > 0xFF) len = 0xFF;
@@ -382,6 +420,7 @@ static void GetScriptsFromConfig(const char *relPath, char scriptPaths[PRELOAD_F
 
         // Read script paths (TxtScripts mode second list)
         for (int i = 0; i < objCount; i++) {
+            if (abortPreload) { free(objNames); fclose(f); return; }
             ReadDecrypted(buf, 1, f, &s, encrypted);
             int len = buf[0];
             if (len > 0) {
@@ -417,6 +456,7 @@ static void GetGlobalScripts(char scriptPaths[PRELOAD_FILE_COUNT][0x100], int *c
     if (dir) {
         struct dirent *entry;
         while ((entry = readdir(dir)) != NULL) {
+            if (abortPreload) break;
             if (entry->d_name[0] == '.') continue;
             
             char fullPath[0x400];
@@ -438,6 +478,7 @@ static void GetGlobalScripts(char scriptPaths[PRELOAD_FILE_COUNT][0x100], int *c
     for (int m = 0; m < (int)modList.size(); m++) {
         if (modList[m].active) {
             for (std::map<std::string, std::string>::const_iterator it = modList[m].fileMap.begin(); it != modList[m].fileMap.end(); ++it) {
+                if (abortPreload) break;
                 const char *p = it->first.c_str();
                 if (retro_strcasestr(p, "scripts/global/") && (retro_strcasestr(p, ".txt"))) {
                     const char *match = retro_strcasestr(p, "scripts/global/");
@@ -448,6 +489,7 @@ static void GetGlobalScripts(char scriptPaths[PRELOAD_FILE_COUNT][0x100], int *c
                 }
             }
         }
+        if (abortPreload) break;
     }
     if (preloadMutexCreated) sys_lwmutex_unlock(&preloadMutex);
 #endif
@@ -490,18 +532,44 @@ void StartStagePreload(int listID, int stageID)
     
     if (preloadStatus == PRELOAD_READY && preloadListID == listID && preloadStageID == stageID) return;
 
+#if RETRO_PLATFORM == RETRO_PS3
+    if (preloadThreadNeedsJoin) {
+        AbortPreload();
+    }
+#endif
+
     PrintLog("Background Loading START for %s - %s", stageListNames[listID], stageList[listID][stageID].name);
 
     preloadListID = listID;
     preloadStageID = stageID;
     preloadStatus = PRELOAD_LOADING;
+    abortPreload = false;
 
 #if RETRO_PLATFORM == RETRO_PS3
     preloadThreadRunning = true;
+    preloadThreadNeedsJoin = true;
     sys_ppu_thread_create(&preloadThread, PreloadThreadFunc, 0, 1001, 0x10000, SYS_PPU_THREAD_CREATE_JOINABLE, "PreloadThread");
 #else
     preloadStatus = PRELOAD_IDLE;
 #endif
+}
+
+void AbortPreload()
+{
+    if (preloadStatus == PRELOAD_IDLE && !preloadThreadRunning) return;
+    
+    abortPreload = true;
+    PrintLog("Background Loading ABORT requested");
+
+#if RETRO_PLATFORM == RETRO_PS3
+    if (preloadThreadNeedsJoin) {
+        uint64_t exit_code;
+        sys_ppu_thread_join(preloadThread, &exit_code);
+        preloadThreadNeedsJoin = false;
+        preloadThreadRunning = false;
+    }
+#endif
+    preloadStatus = PRELOAD_IDLE;
 }
 
 #if RETRO_PLATFORM == RETRO_PS3
@@ -597,6 +665,7 @@ void PreloadThreadFunc(uint64_t arg)
     relPaths[pathIdx][0] = 0;
 
     for (int i = 0; i < PRELOAD_FILE_COUNT; i++) {
+        if (abortPreload) break;
         if (relPaths[i][0] == 0) continue;
         
         char fullPath[0x200];
@@ -617,18 +686,24 @@ void PreloadThreadFunc(uint64_t arg)
                     size_t remaining = size;
                     byte *ptr = preloadedData->files[i].buffer;
                     while (remaining > 0) {
+                        if (abortPreload) break;
                         size_t toRead = remaining > 16384 ? 16384 : remaining;
                         fread(ptr, 1, toRead, f);
                         ptr += toRead;
                         remaining -= toRead;
-                        sys_timer_usleep(2000); // 2ms delay per block
+                        // No sleep during transition to keep main thread fast
                     }
 
-                    preloadedData->files[i].size = (int)size;
-                    preloadedData->files[i].encrypted = encrypted;
-                    strncpy(preloadedData->files[i].fileName, relPaths[i], 0xFF);
-                    preloadedData->files[i].fileName[0xFF] = 0;
-                    PrintLog("Threaded Preload successful: %s (%d bytes)", relPaths[i], preloadedData->files[i].size);
+                    if (!abortPreload) {
+                        preloadedData->files[i].size = (int)size;
+                        preloadedData->files[i].encrypted = encrypted;
+                        strncpy(preloadedData->files[i].fileName, relPaths[i], 0xFF);
+                        preloadedData->files[i].fileName[0xFF] = 0;
+                        PrintLog("Threaded Preload successful: %s (%d bytes)", relPaths[i], preloadedData->files[i].size);
+                    } else {
+                        preloadedData->files[i].fileName[0] = 0;
+                        preloadedData->files[i].size = 0;
+                    }
                 }
                 fclose(f);
             } else {
@@ -637,12 +712,16 @@ void PreloadThreadFunc(uint64_t arg)
         } else {
             PrintLog("Threaded Preload FAILED to resolve: %s", relPaths[i]);
         }
-        sys_timer_usleep(20000); // 20ms delay between files
     }
 
-    PrintLog("Background Loading READY for %s - %s", stageListNames[preloadListID], stageList[preloadListID][preloadStageID].name);
-    free(relPaths);
+    if (abortPreload) {
+        PrintLog("Background Loading ABORTED for %s - %s (Partial ready)", stageListNames[preloadListID], stageList[preloadListID][preloadStageID].name);
+    } else {
+        PrintLog("Background Loading READY for %s - %s", stageListNames[preloadListID], stageList[preloadListID][preloadStageID].name);
+    }
     preloadStatus = PRELOAD_READY;
+    
+    free(relPaths);
     preloadThreadRunning = false;
     sys_ppu_thread_exit(0);
 }
@@ -650,7 +729,7 @@ void PreloadThreadFunc(uint64_t arg)
 
 byte* GetPreloadedFile(const char *fileName, int *size, bool *encrypted)
 {
-    if (preloadStatus != PRELOAD_READY || !preloadedData) return nullptr;
+    if (!preloadedData) return nullptr;
 
     char searchNameBuf[0x100];
     strncpy(searchNameBuf, fileName, 0xFF);

@@ -3724,6 +3724,7 @@ void SaveBytecode(const char *filePath, int scriptID, int scriptCount, int start
 
 void ClearScriptData()
 {
+
     memset(scriptCode, 0, sizeof(scriptCode));
     memset(jumpTable, 0, sizeof(jumpTable));
 

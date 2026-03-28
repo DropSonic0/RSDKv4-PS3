@@ -8,6 +8,10 @@
 extern bool endLine;
 void PrintLog(const char *msg, ...);
 void PrintLog(const ushort *msg);
+#if RETRO_PLATFORM == RETRO_PS3
+void InitDebugMutex();
+void CloseLogFile();
+#endif
 
 enum DevMenuMenus {
     DEVMENU_MAIN,

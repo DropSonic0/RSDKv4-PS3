@@ -56,6 +56,7 @@ SDL_AudioSpec audioDeviceFormat;
 #elif RETRO_PLATFORM == RETRO_PS3
 
 #include "AudioPS3.hpp"
+#include <altivec.h>
 
 sys_lwmutex_t audioMutex __attribute__((aligned(16)));
 
@@ -282,7 +283,7 @@ int closeVorbis(void *ptr) { return 1; }
 
 #if !RETRO_USE_ORIGINAL_CODE
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2 || RETRO_PLATFORM == RETRO_PS3
- void ProcessMusicStream(Sint32 *stream, size_t sampleCount)
+void ProcessMusicStream(Sint32 *stream, size_t sampleCount)
 {
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2
     size_t bytes_wanted = sampleCount * sizeof(Sint16);
@@ -388,7 +389,7 @@ int closeVorbis(void *ptr) { return 1; }
             int channels = streamInfoPtr->vorbisFile.vi->channels;
             int frames_wanted = (int)sampleCount / 2; // sampleCount is in total samples, we want stereo frames
 
-            static Sint16 resample_buffer[MIX_BUFFER_SAMPLES];
+            static Sint16 resample_buffer[MIX_BUFFER_SAMPLES] __attribute__((aligned(16)));
             int frames_done = 0;
 
             while (frames_done < frames_wanted) {
@@ -422,7 +423,7 @@ int closeVorbis(void *ptr) { return 1; }
                     streamInfoPtr->inputCount = (int)(bytes_read / (channels * sizeof(Sint16)));
                 }
 
-                double fract = streamInfoPtr->resamplePos - (int)streamInfoPtr->resamplePos;
+                uint32_t fract_fp = streamInfoPtr->resamplePos_fp & 0xFFFF;
                 Sint16 s1L, s1R, s2L, s2R;
 
                 if (streamInfoPtr->inputPos == 0) {
@@ -446,13 +447,15 @@ int closeVorbis(void *ptr) { return 1; }
                     s2R = streamInfoPtr->buffer[streamInfoPtr->inputPos * 2 + 1];
                 }
 
-                resample_buffer[frames_done * 2] = (Sint16)(s1L + (s2L - s1L) * fract);
-                resample_buffer[frames_done * 2 + 1] = (Sint16)(s1R + (s2R - s1R) * fract);
+                // Vectorized interpolation would be complex here due to stream nature, 
+                // but we use 64-bit to prevent overflow
+                resample_buffer[frames_done * 2] = (Sint16)(s1L + (((Sint64)(s2L - s1L) * (Sint64)fract_fp) >> 16));
+                resample_buffer[frames_done * 2 + 1] = (Sint16)(s1R + (((Sint64)(s2R - s1R) * (Sint64)fract_fp) >> 16));
 
                 frames_done++;
-                streamInfoPtr->resamplePos += streamInfoPtr->ratio;
-                while (streamInfoPtr->resamplePos >= 1.0) {
-                    streamInfoPtr->resamplePos -= 1.0;
+                streamInfoPtr->resamplePos_fp += streamInfoPtr->ratio_fp;
+                while (streamInfoPtr->resamplePos_fp >= 0x10000) {
+                    streamInfoPtr->resamplePos_fp -= 0x10000;
                     streamInfoPtr->inputPos++;
                     if (streamInfoPtr->inputPos >= streamInfoPtr->inputCount && frames_done < frames_wanted)
                         break; // Need to refill
@@ -561,6 +564,27 @@ void ProcessAudioPlayback(Sint16 *stream, int sampleCount)
         }
         UnlockAudioDevice();
 
+#if RETRO_PLATFORM == RETRO_PS3
+        // Clamping with AltiVec
+        if ((((uintptr_t)output_buffer | (uintptr_t)mix_buffer) & 15) == 0 && (samples_to_do & 7) == 0) {
+            int vectors = samples_to_do / 8;
+            for (int v = 0; v < vectors; v++) {
+                vector signed int v_low = vec_ld(0, mix_buffer + v * 8);
+                vector signed int v_high = vec_ld(16, mix_buffer + v * 8);
+                
+                // Pack with saturation
+                vector signed short v_out = vec_packs(v_low, v_high);
+                vec_st(v_out, 0, output_buffer + v * 8);
+            }
+        } else {
+            for (size_t i = 0; i < samples_to_do; ++i) {
+                const Sint32 sample = mix_buffer[i];
+                if (sample > 32767) output_buffer[i] = 32767;
+                else if (sample < -32768) output_buffer[i] = -32768;
+                else output_buffer[i] = (Sint16)sample;
+            }
+        }
+#else
         // Clamp mixed samples back to 16-bit and write them to the output buffer
         for (size_t i = 0; i < samples_to_do; ++i) {
             const Sint16 max_audioval = 32767;
@@ -575,11 +599,100 @@ void ProcessAudioPlayback(Sint16 *stream, int sampleCount)
             else
                 output_buffer[i] = (Sint16)sample;
         }
+#endif
         output_buffer += samples_to_do;
         samples_remaining -= samples_to_do;
     }
 }
 
+#endif
+
+#if RETRO_PLATFORM == RETRO_PS3
+
+void ProcessAudioMixing(Sint32 *dst, const Sint16 *src, int len, int volume, sbyte pan)
+{
+    if (volume <= 0)
+        return;
+
+    if (volume > MAX_VOLUME)
+        volume = MAX_VOLUME;
+
+    // Fixed-point volume (Q15)
+    // MAX_VOLUME is 100, so we scale to 32768
+    int vol_fp = (volume << 15) / MAX_VOLUME;
+    
+    int panL_fp = 32768;
+    int panR_fp = 32768;
+
+    if (pan < 0) {
+        panR_fp = 32768 - (abs(pan) * 32768 / 100);
+    }
+    else if (pan > 0) {
+        panL_fp = 32768 - (abs(pan) * 32768 / 100);
+    }
+
+    // Apply volume to panning to save one multiplication in the loop
+    panL_fp = (panL_fp * vol_fp) >> 15;
+    panR_fp = (panR_fp * vol_fp) >> 15;
+
+    // Use AltiVec for optimized mixing if aligned and length is sufficient
+    if ((((uintptr_t)dst | (uintptr_t)src) & 15) == 0 && (len & 7) == 0) {
+        int frames = len / 2;
+        int vectors = frames / 4; // 4 stereo frames per vector
+
+        // Use short to avoid overflow at 32768 (which is -32768 in signed short)
+        // panL_fp/panR_fp are 0-32768. Clamp to 32767 for safety.
+        int16_t pL = (int16_t)(panL_fp > 32767 ? 32767 : panL_fp);
+        int16_t pR = (int16_t)(panR_fp > 32767 ? 32767 : panR_fp);
+
+        vector signed short v_pans = { pL, pR, pL, pR, pL, pR, pL, pR };
+        vector unsigned int v_shift = vec_splat_u32(15);
+
+        for (int v = 0; v < vectors; v++) {
+            // Load 8 samples (4 stereo frames)
+            vector signed short v_src = vec_ld(0, src); 
+            
+            // Multiply samples by pans
+            // vec_mule: even elements (0, 2, 4, 6) -> Left channels
+            // vec_mulo: odd elements (1, 3, 5, 7) -> Right channels
+            vector signed int v_mule = vec_mule(v_src, v_pans);
+            vector signed int v_mulo = vec_mulo(v_src, v_pans);
+            
+            // Shift back to 16-bit range (Q15 * Q15 >> 15)
+            v_mule = vec_sra(v_mule, v_shift);
+            v_mulo = vec_sra(v_mulo, v_shift);
+
+            // Load current destination samples (32-bit accumulators)
+            vector signed int v_dst_low = vec_ld(0, dst);
+            vector signed int v_dst_high = vec_ld(16, dst);
+
+            // Re-interleave L/R back to L0, R0, L1, R1...
+            vector signed int v_out_low = vec_mergeh(v_mule, v_mulo);
+            vector signed int v_out_high = vec_mergel(v_mule, v_mulo);
+
+            // Accumulate and store
+            vec_st(vec_add(v_dst_low, v_out_low), 0, dst);
+            vec_st(vec_add(v_dst_high, v_out_high), 16, dst);
+
+            src += 8;
+            dst += 8;
+        }
+    } else {
+        // Fallback for unaligned or small buffers
+        while (len >= 2) {
+            Sint32 sampleL = *src++;
+            Sint32 sampleR = *src++;
+
+            *dst++ += (sampleL * panL_fp) >> 15;
+            *dst++ += (sampleR * panR_fp) >> 15;
+            len -= 2;
+        }
+        while (len--) {
+            *dst++ += (*src++ * panL_fp) >> 15;
+        }
+    }
+}
+#else
 void ProcessAudioMixing(Sint32 *dst, const Sint16 *src, int len, int volume, sbyte pan)
 {
     if (volume == 0)
@@ -699,8 +812,8 @@ void LoadMusic(void *userdata)
 #endif
 
 #if RETRO_PLATFORM == RETRO_PS3
-                strmInfo->ratio       = (double)strmInfo->vorbisFile.vi->rate / (double)AUDIO_FREQUENCY;
-                strmInfo->resamplePos = 0.0;
+                strmInfo->ratio_fp    = (uint32_t)(((double)strmInfo->vorbisFile.vi->rate / (double)AUDIO_FREQUENCY) * 65536.0);
+                strmInfo->resamplePos_fp = 0;
                 strmInfo->lastL       = 0;
                 strmInfo->lastR       = 0;
                 strmInfo->inputPos    = 0;
@@ -797,8 +910,10 @@ void SwapMusicTrack(const char *filePath, byte trackID, uint loopPoint, uint rat
 }
 
 #if RETRO_PLATFORM == RETRO_PS3
+static volatile bool musicThreadRunning = false;
 void LoadMusic_Thread(uint64_t arg) {
     LoadMusic(NULL);
+    musicThreadRunning = false;
     sys_ppu_thread_exit(0);
 }
 #endif
@@ -809,7 +924,7 @@ bool PlayMusic(int track, int musStartPos)
         return false;
 
     if (musicTracks[track].fileName[0]) {
-        if (musicStatus != MUSIC_LOADING) {
+        if (musicStatus != MUSIC_LOADING && !musicThreadRunning) {
             if (track < 0 || track >= TRACK_COUNT) {
                 StopMusic(true);
                 currentMusicTrack = -1;
@@ -820,8 +935,13 @@ bool PlayMusic(int track, int musStartPos)
             musicStatus       = MUSIC_LOADING;
 #if RETRO_PLATFORM == RETRO_PS3
             musicLoadStartTime = GetSystemTime();
+            musicThreadRunning = true;
             sys_ppu_thread_t thread;
-            sys_ppu_thread_create(&thread, LoadMusic_Thread, 0, 100, 0x10000, 0, "MusicLoadThread");
+            int ret = sys_ppu_thread_create(&thread, LoadMusic_Thread, 0, 100, 0x10000, 0, "MusicLoadThread");
+            if (ret != CELL_OK) {
+                musicThreadRunning = false;
+                LoadMusic(NULL);
+            }
 #else
             LoadMusic(NULL);
 #endif
@@ -831,6 +951,7 @@ bool PlayMusic(int track, int musStartPos)
             nextMusicTrack    = track;
             nextMusicStartPos = musStartPos;
             PrintLog("Music queued: track %d", track);
+            return true;
         }
     }
     else {
@@ -1095,8 +1216,8 @@ void LoadSfx(char *filePath, byte sfxID)
                                     Sint16 s2L = (bitsPerSample == 16) ? (Sint16)READ_LE16(p2) : (Sint16)((p2[0] - 128) << 8);
                                     Sint16 s2R = (srcChannels > 1) ? ((bitsPerSample == 16) ? (Sint16)READ_LE16(p2 + sampleSize) : (Sint16)((p2[1] - 128) << 8)) : s2L;
 
-                                    buffer[f * 2 + 0] = (Sint16)(s1L + (((int64_t)(s2L - s1L) * fract_fp) >> 16));
-                                    buffer[f * 2 + 1] = (Sint16)(s1R + (((int64_t)(s2R - s1R) * fract_fp) >> 16));
+                                    buffer[f * 2 + 0] = (Sint16)(s1L + (((int64_t)(s2L - s1L) * (int64_t)fract_fp) >> 16));
+                                    buffer[f * 2 + 1] = (Sint16)(s1R + (((int64_t)(s2R - s1R) * (int64_t)fract_fp) >> 16));
                                 }
                                 
                                 LockAudioDevice();
@@ -1207,10 +1328,11 @@ void LoadSfx(char *filePath, byte sfxID)
                     samples_read += (read / (channels * 2));
                 }
                 
+                uint32_t ratio_fp = (uint32_t)(ratio * 65536.0);
                 for (int f = 0; f < dstFrameCount; f++) {
-                    double pos = f * ratio;
-                    int i = (int)pos;
-                    double fract = pos - i;
+                    uint64_t pos_fp = (uint64_t)f * ratio_fp;
+                    int i = (int)(pos_fp >> 16);
+                    uint32_t fract_fp = (uint32_t)(pos_fp & 0xFFFF);
                     
                     Sint16 s1L, s1R, s2L, s2R;
                     s1L = srcBuf[i * channels];
@@ -1224,8 +1346,8 @@ void LoadSfx(char *filePath, byte sfxID)
                         s2R = s1R;
                     }
                     
-                    audioBuf[f * 2 + 0] = (Sint16)(s1L + (s2L - s1L) * fract);
-                    audioBuf[f * 2 + 1] = (Sint16)(s1R + (s2R - s1R) * fract);
+                    audioBuf[f * 2 + 0] = (Sint16)(s1L + (((int64_t)(s2L - s1L) * (int64_t)fract_fp) >> 16));
+                    audioBuf[f * 2 + 1] = (Sint16)(s1R + (((int64_t)(s2R - s1R) * (int64_t)fract_fp) >> 16));
                 }
                 
                 free(srcBuf);

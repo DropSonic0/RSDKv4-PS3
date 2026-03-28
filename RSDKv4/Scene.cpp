@@ -88,6 +88,7 @@ int globalObjCount     = 0;
 
 void InitFirstStage(void)
 {
+    AbortPreload();
     xScrollOffset = 0;
     yScrollOffset = 0;
     StopMusic(true);
@@ -106,6 +107,7 @@ void InitFirstStage(void)
 
 void InitStartingStage(int list, int stage, int player)
 {
+    AbortPreload();
     xScrollOffset = 0;
     yScrollOffset = 0;
     StopMusic(true);
@@ -609,6 +611,8 @@ void ProcessParallaxAutoScroll()
 
 void LoadStageFiles(void)
 {
+    AbortPreload();
+
     FileInfo infoStore;
     FileInfo info;
     byte fileBuffer  = 0;
@@ -621,7 +625,9 @@ void LoadStageFiles(void)
         PrintLog("Loading Scene %s - %s", stageListNames[activeStageList], stageList[activeStageList][stageListPosition].name);
         ReleaseStageSfx();
         ClearScriptData();
-        for (int i = SURFACE_COUNT; i > 0; i--) RemoveGraphicsFile((char *)"", i - 1);
+        // Mass clear sprites
+        for (int i = 0; i < SURFACE_COUNT; i++) StrCopy(gfxSurface[i].fileName, "");
+        gfxDataPosition = 0;
 
 #if RETRO_USE_MOD_LOADER
         loadGlobalScripts = false;

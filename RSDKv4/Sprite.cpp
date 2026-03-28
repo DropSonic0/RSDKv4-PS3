@@ -225,6 +225,7 @@ int AddGraphicsFile(const char *filePath)
 void RemoveGraphicsFile(const char *filePath, int sheetID)
 {
     if (sheetID < 0) {
+        if (filePath[0] == '\0') return;
         for (int i = 0; i < SURFACE_COUNT; ++i) {
             if (StrLength(gfxSurface[i].fileName) > 0 && StrComp(gfxSurface[i].fileName, filePath))
                 sheetID = i;
@@ -235,12 +236,16 @@ void RemoveGraphicsFile(const char *filePath, int sheetID)
         StrCopy(gfxSurface[sheetID].fileName, "");
         int dataPosStart = gfxSurface[sheetID].dataPosition;
         int dataPosEnd   = gfxSurface[sheetID].dataPosition + gfxSurface[sheetID].height * gfxSurface[sheetID].width;
-        for (int i = GFXDATA_SIZE - dataPosEnd; i > 0; --i) graphicData[dataPosStart++] = graphicData[dataPosEnd++];
-        gfxDataPosition -= gfxSurface[sheetID].height * gfxSurface[sheetID].width;
-        for (int i = 0; i < SURFACE_COUNT; ++i) {
-            if (gfxSurface[i].dataPosition > gfxSurface[sheetID].dataPosition)
-                gfxSurface[i].dataPosition -= gfxSurface[sheetID].height * gfxSurface[sheetID].width;
+        
+        // Only shift if we're not at the very end or clearing everything
+        if (dataPosEnd < gfxDataPosition) {
+            for (int i = gfxDataPosition - dataPosEnd; i > 0; --i) graphicData[dataPosStart++] = graphicData[dataPosEnd++];
+            for (int i = 0; i < SURFACE_COUNT; ++i) {
+                if (gfxSurface[i].dataPosition > gfxSurface[sheetID].dataPosition)
+                    gfxSurface[i].dataPosition -= (dataPosEnd - gfxSurface[sheetID].dataPosition);
+            }
         }
+        gfxDataPosition -= (dataPosEnd - gfxSurface[sheetID].dataPosition);
     }
 }
 

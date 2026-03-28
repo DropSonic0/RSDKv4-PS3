@@ -353,6 +353,7 @@ bool ProcessEvents()
 void RetroEngine::Init()
 {
 #if RETRO_PLATFORM == RETRO_PS3
+    InitDebugMutex();
     cellSysutilRegisterCallback(0, PS3SysutilCallback, NULL);
     cellSysmoduleLoadModule(CELL_SYSMODULE_FS);
     cellSysmoduleLoadModule(CELL_SYSMODULE_SYSUTIL);
@@ -903,6 +904,7 @@ void RetroEngine::Run()
 
     ReleaseAudioDevice();
 #if RETRO_PLATFORM == RETRO_PS3
+    CloseLogFile();
     ExitPS3Audio();
     cellSysutilUnregisterCallback(0);
 #endif

@@ -1,5 +1,12 @@
 #include "RetroEngine.hpp"
 
+#if RETRO_PLATFORM == RETRO_PS3
+#include <sys/synchronization.h>
+static sys_lwmutex_t debugMutex __attribute__((aligned(16)));
+static bool debugMutexCreated = false;
+static FileIO *logFileHandle = NULL;
+#endif
+
 bool endLine   = true;
 int touchFlags = 0;
 
@@ -9,22 +16,48 @@ void PrintLog(const char *msg, ...)
 {
 #ifndef RETRO_DISABLE_LOG
     if (engineDebugMode || Engine.consoleEnabled) {
-        char buffer[0x100];
+        char buffer[1024];
 
         // make the full string
         va_list args;
         va_start(args, msg);
         vsprintf(buffer, msg, args);
+        va_end(args);
+
+#if RETRO_PLATFORM == RETRO_PS3
+        if (debugMutexCreated) sys_lwmutex_lock(&debugMutex, 0);
+#endif
+
         if (endLine) {
             printf("%s\n", buffer);
-            sprintf(buffer, "%s\n", buffer);
         }
         else {
             printf("%s", buffer);
-            sprintf(buffer, "%s", buffer);
         }
 
         if (engineDebugMode) {
+            char fullBuffer[1024];
+            if (endLine)
+                snprintf(fullBuffer, 1024, "%s\n", buffer);
+            else {
+                strncpy(fullBuffer, buffer, 1023);
+                fullBuffer[1023] = '\0';
+            }
+
+#if RETRO_PLATFORM == RETRO_ANDROID
+            __android_log_print(ANDROID_LOG_INFO, "RSDKv4", "%s", buffer);
+#endif
+
+#if RETRO_PLATFORM == RETRO_PS3
+            if (!logFileHandle) {
+                char pathBuffer[0x100];
+                snprintf(pathBuffer, sizeof(pathBuffer), "%slog.txt", gamePath);
+                logFileHandle = fOpen(pathBuffer, "w");
+            }
+            if (logFileHandle) {
+                fWrite(fullBuffer, 1, (int)strlen(fullBuffer), logFileHandle);
+            }
+#else
             char pathBuffer[0x100];
 #if RETRO_PLATFORM == RETRO_UWP
             if (!usingCWD)
@@ -33,16 +66,20 @@ void PrintLog(const char *msg, ...)
                 sprintf(pathBuffer, "log.txt");
 #elif RETRO_PLATFORM == RETRO_ANDROID
             sprintf(pathBuffer, "%s/log.txt", gamePath);
-            __android_log_print(ANDROID_LOG_INFO, "RSDKv4", "%s", buffer);
 #else
             sprintf(pathBuffer, BASE_PATH "log.txt");
 #endif
             FileIO *file = fOpen(pathBuffer, "a");
             if (file) {
-                fWrite(&buffer, 1, StrLength(buffer), file);
+                fWrite(fullBuffer, 1, (int)strlen(fullBuffer), file);
                 fClose(file);
             }
+#endif
         }
+
+#if RETRO_PLATFORM == RETRO_PS3
+        sys_lwmutex_unlock(&debugMutex);
+#endif
     }
 #endif
 }
@@ -51,6 +88,9 @@ void PrintLog(const ushort *msg)
 {
 #ifndef RETRO_DISABLE_LOG
     if (engineDebugMode || Engine.consoleEnabled) {
+#if RETRO_PLATFORM == RETRO_PS3
+        if (debugMutexCreated) sys_lwmutex_lock(&debugMutex, 0);
+#endif
         int mPos = 0;
         while (msg[mPos]) {
             printf("%lc", (ushort)msg[mPos]);
@@ -60,6 +100,24 @@ void PrintLog(const ushort *msg)
             printf("\n");
 
         if (engineDebugMode) {
+#if RETRO_PLATFORM == RETRO_PS3
+            if (!logFileHandle) {
+                char pathBuffer[0x100];
+                snprintf(pathBuffer, sizeof(pathBuffer), "%slog.txt", gamePath);
+                logFileHandle = fOpen(pathBuffer, "w");
+            }
+            if (logFileHandle) {
+                mPos = 0;
+                while (msg[mPos]) {
+                    fWrite(&msg[mPos], 2, 1, logFileHandle);
+                    mPos++;
+                }
+
+                ushort el = '\n';
+                if (endLine)
+                    fWrite(&el, 2, 1, logFileHandle);
+            }
+#else
             char pathBuffer[0x100];
 #if RETRO_PLATFORM == RETRO_UWP
             if (!usingCWD)
@@ -85,10 +143,35 @@ void PrintLog(const ushort *msg)
                     fWrite(&el, 2, 1, file);
                 fClose(file);
             }
+#endif
         }
+#if RETRO_PLATFORM == RETRO_PS3
+        sys_lwmutex_unlock(&debugMutex);
+#endif
     }
 #endif
 }
+
+#if RETRO_PLATFORM == RETRO_PS3
+void InitDebugMutex()
+{
+    if (!debugMutexCreated) {
+        sys_lwmutex_attribute_t mutexAttr;
+        sys_lwmutex_attribute_initialize(mutexAttr);
+        // Use recursive mutex for logging as it might be called nested (e.g. during another mutex lock)
+        sys_lwmutex_create(&debugMutex, &mutexAttr);
+        debugMutexCreated = true;
+    }
+}
+
+void CloseLogFile()
+{
+    if (logFileHandle) {
+        fClose(logFileHandle);
+        logFileHandle = NULL;
+    }
+}
+#endif
 
 void InitDevMenu()
 {

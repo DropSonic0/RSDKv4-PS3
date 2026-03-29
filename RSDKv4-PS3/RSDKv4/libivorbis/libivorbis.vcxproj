@@ -58,7 +58,7 @@
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <OptimizationLevel>Level2</OptimizationLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>C:\RSDKv4-PS3\dependencies\all\libogg\include;C:\RSDKv4-PS3\dependencies\all\tremor;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\dependencies\all\libogg\include;$(SolutionDir)\..\..\dependencies\all\tremor;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>-D_REENTRANT -D_LOW_ACCURACY_ -D_BYTE_ORDER=__BIG_ENDIAN %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>

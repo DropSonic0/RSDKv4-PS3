@@ -58,7 +58,7 @@
       <PreprocessorDefinitions>NDEBUG;SNC;__CELLOS_LV2__;_PS3;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <OptimizationLevel>Level2</OptimizationLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>C:\RSDKv4-PS3\dependencies\all\libogg\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\dependencies\all\libogg\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FastMath>true</FastMath>
       <AdditionalOptions>-Xdiag=1 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>

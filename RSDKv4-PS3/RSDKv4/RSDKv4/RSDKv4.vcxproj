@@ -60,7 +60,7 @@
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <OptimizationLevel>Level2</OptimizationLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>C:\RSDKv4-PS3\RSDKv4;C:\RSDKv4-PS3\RSDKv4\NativeObjects;C:\RSDKv4-PS3\dependencies\all;C:\RSDKv4-PS3\dependencies\all\asio\asio\include;C:\RSDKv4-PS3\dependencies\all\libogg\include;C:\RSDKv4-PS3\dependencies\all\pugixml\src;C:\RSDKv4-PS3\dependencies\all\stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\RSDKv4;$(SolutionDir)\..\..\RSDKv4\NativeObjects;$(SolutionDir)\..\..\dependencies\all;$(SolutionDir)\..\..\dependencies\all\asio\asio\include;$(SolutionDir)\..\..\dependencies\all\libogg\include;$(SolutionDir)\..\..\dependencies\all\pugixml\src;$(SolutionDir)\..\..\dependencies\all\stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>-DRSDK_AUTOBUILD=1 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -70,7 +70,7 @@
       <AdditionalDependencies>libcs.a;libsn.a;pugixml.a;libivorbis.a;libogg.a;libPSGL.a;libPSGLU.a;libPSGLFX.a;libPSGLcgc.a;libsysmodule_stub.a;libresc_stub.a;libm.a;libdbgfont.a;libsysutil_stub.a;libio_stub.a;libaudio_stub.a;libpthread.a;libsysutil_game_stub.a;libnet_stub.a;libcgc.a;libgcm_cmd.a;libgcm_sys_stub.a;libstdc++.a;libnetctl_stub.a;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Link>
-      <AdditionalLibraryDirectories>C:\usr\local\cell\target\ppu\lib;C:\usr\local\cell\target\ppu\lib\PSGL\RSX\opt;C:\RSDKv4-PS3\RSDKv4-PS3\RSDKv4\PS3_Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\usr\local\cell\target\ppu\lib;C:\usr\local\cell\target\ppu\lib\PSGL\RSX\opt;$(SolutionDir)\PS3_Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>--strip-unused-data %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
@@ -78,6 +78,7 @@
     <ClCompile Include="..\..\..\RSDKv4\Animation.cpp" />
     <ClCompile Include="..\..\..\RSDKv4\Audio.cpp" />
     <ClCompile Include="..\..\..\RSDKv4\AudioPS3.cpp" />
+    <ClCompile Include="..\..\..\RSDKv4\BackgroundLoader.cpp" />
     <ClCompile Include="..\..\..\RSDKv4\Collision.cpp" />
     <ClCompile Include="..\..\..\RSDKv4\Debug.cpp" />
     <ClCompile Include="..\..\..\RSDKv4\Drawing.cpp" />
@@ -107,6 +108,7 @@
     <ClInclude Include="..\..\..\RSDKv4\Animation.hpp" />
     <ClInclude Include="..\..\..\RSDKv4\Audio.hpp" />
     <ClInclude Include="..\..\..\RSDKv4\AudioPS3.hpp" />
+    <ClInclude Include="..\..\..\RSDKv4\BackgroundLoader.hpp" />
     <ClInclude Include="..\..\..\RSDKv4\Collision.hpp" />
     <ClInclude Include="..\..\..\RSDKv4\Debug.hpp" />
     <ClInclude Include="..\..\..\RSDKv4\Drawing.hpp" />

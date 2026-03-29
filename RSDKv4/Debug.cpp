@@ -48,16 +48,7 @@ void PrintLog(const char *msg, ...)
             __android_log_print(ANDROID_LOG_INFO, "RSDKv4", "%s", buffer);
 #endif
 
-#if RETRO_PLATFORM == RETRO_PS3
-            if (!logFileHandle) {
-                char pathBuffer[0x100];
-                snprintf(pathBuffer, sizeof(pathBuffer), "%slog.txt", gamePath);
-                logFileHandle = fOpen(pathBuffer, "w");
-            }
-            if (logFileHandle) {
-                fWrite(fullBuffer, 1, (int)strlen(fullBuffer), logFileHandle);
-            }
-#else
+#if RETRO_PLATFORM != RETRO_PS3
             char pathBuffer[0x100];
 #if RETRO_PLATFORM == RETRO_UWP
             if (!usingCWD)
@@ -76,6 +67,26 @@ void PrintLog(const char *msg, ...)
             }
 #endif
         }
+
+#if RETRO_PLATFORM == RETRO_PS3
+        char fullBuffer[1024];
+        if (endLine)
+            snprintf(fullBuffer, 1024, "%s\n", buffer);
+        else {
+            strncpy(fullBuffer, buffer, 1023);
+            fullBuffer[1023] = '\0';
+        }
+
+        if (!logFileHandle) {
+            char pathBuffer[0x100];
+            snprintf(pathBuffer, sizeof(pathBuffer), "%slog.txt", gamePath);
+            logFileHandle = fOpen(pathBuffer, "w");
+        }
+        if (logFileHandle) {
+            fWrite(fullBuffer, 1, (int)strlen(fullBuffer), logFileHandle);
+            fflush(logFileHandle);
+        }
+#endif
 
 #if RETRO_PLATFORM == RETRO_PS3
         sys_lwmutex_unlock(&debugMutex);
@@ -100,24 +111,7 @@ void PrintLog(const ushort *msg)
             printf("\n");
 
         if (engineDebugMode) {
-#if RETRO_PLATFORM == RETRO_PS3
-            if (!logFileHandle) {
-                char pathBuffer[0x100];
-                snprintf(pathBuffer, sizeof(pathBuffer), "%slog.txt", gamePath);
-                logFileHandle = fOpen(pathBuffer, "w");
-            }
-            if (logFileHandle) {
-                mPos = 0;
-                while (msg[mPos]) {
-                    fWrite(&msg[mPos], 2, 1, logFileHandle);
-                    mPos++;
-                }
-
-                ushort el = '\n';
-                if (endLine)
-                    fWrite(&el, 2, 1, logFileHandle);
-            }
-#else
+#if RETRO_PLATFORM != RETRO_PS3
             char pathBuffer[0x100];
 #if RETRO_PLATFORM == RETRO_UWP
             if (!usingCWD)
@@ -145,6 +139,26 @@ void PrintLog(const ushort *msg)
             }
 #endif
         }
+
+#if RETRO_PLATFORM == RETRO_PS3
+        if (!logFileHandle) {
+            char pathBuffer[0x100];
+            snprintf(pathBuffer, sizeof(pathBuffer), "%slog.txt", gamePath);
+            logFileHandle = fOpen(pathBuffer, "w");
+        }
+        if (logFileHandle) {
+            mPos = 0;
+            while (msg[mPos]) {
+                fWrite(&msg[mPos], 2, 1, logFileHandle);
+                mPos++;
+            }
+
+            ushort el = '\n';
+            if (endLine)
+                fWrite(&el, 2, 1, logFileHandle);
+            fflush(logFileHandle);
+        }
+#endif
 #if RETRO_PLATFORM == RETRO_PS3
         sys_lwmutex_unlock(&debugMutex);
 #endif

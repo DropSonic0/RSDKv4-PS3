@@ -342,18 +342,10 @@ static void GetScriptsFromConfig(const char *relPath, char scriptPaths[PRELOAD_F
             ReadDecrypted(buf, 1, f, &s, encrypted);
             ReadDecrypted(NULL, buf[0], f, &s, encrypted);
         }
-        // Read SFX Paths
+        // Skip SFX Paths
         for (int i = 0; i < sfxCount; i++) {
             ReadDecrypted(buf, 1, f, &s, encrypted);
-            int len = buf[0];
-            if (len > 0) {
-                if (len > 0xFF) len = 0xFF;
-                ReadDecrypted(buf, len, f, &s, encrypted);
-                buf[len] = 0;
-                char sfxPath[0x100];
-                snprintf(sfxPath, sizeof(sfxPath), "Data/SoundFX/%s", (char*)buf);
-                AddRelPath(scriptPaths, count, sfxPath);
-            }
+            ReadDecrypted(NULL, buf[0], f, &s, encrypted);
         }
         // Skip Global Variables
         ReadDecrypted(buf, 1, f, &s, encrypted);
@@ -374,18 +366,10 @@ static void GetScriptsFromConfig(const char *relPath, char scriptPaths[PRELOAD_F
             ReadDecrypted(buf, 1, f, &s, encrypted);
             ReadDecrypted(NULL, buf[0], f, &s, encrypted);
         }
-        // Read SFX Paths
+        // Skip SFX Paths
         for (int i = 0; i < sfxCount; i++) {
             ReadDecrypted(buf, 1, f, &s, encrypted);
-            int len = buf[0];
-            if (len > 0) {
-                if (len > 0xFF) len = 0xFF;
-                ReadDecrypted(buf, len, f, &s, encrypted);
-                buf[len] = 0;
-                char sfxPath[0x100];
-                snprintf(sfxPath, sizeof(sfxPath), "Data/SoundFX/%s", (char*)buf);
-                AddRelPath(scriptPaths, count, sfxPath);
-            }
+            ReadDecrypted(NULL, buf[0], f, &s, encrypted);
         }
         
         ReadDecrypted(buf, 1, f, &s, encrypted); // Object count
@@ -615,7 +599,7 @@ void PreloadThreadFunc(uint64_t arg)
     if (modHash[0])
         snprintf(stageBytecodePath, sizeof(stageBytecodePath), "Bytecode/%s_%s.bin", folder, modHash);
     else
-        snprintf(stageBytecodePath, sizeof(stageBytecodePath), "Bytecode/%s.bin", folder);
+        snprintf(stageBytecodePath, sizeof(stageBytecodePath), "Bytecode/%s_Retail.bin", folder);
 
     char fullPath_s[0x200];
     snprintf(fullPath_s, sizeof(fullPath_s), "%s%s", gamePath, stageBytecodePath);
@@ -641,7 +625,7 @@ void PreloadThreadFunc(uint64_t arg)
     if (modHash[0])
         snprintf(globalBytecodePath, sizeof(globalBytecodePath), "Bytecode/GlobalCode_%s.bin", modHash);
     else
-        snprintf(globalBytecodePath, sizeof(globalBytecodePath), "Bytecode/GlobalCode.bin");
+        snprintf(globalBytecodePath, sizeof(globalBytecodePath), "Bytecode/GlobalCode_Retail.bin");
 
     char fullPath_g[0x200];
     snprintf(fullPath_g, sizeof(fullPath_g), "%s%s", gamePath, globalBytecodePath);

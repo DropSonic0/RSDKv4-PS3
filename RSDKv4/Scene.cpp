@@ -676,7 +676,7 @@ void LoadStageFiles(void)
             if (modHash[0])
                 snprintf(globalBytecodePath, sizeof(globalBytecodePath), "Bytecode/GlobalCode_%s.bin", modHash);
             else
-                snprintf(globalBytecodePath, sizeof(globalBytecodePath), "Bytecode/GlobalCode.bin");
+                snprintf(globalBytecodePath, sizeof(globalBytecodePath), "Bytecode/GlobalCode_Retail.bin");
 
             bool bytecodeExists  = false;
             char fullPath[0x200];
@@ -889,7 +889,7 @@ void LoadStageFiles(void)
                     if (modHash[0])
                         snprintf(stageBytecodePath, sizeof(stageBytecodePath), "Bytecode/%s_%s.bin", stageList[activeStageList][stageListPosition].folder, modHash);
                     else
-                        snprintf(stageBytecodePath, sizeof(stageBytecodePath), "Bytecode/%s.bin", stageList[activeStageList][stageListPosition].folder);
+                        snprintf(stageBytecodePath, sizeof(stageBytecodePath), "Bytecode/%s_Retail.bin", stageList[activeStageList][stageListPosition].folder);
                     break;
                 default: break;
             }

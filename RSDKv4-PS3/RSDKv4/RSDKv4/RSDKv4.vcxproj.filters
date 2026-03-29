@@ -28,6 +28,7 @@
     <ClCompile Include="..\..\..\RSDKv4\UPnP.cpp" />
     <ClCompile Include="..\..\..\RSDKv4\Userdata.cpp" />
     <ClCompile Include="..\..\..\RSDKv4\NativeObjects\All.cpp" />
+    <ClCompile Include="..\..\..\RSDKv4\BackgroundLoader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\RSDKv4\Animation.hpp" />
@@ -57,6 +58,7 @@
     <ClInclude Include="..\..\..\RSDKv4\Text.hpp" />
     <ClInclude Include="..\..\..\RSDKv4\UPnP.hpp" />
     <ClInclude Include="..\..\..\RSDKv4\Userdata.hpp" />
+    <ClInclude Include="..\..\..\RSDKv4\BackgroundLoader.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\..\RSDKv4\RSDKv4 Decomp Icon.ico" />

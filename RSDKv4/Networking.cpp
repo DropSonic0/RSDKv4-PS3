@@ -254,7 +254,8 @@ public:
         memcpy(&l_room, &sent.room, sizeof(uint));
         memcpy(&l_player, &sent.player, sizeof(uint));
 #if RETRO_IS_BIG_ENDIAN
-        SWAP_ENDIAN(l_room);
+        // Fix: Do NOT swap endian here, it will be swapped in run() just before sending
+        // SWAP_ENDIAN(l_room);
 #endif
         PrintLog("NetworkSession::write() - Header=0x%02X, room=0x%08X, player=%u", sent.header, l_room, l_player);
 
@@ -322,7 +323,8 @@ public:
             memcpy(&l_room, &send->room, sizeof(uint));
             memcpy(&l_player, &send->player, sizeof(uint));
 #if RETRO_IS_BIG_ENDIAN
-        SWAP_ENDIAN(l_room);
+        // Fix: Do NOT swap endian here, it will be swapped in SwapPacketEndian just before sending
+        // SWAP_ENDIAN(l_room);
 #endif
             PrintLog("NetworkSession::run() - Sending packet: header=0x%02X, room=0x%08X, player=%u", send->header, l_room, l_player);
             
@@ -554,7 +556,8 @@ public:
         memcpy(&l_room, &sent.room, sizeof(uint));
         memcpy(&l_player, &sent.player, sizeof(uint));
 #if RETRO_IS_BIG_ENDIAN
-        SWAP_ENDIAN(l_room);
+        // Fix: Do NOT swap endian here
+        // SWAP_ENDIAN(l_room);
 #endif
         PrintLog("NetworkSession::write() - Header=0x%02X, room=0x%08X, player=%u", sent.header, l_room, l_player);
 
@@ -709,7 +712,7 @@ private:
         lastTime       = SDL_GetPerformanceCounter();
         uint l_room = read_msg_.room;
 #if RETRO_IS_BIG_ENDIAN
-        SWAP_ENDIAN(l_room);
+        // SWAP_ENDIAN(l_room);
 #endif
         PrintLog("NetworkSession::handle_read() - Received packet: header=0x%02X, room=0x%08X, player=%u, ping=%.1fms", read_msg_.header, l_room, read_msg_.player, lastPing);
         waitingForPing = false;
@@ -820,7 +823,9 @@ static void relayLoop(uint64_t arg)
 
     struct sockaddr_in serverAddr;
     memset(&serverAddr, 0, sizeof(serverAddr));
+#if RETRO_PLATFORM == RETRO_PS3
     serverAddr.sin_len    = sizeof(serverAddr);
+#endif
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port   = htons(networkPort);
     serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -1040,6 +1045,9 @@ static void fetchIPLoop(uint64_t arg)
 
     struct sockaddr_in serv_addr;
     memset(&serv_addr, 0, sizeof(serv_addr));
+#if RETRO_PLATFORM == RETRO_PS3
+    serv_addr.sin_len    = sizeof(serv_addr);
+#endif
     serv_addr.sin_family = AF_INET;
     memcpy(&serv_addr.sin_addr.s_addr, server->h_addr, server->h_length);
     serv_addr.sin_port = htons(80);

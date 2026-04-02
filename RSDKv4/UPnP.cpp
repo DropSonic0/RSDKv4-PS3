@@ -73,6 +73,9 @@ static bool SendSOAPRequest(const char *ip, int port, const char *path, const ch
 
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
+#if RETRO_PLATFORM == RETRO_PS3
+    addr.sin_len    = sizeof(addr);
+#endif
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = inet_addr(ip);
@@ -145,6 +148,9 @@ void UPnP_AddPortMapping(uint16_t port)
 
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
+#if RETRO_PLATFORM == RETRO_PS3
+    addr.sin_len    = sizeof(addr);
+#endif
     addr.sin_family = AF_INET;
     addr.sin_port = htons(SSDP_MULTICAST_PORT);
     addr.sin_addr.s_addr = inet_addr(SSDP_MULTICAST_ADDR);
@@ -211,6 +217,9 @@ void UPnP_AddPortMapping(uint16_t port)
     
     struct sockaddr_in xmlAddr;
     memset(&xmlAddr, 0, sizeof(xmlAddr));
+#if RETRO_PLATFORM == RETRO_PS3
+    xmlAddr.sin_len    = sizeof(xmlAddr);
+#endif
     xmlAddr.sin_family = AF_INET;
     xmlAddr.sin_port = htons(routerPort);
     xmlAddr.sin_addr.s_addr = inet_addr(routerIP);

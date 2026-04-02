@@ -27,6 +27,12 @@ void SettingsScreen_Create(void *objPtr)
         SetStringToFont(self->spindashText, strSpindash, FONT_LABEL);
     }
     SetStringToFont(self->boxArtText, strBoxArt, FONT_LABEL);
+    SetStringToFont(self->controlsText, strControls, FONT_LABEL);
+    SetStringToFont8(self->screenText, "SCREEN", FONT_LABEL);
+    SetStringToFont8(self->filterText, "FILTER", FONT_LABEL);
+    SetStringToFont8(self->scalingText, "SCALING", FONT_LABEL);
+    SetStringToFont8(self->aspectText, "ASPECT", FONT_LABEL);
+    SetStringToFont8(self->widthText, "WIDTH", FONT_LABEL);
     for (int i = 0; i < 4; ++i) {
         button                  = CREATE_ENTITY(PushButton);
         self->buttons[i]        = button;
@@ -110,6 +116,17 @@ void SettingsScreen_Create(void *objPtr)
     button->bgColorSelected                 = 0x00C060;
     SetStringToFont(button->text, strControls, FONT_LABEL);
 
+    button                                   = CREATE_ENTITY(PushButton);
+    self->buttons[SETTINGSSCREEN_BTN_SCREEN] = button;
+    button->useRenderMatrix                  = true;
+    button->x                                = 52.0;
+    button->y                                = -64.0;
+    button->z                                = 0.0;
+    button->scale                            = 0.13;
+    button->bgColor                          = 0x00A048;
+    button->bgColorSelected                  = 0x00C060;
+    SetStringToFont8(button->text, "SCREEN", FONT_LABEL);
+
     if (Engine.gameDeviceType == RETRO_MOBILE) {
         switch (GetGlobalVariableByName("options.physicalControls")) {
             default: break;
@@ -156,7 +173,10 @@ void SettingsScreen_Main(void *objPtr)
                 self->buttons[SETTINGSSCREEN_BTN_SDOFF]->y = -1000.0;
             }
             self->label->renderMatrix = self->buttonMatrix;
-            for (int l = 0; l < SETTINGSSCREEN_BTN_COUNT; ++l) self->buttons[l]->renderMatrix = self->buttonMatrix;
+            for (int l = 0; l < SETTINGSSCREEN_BTN_COUNT; ++l) {
+                if (self->buttons[l])
+                    self->buttons[l]->renderMatrix = self->buttonMatrix;
+            }
             self->timer += Engine.deltaTime;
             if (self->timer > 0.5) {
                 self->alpha    = 256;
@@ -177,15 +197,27 @@ void SettingsScreen_Main(void *objPtr)
                         if ((Engine.gameType != GAME_SONIC1 || self->isPauseMenu) && self->selected == SETTINGSSCREEN_SEL_SPINDASH)
                             self->selected = SETTINGSSCREEN_SEL_SFXVOL;
                         if (self->selected <= SETTINGSSCREEN_SEL_NONE)
-                            self->selected = SETTINGSSCREEN_SEL_CONTROLS;
+                            self->selected = SETTINGSSCREEN_SEL_SCREEN;
                     }
                     if (keyPress.down) {
                         PlaySfxByName("Menu Move", false);
                         self->selected++;
                         if ((Engine.gameType != GAME_SONIC1 || self->isPauseMenu) && self->selected == SETTINGSSCREEN_SEL_SPINDASH)
                             self->selected = SETTINGSSCREEN_SEL_REGION;
-                        if (self->selected > SETTINGSSCREEN_SEL_CONTROLS)
+                        if (self->selected > SETTINGSSCREEN_SEL_SCREEN)
                             self->selected = SETTINGSSCREEN_SEL_MUSVOL;
+                    }
+                    if (keyPress.left) {
+                        if (self->selected == SETTINGSSCREEN_SEL_SCREEN) {
+                            PlaySfxByName("Menu Move", false);
+                            self->selected = SETTINGSSCREEN_SEL_CONTROLS;
+                        }
+                    }
+                    if (keyPress.right) {
+                        if (self->selected == SETTINGSSCREEN_SEL_CONTROLS) {
+                            PlaySfxByName("Menu Move", false);
+                            self->selected = SETTINGSSCREEN_SEL_SCREEN;
+                        }
                     }
                     for (int i = SETTINGSSCREEN_BTN_SDON; i < SETTINGSSCREEN_BTN_COUNT; ++i) self->buttons[i]->state = PUSHBUTTON_STATE_UNSELECTED;
 
@@ -286,6 +318,14 @@ void SettingsScreen_Main(void *objPtr)
                                 PlaySfxByName("Menu Select", false);
                                 self->buttons[SETTINGSSCREEN_BTN_CTRLS]->state = PUSHBUTTON_STATE_FLASHING;
                                 self->state                                    = SETTINGSSCREEN_STATE_ENTERCTRLS;
+                            }
+                            break;
+                        case SETTINGSSCREEN_SEL_SCREEN:
+                            self->buttons[SETTINGSSCREEN_BTN_SCREEN]->state = PUSHBUTTON_STATE_SELECTED;
+                            if (keyPress.start || keyPress.A) {
+                                PlaySfxByName("Menu Select", false);
+                                self->buttons[SETTINGSSCREEN_BTN_SCREEN]->state = PUSHBUTTON_STATE_FLASHING;
+                                self->state                                     = SETTINGSSCREEN_STATE_ENTER_SCREEN;
                             }
                             break;
                         default: break;
@@ -409,6 +449,11 @@ void SettingsScreen_Main(void *objPtr)
                         self->buttons[SETTINGSSCREEN_BTN_CTRLS]->state = PUSHBUTTON_STATE_FLASHING;
                         self->state                                    = SETTINGSSCREEN_STATE_ENTERCTRLS;
                     }
+                    if (self->buttons[SETTINGSSCREEN_BTN_SCREEN]->state == PUSHBUTTON_STATE_SELECTED) {
+                        PlaySfxByName("Menu Select", false);
+                        self->buttons[SETTINGSSCREEN_BTN_SCREEN]->state = PUSHBUTTON_STATE_FLASHING;
+                        self->state                                     = SETTINGSSCREEN_STATE_ENTER_SCREEN;
+                    }
                     if (self->backPressed || keyPress.B) {
                         PlaySfxByName("Menu Back", false);
                         self->backPressed = false;
@@ -426,18 +471,21 @@ void SettingsScreen_Main(void *objPtr)
                     }
                 }
                 else {
-                    float touchX[] = { 32, 108, 32, 108, 32.0, 96, 4, 52, 100, self->buttons[SETTINGSSCREEN_BTN_CTRLS]->x };
-                    float touchY[] = { 54, 54, 22, 22, -10, -10, -42, -42, -42, self->buttons[SETTINGSSCREEN_BTN_CTRLS]->y };
+                    float touchX[] = { 32, 108, 32, 108, 32.0, 96, 4, 52, 100, self->buttons[SETTINGSSCREEN_BTN_CTRLS]->x, self->buttons[SETTINGSSCREEN_BTN_SCREEN]->x };
+                    float touchY[] = { 54, 54, 22, 22, -10, -10, -42, -42, -42, self->buttons[SETTINGSSCREEN_BTN_CTRLS]->y, self->buttons[SETTINGSSCREEN_BTN_SCREEN]->y };
 
                     for (int i = 0; i < SETTINGSSCREEN_BTN_COUNT; ++i) {
                         NativeEntity_PushButton *button = self->buttons[i];
+                        int touchIdx = i;
+                        if (i == SETTINGSSCREEN_BTN_CTRLS) touchIdx = 9;
+                        if (i == SETTINGSSCREEN_BTN_SCREEN) touchIdx = 10;
 
                         if (i == 4 || i == 5) {
                             if (!self->isPauseMenu && Engine.gameType == GAME_SONIC1)
-                                button->state = CheckTouchRect(touchX[i], touchY[i], (button->textWidth + (button->scale * 64.0)) * 0.75, 12.0) >= 0;
+                                button->state = CheckTouchRect(touchX[touchIdx], touchY[touchIdx], (button->textWidth + (button->scale * 64.0)) * 0.75, 12.0) >= 0;
                         }
                         else {
-                            button->state = CheckTouchRect(touchX[i], touchY[i], (button->textWidth + (button->scale * 64.0)) * 0.75, 12.0) >= 0;
+                            button->state = CheckTouchRect(touchX[touchIdx], touchY[touchIdx], (button->textWidth + (button->scale * 64.0)) * 0.75, 12.0) >= 0;
                         }
                     }
 
@@ -464,6 +512,7 @@ void SettingsScreen_Main(void *objPtr)
                 if (self->stateDraw == SETTINGSSCREEN_STATEDRAW_CONFIGDPAD) {
                     RestoreNativeObjectsSettings();
                     self->stateDraw = SETTINGSSCREEN_STATEDRAW_MAIN;
+                    self->selected  = SETTINGSSCREEN_SEL_CONTROLS;
                     SetStringToFont(self->label->text, strSettings, FONT_HEADING);
                     if (self->isPauseMenu)
                         SetGlobalVariableByName("options.touchControls", true);
@@ -501,11 +550,14 @@ void SettingsScreen_Main(void *objPtr)
             MatrixTranslateXYZF(&self->tempMatrix, 0.0, -8.0, 160.0);
             MatrixMultiplyF(&self->buttonMatrix, &self->tempMatrix);
             SetRenderMatrix(&self->buttonMatrix);
-            for (int l = 0; l < SETTINGSSCREEN_BTN_COUNT; ++l) self->buttons[l]->renderMatrix = self->buttonMatrix;
+            for (int l = 0; l < SETTINGSSCREEN_BTN_COUNT; ++l) {
+                if (self->buttons[l])
+                    self->buttons[l]->renderMatrix = self->buttonMatrix;
+            }
             break;
         case SETTINGSSCREEN_STATE_FINISHFLIP_CTRLSTOUCH:
             self->buttonRotY -= (10.0 * Engine.deltaTime);
-            if (self->buttonRotY < -M_PI_2) {
+            if (self->buttonRotY < -(M_PI / 2)) {
                 if (self->stateDraw == SETTINGSSCREEN_STATEDRAW_CONFIGDPAD)
                     self->state = SETTINGSSCREEN_STATE_CTRLS_TOUCH;
                 else if (self->stateDraw == SETTINGSSCREEN_STATEDRAW_MAIN)
@@ -517,7 +569,10 @@ void SettingsScreen_Main(void *objPtr)
             MatrixTranslateXYZF(&self->tempMatrix, 0.0, -8.0, 160.0);
             MatrixMultiplyF(&self->buttonMatrix, &self->tempMatrix);
             SetRenderMatrix(&self->buttonMatrix);
-            for (int l = 0; l < SETTINGSSCREEN_BTN_COUNT; ++l) self->buttons[l]->renderMatrix = self->buttonMatrix;
+            for (int l = 0; l < SETTINGSSCREEN_BTN_COUNT; ++l) {
+                if (self->buttons[l])
+                    self->buttons[l]->renderMatrix = self->buttonMatrix;
+            }
             break;
         case SETTINGSSCREEN_STATE_CTRLS_TOUCH:
             CheckKeyDown(&keyDown);
@@ -712,12 +767,18 @@ void SettingsScreen_Main(void *objPtr)
             MatrixMultiplyF(&self->buttonMatrix, &self->tempMatrix);
             SetRenderMatrix(&self->buttonMatrix);
             self->label->renderMatrix = self->buttonMatrix;
-            for (int l = 0; l < SETTINGSSCREEN_BTN_COUNT; ++l) self->buttons[l]->renderMatrix = self->buttonMatrix;
+            for (int l = 0; l < SETTINGSSCREEN_BTN_COUNT; ++l) {
+                if (self->buttons[l])
+                    self->buttons[l]->renderMatrix = self->buttonMatrix;
+            }
 
             self->timer += Engine.deltaTime;
             if (self->timer > 0.5) {
                 optionsMenu->state = OPTIONSMENU_STATE_EXITSUBMENU;
-                for (int i = 0; i < SETTINGSSCREEN_BTN_COUNT; ++i) RemoveNativeObject(self->buttons[i]);
+                for (int i = 0; i < SETTINGSSCREEN_BTN_COUNT; ++i) {
+                    if (self->buttons[i])
+                        RemoveNativeObject(self->buttons[i]);
+                }
 
                 RemoveNativeObject(self->label);
                 RemoveNativeObject(self);
@@ -747,6 +808,7 @@ void SettingsScreen_Main(void *objPtr)
                 if (self->stateDraw == SETTINGSSCREEN_STATEDRAW_CONTROLLER) {
                     RestoreNativeObjectsSettings();
                     self->stateDraw = SETTINGSSCREEN_STATEDRAW_MAIN;
+                    self->selected  = SETTINGSSCREEN_SEL_CONTROLS;
                     SetStringToFont(self->label->text, strSettings, FONT_HEADING);
                     if (self->isPauseMenu)
                         SetGlobalVariableByName("options.touchControls", true);
@@ -768,12 +830,15 @@ void SettingsScreen_Main(void *objPtr)
             MatrixTranslateXYZF(&self->tempMatrix, 0.0, -8.0, 160.0);
             MatrixMultiplyF(&self->buttonMatrix, &self->tempMatrix);
             SetRenderMatrix(&self->buttonMatrix);
-            for (int l = 0; l < SETTINGSSCREEN_BTN_COUNT; ++l) self->buttons[l]->renderMatrix = self->buttonMatrix;
+            for (int l = 0; l < SETTINGSSCREEN_BTN_COUNT; ++l) {
+                if (self->buttons[l])
+                    self->buttons[l]->renderMatrix = self->buttonMatrix;
+            }
             break;
         }
         case SETTINGSSCREEN_STATE_FINISHFLIP_CTRLS:
             self->buttonRotY -= (10.0 * Engine.deltaTime);
-            if (self->buttonRotY < -(M_PI_2)) {
+            if (self->buttonRotY < -(M_PI / 2)) {
                 if (self->stateDraw == SETTINGSSCREEN_STATEDRAW_CONTROLLER) {
                     self->state = SETTINGSSCREEN_STATE_CTRLS;
                 }
@@ -787,7 +852,10 @@ void SettingsScreen_Main(void *objPtr)
             MatrixTranslateXYZF(&self->tempMatrix, 0.0, -8.0, 160.0);
             MatrixMultiplyF(&self->buttonMatrix, &self->tempMatrix);
             SetRenderMatrix(&self->buttonMatrix);
-            for (int l = 0; l < SETTINGSSCREEN_BTN_COUNT; ++l) self->buttons[l]->renderMatrix = self->buttonMatrix;
+            for (int l = 0; l < SETTINGSSCREEN_BTN_COUNT; ++l) {
+                if (self->buttons[l])
+                    self->buttons[l]->renderMatrix = self->buttonMatrix;
+            }
             break;
         case SETTINGSSCREEN_STATE_CTRLS:
             CheckKeyDown(&keyDown);
@@ -808,6 +876,263 @@ void SettingsScreen_Main(void *objPtr)
                 PlaySfxByName("Menu Back", false);
                 self->backPressed = false;
                 self->state       = SETTINGSSCREEN_STATE_FLIP_CTRLS;
+            }
+            break;
+        case SETTINGSSCREEN_STATE_ENTER_SCREEN:
+            SetRenderMatrix(&self->buttonMatrix);
+            if (self->buttons[SETTINGSSCREEN_BTN_SCREEN]->state == PUSHBUTTON_STATE_UNSELECTED) {
+                self->state = SETTINGSSCREEN_STATE_FLIP_SCREEN;
+            }
+            break;
+        case SETTINGSSCREEN_STATE_FLIP_SCREEN:
+            self->buttonRotY -= (10.0 * Engine.deltaTime);
+            if (self->buttonRotY < -(M_PI / 2)) {
+                self->state      = SETTINGSSCREEN_STATE_FINISHFLIP_SCREEN;
+                self->buttonRotY = -(M_PI / 2 + M_PI);
+                if (self->stateDraw == SETTINGSSCREEN_STATEDRAW_SCREEN) {
+                    RestoreNativeObjectsSettings();
+                    self->stateDraw = SETTINGSSCREEN_STATEDRAW_MAIN;
+                    self->selected  = SETTINGSSCREEN_SEL_SCREEN;
+                    SetStringToFont(self->label->text, strSettings, FONT_HEADING);
+                }
+                else if (self->stateDraw == SETTINGSSCREEN_STATEDRAW_MAIN) {
+                    self->stateDraw = SETTINGSSCREEN_STATEDRAW_SCREEN;
+                    BackupNativeObjectsSettings();
+                    self->selected = 0;
+                    SetStringToFont8(self->label->text, "SCREEN", FONT_HEADING);
+                    for (int i = 0; i < SETTINGSSCREEN_BTN_COUNT; ++i) {
+                        if (self->buttons[i])
+                            RemoveNativeObject(self->buttons[i]);
+                        self->buttons[i] = NULL;
+                    }
+                    for (int i = 0; i < 8; ++i) {
+                        NativeEntity_PushButton *button = CREATE_ENTITY(PushButton);
+                        self->buttons[i]                = button;
+                        button->x                       = 32.0f + (i % 2) * 76;
+                        button->y                       = 62.0f - (i / 2) * 32;
+                        button->z                       = 0.0;
+                        button->scale                   = 0.175;
+                        button->bgColor                 = 0x00A048;
+                        button->bgColorSelected         = 0x00C060;
+                        button->useRenderMatrix         = true;
+                        SetStringToFont8(self->buttons[i]->text, ((i % 2) ? "+" : "-"), FONT_LABEL);
+                    }
+                }
+            }
+
+            NewRenderState();
+            MatrixRotateYF(&self->buttonMatrix, self->buttonRotY);
+            MatrixTranslateXYZF(&self->tempMatrix, 0.0, -8.0, 160.0);
+            MatrixMultiplyF(&self->buttonMatrix, &self->tempMatrix);
+            SetRenderMatrix(&self->buttonMatrix);
+            for (int l = 0; l < SETTINGSSCREEN_BTN_COUNT; ++l) {
+                if (self->buttons[l])
+                    self->buttons[l]->renderMatrix = self->buttonMatrix;
+            }
+            break;
+        case SETTINGSSCREEN_STATE_FINISHFLIP_SCREEN:
+            self->buttonRotY -= (10.0 * Engine.deltaTime);
+            if (self->buttonRotY < -(M_PI / 2)) {
+                if (self->stateDraw == SETTINGSSCREEN_STATEDRAW_SCREEN) {
+                    self->state = SETTINGSSCREEN_STATE_SCREEN;
+                }
+                else if (self->stateDraw == SETTINGSSCREEN_STATEDRAW_MAIN) {
+                    self->state = SETTINGSSCREEN_STATE_MAIN;
+                }
+                self->buttonRotY = 0.0;
+            }
+            NewRenderState();
+            MatrixRotateYF(&self->buttonMatrix, self->buttonRotY);
+            MatrixTranslateXYZF(&self->tempMatrix, 0.0, -8.0, 160.0);
+            MatrixMultiplyF(&self->buttonMatrix, &self->tempMatrix);
+            SetRenderMatrix(&self->buttonMatrix);
+            for (int l = 0; l < SETTINGSSCREEN_BTN_COUNT; ++l) {
+                if (self->buttons[l])
+                    self->buttons[l]->renderMatrix = self->buttonMatrix;
+            }
+            break;
+        case SETTINGSSCREEN_STATE_SCREEN:
+            CheckKeyDown(&keyDown);
+            CheckKeyPress(&keyPress);
+            SetRenderMatrix(&self->tempMatrix);
+            if (touches <= 0) {
+                if (keyPress.up) {
+                    PlaySfxByName("Menu Move", false);
+                    self->selected--;
+                    if (self->selected < 0)
+                        self->selected = 3;
+                }
+                if (keyPress.down) {
+                    PlaySfxByName("Menu Move", false);
+                    self->selected++;
+                    if (self->selected > 3)
+                        self->selected = 0;
+                }
+
+                for (int i = 0; i < 8; ++i) self->buttons[i]->state = PUSHBUTTON_STATE_UNSELECTED;
+
+                if (keyPress.left) {
+                    PlaySfxByName("Menu Move", false);
+                    self->buttons[self->selected * 2]->state = PUSHBUTTON_STATE_SELECTED;
+                    bool changed                             = false;
+                    switch (self->selected) {
+                        case 0: // Filter
+                            Engine.filterMode--;
+                            if (Engine.filterMode < 0)
+                                Engine.filterMode = 3;
+                            Engine.useXbrzFilter = Engine.filterMode == FILTER_XBRZ;
+                            break;
+                        case 1: // Scaling
+                            Engine.scalingMode ^= 1;
+                            SetupViewport();
+                            changed = true;
+                            break;
+                        case 2: // Aspect Ratio
+                            if (SCREEN_XSIZE_CONFIG == 424)
+                                SCREEN_XSIZE_CONFIG = 320;
+                            else
+                                SCREEN_XSIZE_CONFIG = 424;
+                            SetupViewport();
+                            changed = true;
+                            break;
+                        case 3: // Width
+                            SCREEN_XSIZE_CONFIG -= 8;
+                            if (SCREEN_XSIZE_CONFIG < 320)
+                                SCREEN_XSIZE_CONFIG = 320;
+                            SetupViewport();
+                            changed = true;
+                            break;
+                    }
+
+                    if (changed) {
+                        MatrixScaleXYZF(&self->buttonMatrix, self->buttonMatScale, self->buttonMatScale, 1.0);
+                        MatrixTranslateXYZF(&self->tempMatrix, 0.0, -8.0, 160.0);
+                        MatrixMultiplyF(&self->buttonMatrix, &self->tempMatrix);
+                        self->label->renderMatrix = self->buttonMatrix;
+                        for (int l = 0; l < SETTINGSSCREEN_BTN_COUNT; ++l) {
+                            if (self->buttons[l])
+                                self->buttons[l]->renderMatrix = self->buttonMatrix;
+                        }
+                    }
+                }
+                else if (keyPress.right) {
+                    PlaySfxByName("Menu Move", false);
+                    self->buttons[self->selected * 2 + 1]->state = PUSHBUTTON_STATE_SELECTED;
+                    bool changed                                 = false;
+                    switch (self->selected) {
+                        case 0: // Filter
+                            Engine.filterMode++;
+                            if (Engine.filterMode > 3)
+                                Engine.filterMode = 0;
+                            Engine.useXbrzFilter = Engine.filterMode == FILTER_XBRZ;
+                            break;
+                        case 1: // Scaling
+                            Engine.scalingMode ^= 1;
+                            SetupViewport();
+                            changed = true;
+                            break;
+                        case 2: // Aspect Ratio
+                            if (SCREEN_XSIZE_CONFIG == 320)
+                                SCREEN_XSIZE_CONFIG = 424;
+                            else
+                                SCREEN_XSIZE_CONFIG = 320;
+                            SetupViewport();
+                            changed = true;
+                            break;
+                        case 3: // Width
+                            SCREEN_XSIZE_CONFIG += 8;
+                            if (SCREEN_XSIZE_CONFIG > 500)
+                                SCREEN_XSIZE_CONFIG = 500;
+                            SetupViewport();
+                            changed = true;
+                            break;
+                    }
+
+                    if (changed) {
+                        MatrixScaleXYZF(&self->buttonMatrix, self->buttonMatScale, self->buttonMatScale, 1.0);
+                        MatrixTranslateXYZF(&self->tempMatrix, 0.0, -8.0, 160.0);
+                        MatrixMultiplyF(&self->buttonMatrix, &self->tempMatrix);
+                        self->label->renderMatrix = self->buttonMatrix;
+                        for (int l = 0; l < SETTINGSSCREEN_BTN_COUNT; ++l) {
+                            if (self->buttons[l])
+                                self->buttons[l]->renderMatrix = self->buttonMatrix;
+                        }
+                    }
+                }
+
+                if (self->backPressed || keyPress.B) {
+                    PlaySfxByName("Menu Back", false);
+                    self->backPressed = false;
+                    self->state       = SETTINGSSCREEN_STATE_FLIP_SCREEN;
+                }
+            }
+            else {
+                for (int i = 0; i < 8; ++i) {
+                    NativeEntity_PushButton *button = self->buttons[i];
+                    button->state                   = CheckTouchRect(32.0 + (i % 2) * 76, 62.0 - (i / 2) * 32, (button->textWidth + (button->scale * 64.0)) * 0.75, 12.0) >= 0;
+
+                    if (button->state == PUSHBUTTON_STATE_SELECTED) {
+                        PlaySfxByName("Menu Move", false);
+                        button->state = PUSHBUTTON_STATE_UNSELECTED;
+                        bool changed  = false;
+                        switch (i) {
+                            case 0: // Filter -
+                                Engine.filterMode--;
+                                if (Engine.filterMode < 0)
+                                    Engine.filterMode = 3;
+                                Engine.useXbrzFilter = Engine.filterMode == FILTER_XBRZ;
+                                break;
+                            case 1: // Filter +
+                                Engine.filterMode++;
+                                if (Engine.filterMode > 3)
+                                    Engine.filterMode = 0;
+                                Engine.useXbrzFilter = Engine.filterMode == FILTER_XBRZ;
+                                break;
+                            case 2: // Scaling -
+                            case 3: // Scaling +
+                                Engine.scalingMode ^= 1;
+                                SetupViewport();
+                                changed = true;
+                                break;
+                            case 4: // Aspect -
+                                SCREEN_XSIZE_CONFIG = 320;
+                                SetupViewport();
+                                changed = true;
+                                break;
+                            case 5: // Aspect +
+                                SCREEN_XSIZE_CONFIG = 424;
+                                SetupViewport();
+                                changed = true;
+                                break;
+                            case 6: // Width -
+                                SCREEN_XSIZE_CONFIG -= 8;
+                                if (SCREEN_XSIZE_CONFIG < 320)
+                                    SCREEN_XSIZE_CONFIG = 320;
+                                SetupViewport();
+                                changed = true;
+                                break;
+                            case 7: // Width +
+                                SCREEN_XSIZE_CONFIG += 8;
+                                if (SCREEN_XSIZE_CONFIG > 500)
+                                    SCREEN_XSIZE_CONFIG = 500;
+                                SetupViewport();
+                                changed = true;
+                                break;
+                        }
+
+                        if (changed) {
+                            MatrixScaleXYZF(&self->buttonMatrix, self->buttonMatScale, self->buttonMatScale, 1.0);
+                            MatrixTranslateXYZF(&self->tempMatrix, 0.0, -8.0, 160.0);
+                            MatrixMultiplyF(&self->buttonMatrix, &self->tempMatrix);
+                            self->label->renderMatrix = self->buttonMatrix;
+                            for (int l = 0; l < SETTINGSSCREEN_BTN_COUNT; ++l) {
+                                if (self->buttons[l])
+                                    self->buttons[l]->renderMatrix = self->buttonMatrix;
+                            }
+                        }
+                    }
+                }
+                self->backPressed = CheckTouchRect(136.0, 88.0, 32.0, 16.0) >= 0;
             }
             break;
         default: break;
@@ -834,6 +1159,58 @@ void SettingsScreen_Main(void *objPtr)
             break;
         case SETTINGSSCREEN_STATEDRAW_CONTROLLER:
             RenderImage(0.0, 0.0, 0.0, 0.275, 0.275, 512.0, 256.0, 1024.0, 512.0, 0.0, 0.0, 255, self->controllerTex);
+            break;
+        case SETTINGSSCREEN_STATEDRAW_SCREEN:
+            if (self->selected == 0)
+                SetRenderVertexColor(0xFF, 0xFF, 0x00);
+            else
+                SetRenderVertexColor(0xFF, 0xFF, 0xFF);
+            RenderText(self->filterText, FONT_LABEL, -128.0, 58.0, 0, 0.125, 255);
+
+            if (self->selected == 1)
+                SetRenderVertexColor(0xFF, 0xFF, 0x00);
+            else
+                SetRenderVertexColor(0xFF, 0xFF, 0xFF);
+            RenderText(self->scalingText, FONT_LABEL, -128.0, 26.0, 0, 0.125, 255);
+
+            if (self->selected == 2)
+                SetRenderVertexColor(0xFF, 0xFF, 0x00);
+            else
+                SetRenderVertexColor(0xFF, 0xFF, 0xFF);
+            RenderText(self->aspectText, FONT_LABEL, -128.0, -6.0, 0, 0.125, 255);
+
+            if (self->selected == 3)
+                SetRenderVertexColor(0xFF, 0xFF, 0x00);
+            else
+                SetRenderVertexColor(0xFF, 0xFF, 0xFF);
+            RenderText(self->widthText, FONT_LABEL, -128.0, -38.0, 0, 0.125, 255);
+
+            SetRenderVertexColor(0xFF, 0xFF, 0xFF);
+
+            {
+                char str[16];
+                ushort text[16];
+                switch (Engine.filterMode) {
+                    case 0: sprintf(str, "NONE"); break;
+                    case 1: sprintf(str, "XBRZ"); break;
+                    case 2: sprintf(str, "CRT"); break;
+                    case 3: sprintf(str, "TV"); break;
+                }
+                SetStringToFont8(text, str, FONT_LABEL);
+                RenderText(text, FONT_LABEL, 54.0, 58.0, 0, 0.125, 255);
+
+                sprintf(str, Engine.scalingMode ? "LINEAR" : "NEAREST");
+                SetStringToFont8(text, str, FONT_LABEL);
+                RenderText(text, FONT_LABEL, 54.0, 26.0, 0, 0.125, 255);
+
+                sprintf(str, SCREEN_XSIZE_CONFIG == 320 ? "4:3" : "16:9");
+                SetStringToFont8(text, str, FONT_LABEL);
+                RenderText(text, FONT_LABEL, 54.0, -6.0, 0, 0.125, 255);
+
+                sprintf(str, "%d", SCREEN_XSIZE_CONFIG);
+                SetStringToFont8(text, str, FONT_LABEL);
+                RenderText(text, FONT_LABEL, 54.0, -38.0, 0, 0.125, 255);
+            }
             break;
         case SETTINGSSCREEN_STATEDRAW_MAIN:
             if (self->selected == SETTINGSSCREEN_SEL_MUSVOL)
@@ -875,6 +1252,19 @@ void SettingsScreen_Main(void *objPtr)
             else
                 SetRenderVertexColor(0xFF, 0xFF, 0xFF);
             RenderText(self->boxArtText, FONT_LABEL, -128.0, -38.0, 0, 0.125, 255);
+
+            if (self->selected == SETTINGSSCREEN_SEL_CONTROLS)
+                SetRenderVertexColor(0xFF, 0xFF, 0x00);
+            else
+                SetRenderVertexColor(0xFF, 0xFF, 0xFF);
+            RenderText(self->controlsText, FONT_LABEL, -114.0, -70.0, 0, 0.125, 255);
+
+            if (self->selected == SETTINGSSCREEN_SEL_SCREEN)
+                SetRenderVertexColor(0xFF, 0xFF, 0x00);
+            else
+                SetRenderVertexColor(0xFF, 0xFF, 0xFF);
+            RenderText(self->screenText, FONT_LABEL, -10.0, -70.0, 0, 0.125, 255);
+
             SetRenderVertexColor(0xFF, 0xFF, 0xFF);
             break;
     }
@@ -885,6 +1275,7 @@ void SettingsScreen_Main(void *objPtr)
         case SETTINGSSCREEN_STATEDRAW_MAIN:
             RenderImage(128.0, -92.0, 160.0, 0.3, 0.3, 64.0, 64.0, 128.0, 128.0, 128.0, self->backPressed ? 128.0 : 0, self->alpha, self->arrowsTex);
             break;
+        case SETTINGSSCREEN_STATEDRAW_SCREEN:
         case SETTINGSSCREEN_STATEDRAW_CONFIGDPAD:
         case SETTINGSSCREEN_STATEDRAW_CONTROLLER:
             RenderImage(136.0, 88.0, 160.0, 0.25, 0.25, 64.0, 64.0, 128.0, 128.0, 128.0, self->backPressed ? 128.0 : 0, self->alpha, self->arrowsTex);

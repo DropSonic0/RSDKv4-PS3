@@ -47,6 +47,13 @@ void InitPS3Network()
         PrintLog("InitPS3Network() - Failed to initialize netctl: 0x%08X", res);
     }
     
+    // Check network status before continuing
+    int state;
+    res = cellNetCtlGetState(&state);
+    if (res >= 0 && state != CELL_NET_CTL_STATE_IPObtained) {
+        PrintLog("InitPS3Network() - Network not ready (state: %d), some features may fail.", state);
+    }
+
     CellNetCtlInfo info;
     res = cellNetCtlGetInfo(CELL_NET_CTL_INFO_IP_ADDRESS, &info);
     if (res >= 0) {

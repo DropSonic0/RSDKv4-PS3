@@ -1591,7 +1591,16 @@ void ApplyWindowChanges()
 {
 #if RETRO_USING_OPENGL
     for (int i = 0; i < TEXTURE_COUNT; ++i) {
-        glDeleteTextures(1, &textureList[i].id);
+        if (textureList[i].id) {
+            glDeleteTextures(1, &textureList[i].id);
+            textureList[i].id = 0;
+        }
+#if RETRO_PLATFORM == RETRO_PS3
+        if (i == 0 && textureList[i].id2) {
+            glDeleteTextures(1, &textureList[i].id2);
+            textureList[i].id2 = 0;
+        }
+#endif
     }
 #endif
 

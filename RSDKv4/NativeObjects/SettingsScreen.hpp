@@ -14,12 +14,17 @@ enum SettingsScreenStates {
     SETTINGSSCREEN_STATE_FLIP_CTRLS,
     SETTINGSSCREEN_STATE_FINISHFLIP_CTRLS,
     SETTINGSSCREEN_STATE_CTRLS,
+    SETTINGSSCREEN_STATE_ENTER_SCREEN,
+    SETTINGSSCREEN_STATE_FLIP_SCREEN,
+    SETTINGSSCREEN_STATE_FINISHFLIP_SCREEN,
+    SETTINGSSCREEN_STATE_SCREEN,
 };
 
 enum SettingsScreenDrawStates {
     SETTINGSSCREEN_STATEDRAW_MAIN,
     SETTINGSSCREEN_STATEDRAW_CONFIGDPAD,
     SETTINGSSCREEN_STATEDRAW_CONTROLLER,
+    SETTINGSSCREEN_STATEDRAW_SCREEN,
 };
 
 enum SettingsScreenButtons {
@@ -33,6 +38,7 @@ enum SettingsScreenButtons {
     SETTINGSSCREEN_BTN_US,
     SETTINGSSCREEN_BTN_EU,
     SETTINGSSCREEN_BTN_CTRLS,
+    SETTINGSSCREEN_BTN_SCREEN,
     SETTINGSSCREEN_BTN_COUNT,
 };
 
@@ -43,6 +49,7 @@ enum SettingsScreenSelections {
     SETTINGSSCREEN_SEL_SPINDASH,
     SETTINGSSCREEN_SEL_REGION,
     SETTINGSSCREEN_SEL_CONTROLS,
+    SETTINGSSCREEN_SEL_SCREEN,
 };
 
 enum SettingScreenControlModes {
@@ -72,6 +79,12 @@ struct NativeEntity_SettingsScreen : NativeEntityBase {
     ushort musicText[32];
     ushort spindashText[32];
     ushort boxArtText[24];
+    ushort controlsText[32];
+    ushort screenText[32];
+    ushort filterText[32];
+    ushort scalingText[32];
+    ushort aspectText[32];
+    ushort widthText[32];
     NativeEntity_PushButton *buttons[SETTINGSSCREEN_BTN_COUNT];
     int selected;
     NativeEntity_VirtualDPad *virtualDPad;

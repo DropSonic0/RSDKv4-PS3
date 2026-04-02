@@ -38,6 +38,8 @@ bool mixFiltersOnJekyll = false;
 #if RETRO_PLATFORM == RETRO_PS3
 #include "xbrz_shader.h"
 #include "Shaders/crt_shaders.h"
+PSGLdevice *psgl_device   = NULL;
+PSGLcontext *psgl_context = NULL;
 #endif
 
 #if RETRO_USING_OPENGL
@@ -203,9 +205,6 @@ int InitRenderDevice()
 #if RETRO_USING_OPENGL
 
 #if RETRO_PLATFORM == RETRO_PS3
-    static PSGLdevice *psgl_device   = NULL;
-    static PSGLcontext *psgl_context = NULL;
-
     if (!psgl_device) {
         // Using NULL for psglInit uses default options which is generally safest
         psglInit(NULL);
@@ -687,13 +686,18 @@ void SetScreenDimensions(int width, int height)
 {
     touchWidth               = width;
     touchHeight              = height;
+#if RETRO_PLATFORM == RETRO_PS3
+    // width/height are the actual physical resolution (e.g. 1280x720)
+    // we should NOT overwrite displaySettings.width/height which are calculated based on aspect ratio
+#else
     displaySettings.width    = width;
     displaySettings.height   = height;
+#endif
     touchWidthF              = width;
     displaySettings.unknown1 = 16;
     touchHeightF             = height;
     // displaySettings.maxWidth = 424;
-    double aspect    = (((width >> 16) * 65536.0) + width) / (((height >> 16) * 65536.0) + height);
+    double aspect    = SCREEN_XSIZE_CONFIG / (float)SCREEN_YSIZE;
     SCREEN_XSIZE_F   = SCREEN_YSIZE * aspect;
     SCREEN_CENTERX_F = aspect * SCREEN_CENTERY;
     SetPerspectiveMatrix(SCREEN_YSIZE * aspect, SCREEN_YSIZE_F, 0.0, 1000.0);
@@ -709,6 +713,35 @@ void SetScreenDimensions(int width, int height)
     SetScreenSize(displayWidth, (displayWidth + 9) & -0x8);
 #else
     SetScreenSize(displayWidth, (displayWidth + 9) & -0x10);
+#endif
+
+#if RETRO_PLATFORM == RETRO_PS3
+    if (psgl_device) {
+        GLuint w, h;
+        psglGetDeviceDimensions(psgl_device, &w, &h);
+
+        displaySettings.height  = h;
+        displaySettings.width   = aspect * displaySettings.height;
+        displaySettings.offsetX = abs((int)w - displaySettings.width) / 2;
+        if (displaySettings.width > w) {
+            displaySettings.offsetX = 0;
+            displaySettings.width   = w;
+        }
+
+        // Texture 0 (Retro Buffer) needs to have its filter updated if scalingMode changed
+        GLenum filter = Engine.scalingMode ? GL_LINEAR : GL_NEAREST;
+        if (textureList[0].id) {
+            glBindTexture(GL_TEXTURE_2D, textureList[0].id);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+        }
+        if (textureList[0].id2) {
+            glBindTexture(GL_TEXTURE_2D, textureList[0].id2);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+        }
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 #endif
 
     int width2 = 0;
@@ -840,7 +873,12 @@ void CopyFrameOverlay2x()
 
 void SetupViewport()
 {
-    double aspect    = displaySettings.width / (double)displaySettings.height;
+#if RETRO_USING_OPENGL
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+#endif
+
+    double aspect    = SCREEN_XSIZE_CONFIG / (float)SCREEN_YSIZE;
     SCREEN_XSIZE_F   = SCREEN_YSIZE * aspect;
     SCREEN_CENTERX_F = aspect * SCREEN_CENTERY;
 
@@ -851,6 +889,20 @@ void SetupViewport()
     SetPerspectiveMatrix(90.0, 0.75, 1.0, 5000.0);
 
 #if RETRO_USING_OPENGL
+#if RETRO_PLATFORM == RETRO_PS3
+    if (psgl_device) {
+        GLuint w, h;
+        psglGetDeviceDimensions(psgl_device, &w, &h);
+
+        displaySettings.height  = h;
+        displaySettings.width   = aspect * displaySettings.height;
+        displaySettings.offsetX = abs((int)w - (int)displaySettings.width) / 2;
+        if (displaySettings.width > (float)w) {
+            displaySettings.offsetX = 0;
+            displaySettings.width   = w;
+        }
+    }
+#endif
     glViewport(displaySettings.offsetX, 0, displaySettings.width, displaySettings.height);
 #endif
     int displayWidth = aspect * SCREEN_YSIZE;

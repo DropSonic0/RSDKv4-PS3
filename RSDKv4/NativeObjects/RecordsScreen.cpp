@@ -552,8 +552,13 @@ void RecordsScreen_Main(void *objPtr)
                 self->flashTimer = 0.0;
                 self->taResultID = GetGlobalVariableID("timeAttack.result");
                 BackupNativeObjects();
+                self->state      = RECORDSSCREEN_STATE_WAITING;
                 CREATE_ENTITY(FadeScreen);
             }
+            break;
+        }
+        case RECORDSSCREEN_STATE_WAITING: {
+            SetRenderMatrix(&self->matrixTemp);
             break;
         }
         case RECORDSSCREEN_STATE_SHOWRESULTS: {

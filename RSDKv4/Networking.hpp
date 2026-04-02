@@ -6,7 +6,7 @@
 #include <memory>
 #endif
 
-#define PACKET_SIZE 0x1000
+#define PACKET_SIZE 512
 
 extern char networkHost[64];
 extern char networkGame[7];

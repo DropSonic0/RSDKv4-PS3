@@ -908,7 +908,7 @@ void SettingsScreen_Main(void *objPtr)
                     for (int i = 0; i < 8; ++i) {
                         NativeEntity_PushButton *button = CREATE_ENTITY(PushButton);
                         self->buttons[i]                = button;
-                        button->x                       = 32.0f + (i % 2) * 76;
+                        button->x                       = (i % 2) ? 110.0f : 10.0f;
                         button->y                       = 62.0f - (i / 2) * 32;
                         button->z                       = 0.0;
                         button->scale                   = 0.175;
@@ -1041,8 +1041,8 @@ void SettingsScreen_Main(void *objPtr)
                             break;
                         case 3: // Width
                             SCREEN_XSIZE_CONFIG += 8;
-                            if (SCREEN_XSIZE_CONFIG > 500)
-                                SCREEN_XSIZE_CONFIG = 500;
+                            if (SCREEN_XSIZE_CONFIG > 424)
+                                SCREEN_XSIZE_CONFIG = 424;
                             SetupViewport();
                             changed = true;
                             break;
@@ -1069,7 +1069,7 @@ void SettingsScreen_Main(void *objPtr)
             else {
                 for (int i = 0; i < 8; ++i) {
                     NativeEntity_PushButton *button = self->buttons[i];
-                    button->state                   = CheckTouchRect(32.0 + (i % 2) * 76, 62.0 - (i / 2) * 32, (button->textWidth + (button->scale * 64.0)) * 0.75, 12.0) >= 0;
+                    button->state                   = CheckTouchRect((i % 2) ? 110.0 : 10.0, 62.0 - (i / 2) * 32, (button->textWidth + (button->scale * 64.0)) * 0.75, 12.0) >= 0;
 
                     if (button->state == PUSHBUTTON_STATE_SELECTED) {
                         PlaySfxByName("Menu Move", false);
@@ -1106,15 +1106,15 @@ void SettingsScreen_Main(void *objPtr)
                                 break;
                             case 6: // Width -
                                 SCREEN_XSIZE_CONFIG -= 8;
-                                if (SCREEN_XSIZE_CONFIG < 320)
-                                    SCREEN_XSIZE_CONFIG = 320;
+                                if (SCREEN_XSIZE_CONFIG < 240)
+                                    SCREEN_XSIZE_CONFIG = 240;
                                 SetupViewport();
                                 changed = true;
                                 break;
                             case 7: // Width +
                                 SCREEN_XSIZE_CONFIG += 8;
-                                if (SCREEN_XSIZE_CONFIG > 500)
-                                    SCREEN_XSIZE_CONFIG = 500;
+                                if (SCREEN_XSIZE_CONFIG > 424)
+                                    SCREEN_XSIZE_CONFIG = 424;
                                 SetupViewport();
                                 changed = true;
                                 break;
@@ -1193,23 +1193,23 @@ void SettingsScreen_Main(void *objPtr)
                 switch (Engine.filterMode) {
                     case 0: sprintf(str, "NONE"); break;
                     case 1: sprintf(str, "XBRZ"); break;
-                    case 2: sprintf(str, "CRT"); break;
-                    case 3: sprintf(str, "TV"); break;
+                    case 2: sprintf(str, " CRT"); break;
+                    case 3: sprintf(str, "  TV"); break;
                 }
                 SetStringToFont8(text, str, FONT_LABEL);
-                RenderText(text, FONT_LABEL, 54.0, 58.0, 0, 0.125, 255);
+                RenderText(text, FONT_LABEL, 35.0, 58.0, 0, 0.125, 255);
 
-                sprintf(str, Engine.scalingMode ? "LINEAR" : "NEAREST");
+                sprintf(str, Engine.scalingMode ? "LINEAR" : "SHARP");
                 SetStringToFont8(text, str, FONT_LABEL);
-                RenderText(text, FONT_LABEL, 54.0, 26.0, 0, 0.125, 255);
+                RenderText(text, FONT_LABEL, 30.0, 26.0, 0, 0.125, 255);
 
                 sprintf(str, SCREEN_XSIZE_CONFIG == 320 ? "4:3" : "16:9");
                 SetStringToFont8(text, str, FONT_LABEL);
-                RenderText(text, FONT_LABEL, 54.0, -6.0, 0, 0.125, 255);
+                RenderText(text, FONT_LABEL, 40.0, -6.0, 0, 0.125, 255);
 
                 sprintf(str, "%d", SCREEN_XSIZE_CONFIG);
                 SetStringToFont8(text, str, FONT_LABEL);
-                RenderText(text, FONT_LABEL, 54.0, -38.0, 0, 0.125, 255);
+                RenderText(text, FONT_LABEL, 40.0, -38.0, 0, 0.125, 255);
             }
             break;
         case SETTINGSSCREEN_STATEDRAW_MAIN:
@@ -1253,17 +1253,6 @@ void SettingsScreen_Main(void *objPtr)
                 SetRenderVertexColor(0xFF, 0xFF, 0xFF);
             RenderText(self->boxArtText, FONT_LABEL, -128.0, -38.0, 0, 0.125, 255);
 
-            if (self->selected == SETTINGSSCREEN_SEL_CONTROLS)
-                SetRenderVertexColor(0xFF, 0xFF, 0x00);
-            else
-                SetRenderVertexColor(0xFF, 0xFF, 0xFF);
-            RenderText(self->controlsText, FONT_LABEL, -114.0, -70.0, 0, 0.125, 255);
-
-            if (self->selected == SETTINGSSCREEN_SEL_SCREEN)
-                SetRenderVertexColor(0xFF, 0xFF, 0x00);
-            else
-                SetRenderVertexColor(0xFF, 0xFF, 0xFF);
-            RenderText(self->screenText, FONT_LABEL, -10.0, -70.0, 0, 0.125, 255);
 
             SetRenderVertexColor(0xFF, 0xFF, 0xFF);
             break;

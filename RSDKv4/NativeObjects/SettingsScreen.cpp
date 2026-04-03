@@ -905,7 +905,7 @@ void SettingsScreen_Main(void *objPtr)
                             RemoveNativeObject(self->buttons[i]);
                         self->buttons[i] = NULL;
                     }
-                    for (int i = 0; i < 8; ++i) {
+                    for (int i = 0; i < (self->isPauseMenu ? 4 : 8); ++i) {
                         NativeEntity_PushButton *button = CREATE_ENTITY(PushButton);
                         self->buttons[i]                = button;
                         button->x                       = (i % 2) ? 110.0f : 10.0f;
@@ -960,16 +960,16 @@ void SettingsScreen_Main(void *objPtr)
                     PlaySfxByName("Menu Move", false);
                     self->selected--;
                     if (self->selected < 0)
-                        self->selected = 3;
+                        self->selected = self->isPauseMenu ? 1 : 3;
                 }
                 if (keyPress.down) {
                     PlaySfxByName("Menu Move", false);
                     self->selected++;
-                    if (self->selected > 3)
+                    if (self->selected > (self->isPauseMenu ? 1 : 3))
                         self->selected = 0;
                 }
 
-                for (int i = 0; i < 8; ++i) self->buttons[i]->state = PUSHBUTTON_STATE_UNSELECTED;
+                for (int i = 0; i < (self->isPauseMenu ? 4 : 8); ++i) self->buttons[i]->state = PUSHBUTTON_STATE_UNSELECTED;
 
                 if (keyPress.left) {
                     PlaySfxByName("Menu Move", false);
@@ -1067,7 +1067,7 @@ void SettingsScreen_Main(void *objPtr)
                 }
             }
             else {
-                for (int i = 0; i < 8; ++i) {
+                for (int i = 0; i < (self->isPauseMenu ? 4 : 8); ++i) {
                     NativeEntity_PushButton *button = self->buttons[i];
                     button->state                   = CheckTouchRect((i % 2) ? 110.0 : 10.0, 62.0 - (i / 2) * 32, (button->textWidth + (button->scale * 64.0)) * 0.75, 12.0) >= 0;
 
@@ -1173,17 +1173,19 @@ void SettingsScreen_Main(void *objPtr)
                 SetRenderVertexColor(0xFF, 0xFF, 0xFF);
             RenderText(self->scalingText, FONT_LABEL, -128.0, 26.0, 0, 0.125, 255);
 
-            if (self->selected == 2)
-                SetRenderVertexColor(0xFF, 0xFF, 0x00);
-            else
-                SetRenderVertexColor(0xFF, 0xFF, 0xFF);
-            RenderText(self->aspectText, FONT_LABEL, -128.0, -6.0, 0, 0.125, 255);
+            if (!self->isPauseMenu) {
+                if (self->selected == 2)
+                    SetRenderVertexColor(0xFF, 0xFF, 0x00);
+                else
+                    SetRenderVertexColor(0xFF, 0xFF, 0xFF);
+                RenderText(self->aspectText, FONT_LABEL, -128.0, -6.0, 0, 0.125, 255);
 
-            if (self->selected == 3)
-                SetRenderVertexColor(0xFF, 0xFF, 0x00);
-            else
-                SetRenderVertexColor(0xFF, 0xFF, 0xFF);
-            RenderText(self->widthText, FONT_LABEL, -128.0, -38.0, 0, 0.125, 255);
+                if (self->selected == 3)
+                    SetRenderVertexColor(0xFF, 0xFF, 0x00);
+                else
+                    SetRenderVertexColor(0xFF, 0xFF, 0xFF);
+                RenderText(self->widthText, FONT_LABEL, -128.0, -38.0, 0, 0.125, 255);
+            }
 
             SetRenderVertexColor(0xFF, 0xFF, 0xFF);
 
@@ -1203,13 +1205,15 @@ void SettingsScreen_Main(void *objPtr)
                 SetStringToFont8(text, str, FONT_LABEL);
                 RenderText(text, FONT_LABEL, 30.0, 26.0, 0, 0.125, 255);
 
-                sprintf(str, SCREEN_XSIZE_CONFIG == 320 ? "4:3" : "16:9");
-                SetStringToFont8(text, str, FONT_LABEL);
-                RenderText(text, FONT_LABEL, 40.0, -6.0, 0, 0.125, 255);
+                if (!self->isPauseMenu) {
+                    sprintf(str, SCREEN_XSIZE_CONFIG == 320 ? "4:3" : "16:9");
+                    SetStringToFont8(text, str, FONT_LABEL);
+                    RenderText(text, FONT_LABEL, 40.0, -6.0, 0, 0.125, 255);
 
-                sprintf(str, "%d", SCREEN_XSIZE_CONFIG);
-                SetStringToFont8(text, str, FONT_LABEL);
-                RenderText(text, FONT_LABEL, 40.0, -38.0, 0, 0.125, 255);
+                    sprintf(str, "%d", SCREEN_XSIZE_CONFIG);
+                    SetStringToFont8(text, str, FONT_LABEL);
+                    RenderText(text, FONT_LABEL, 40.0, -38.0, 0, 0.125, 255);
+                }
             }
             break;
         case SETTINGSSCREEN_STATEDRAW_MAIN:

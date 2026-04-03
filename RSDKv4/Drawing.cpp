@@ -209,9 +209,35 @@ int InitRenderDevice()
         // Using NULL for psglInit uses default options which is generally safest
         psglInit(NULL);
 
-        psgl_device = psglCreateDeviceAuto(GL_ARGB_SCE, GL_DEPTH_COMPONENT24, GL_MULTISAMPLING_NONE_SCE);
+        CellVideoOutState videoState;
+        cellVideoOutGetState(CELL_VIDEO_OUT_PRIMARY, 0, &videoState);
+
+        bool isPal = (videoState.displayMode.resolutionId == CELL_VIDEO_OUT_RESOLUTION_576);
+
+        if (isPal) {
+            PSGLdeviceParameters params;
+            memset(&params, 0, sizeof(PSGLdeviceParameters));
+            params.enable = PSGL_DEVICE_PARAMETERS_COLOR_FORMAT | PSGL_DEVICE_PARAMETERS_DEPTH_FORMAT
+                            | PSGL_DEVICE_PARAMETERS_MULTISAMPLING_MODE | PSGL_DEVICE_PARAMETERS_RESC_PAL_TEMPORAL_MODE	
+							| PSGL_DEVICE_PARAMETERS_RESC_RATIO_MODE;
+
+            params.colorFormat          = GL_ARGB_SCE;
+            params.depthFormat          = GL_DEPTH_COMPONENT24;
+            params.multisamplingMode    = GL_MULTISAMPLING_NONE_SCE;
+            params.rescPalTemporalMode  = RESC_PAL_TEMPORAL_MODE_60_INTERPOLATE;
+			params.bufferingMode        = PSGL_BUFFERING_MODE_DOUBLE;
+			params.rescRatioMode		= RESC_RATIO_MODE_FULLSCREEN;
+
+            psgl_device = psglCreateDeviceExtended(&params);
+            displaySettings.useResc = true;
+            Engine.targetRefreshRate = 60;
+        }
+        else {
+            psgl_device = psglCreateDeviceAuto(GL_ARGB_SCE, GL_DEPTH_COMPONENT24, GL_MULTISAMPLING_NONE_SCE);
+        }
+
         if (!psgl_device) {
-            PrintLog("PSGL ERROR: psglCreateDeviceAuto failed!");
+            PrintLog("PSGL ERROR: psglCreateDevice failed!");
             return 0;
         }
 
@@ -246,6 +272,7 @@ int InitRenderDevice()
             displaySettings.offsetX = 0;
             displaySettings.width   = w;
         }
+
     } else {
         PrintLog("PSGL ERROR: Cannot call psglMakeCurrent with NULL context or device!");
         return 0;

@@ -37,6 +37,9 @@ struct DisplaySettings {
     int unknown1;
     int maxWidth;
     byte unknown2;
+#if RETRO_PLATFORM == RETRO_PS3
+    bool useResc;
+#endif
 };
 
 extern ushort blendLookupTable[0x20 * 0x100];

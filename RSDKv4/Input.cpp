@@ -561,6 +561,39 @@ void ProcessInput()
         inputDevice[INPUT_ANY].setReleased();
     }
 #endif //! RETRO_USING_SDL2
+
+    // Cheat code detection (Up, Up, Down, Down, Left, Right, Left, Right, Square)
+    // We use the inputDevice array, which contains the combined press state for all virtual buttons.
+    // Note: INPUT_BUTTONA corresponds to the "X" button on PS3.
+    static int cheatState = 0;
+    static const int cheatSequence[] = { INPUT_UP,    INPUT_DOWN,  INPUT_LEFT,
+                                         INPUT_RIGHT, INPUT_BUTTONA };
+
+    int pressedButton = -1;
+    for (int i = 0; i < INPUT_ANY; i++) {
+        if (inputDevice[i].press) {
+            pressedButton = i;
+            break;
+        }
+    }
+
+    if (pressedButton != -1) {
+        if (pressedButton == cheatSequence[cheatState]) {
+            cheatState++;
+            if (cheatState == sizeof(cheatSequence) / sizeof(cheatSequence[0])) {
+                Engine.devMenu ^= 1;
+                if (Engine.devMenu)
+                    PlaySfxByName("Ring L", false);
+                else
+                    PlaySfxByName("Ring R", false);
+                cheatState = 0;
+            }
+        }
+        else {
+            // Reset state, but check if the current button starts the sequence again
+            cheatState = (pressedButton == cheatSequence[0]) ? 1 : 0;
+        }
+    }
 }
 #endif //! !RETRO_USE_ORIGINAL_CODE
 

@@ -978,6 +978,8 @@ void SetupViewport()
                 cgTextureSizeF = cgGetNamedParameter(cgFragmentProgram, "texture_size");
                 cgVideoSizeF   = cgGetNamedParameter(cgFragmentProgram, "video_size");
                 cgOutputSizeF  = cgGetNamedParameter(cgFragmentProgram, "output_size");
+                cgTimeF        = cgGetNamedParameter(cgFragmentProgram, "time");
+                cgDimF         = cgGetNamedParameter(cgFragmentProgram, "dim");
             }
 
             cgVertexProgramCRT = cgCreateProgram(cgContext, CG_SOURCE, crt_vshader, cgVertexProfile, "vmain", NULL);
@@ -994,6 +996,8 @@ void SetupViewport()
                 cgTextureSizeFCRT = cgGetNamedParameter(cgFragmentProgramCRT, "texture_size");
                 cgVideoSizeFCRT   = cgGetNamedParameter(cgFragmentProgramCRT, "video_size");
                 cgOutputSizeFCRT  = cgGetNamedParameter(cgFragmentProgramCRT, "output_size");
+                cgTimeFCRT        = cgGetNamedParameter(cgFragmentProgramCRT, "time");
+                cgDimFCRT         = cgGetNamedParameter(cgFragmentProgramCRT, "dim");
             }
 
             cgVertexProgramTV = cgCreateProgram(cgContext, CG_SOURCE, crt_vshader, cgVertexProfile, "vmain", NULL);
@@ -1010,6 +1014,8 @@ void SetupViewport()
                 cgTextureSizeFTV = cgGetNamedParameter(cgFragmentProgramTV, "texture_size");
                 cgVideoSizeFTV   = cgGetNamedParameter(cgFragmentProgramTV, "video_size");
                 cgOutputSizeFTV  = cgGetNamedParameter(cgFragmentProgramTV, "output_size");
+                cgTimeFTV        = cgGetNamedParameter(cgFragmentProgramTV, "time");
+                cgDimFTV         = cgGetNamedParameter(cgFragmentProgramTV, "dim");
             }
         }
     }

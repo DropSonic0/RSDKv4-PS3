@@ -41,6 +41,9 @@ int currentMusicTrack = -1;
 int nextMusicTrack    = -1;
 int nextMusicStartPos = 0;
 
+static float tvHumPhase = 0.0f;
+static uint32_t tvNoiseSeed = 0x12345678;
+
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2
 
 #if RETRO_USING_SDL2
@@ -488,24 +491,24 @@ music_done:
 
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2
 void ProcessAudioPlayback(void *userdata, Uint8 *stream, int len)
-#else
-void ProcessAudioPlayback(Sint16 *stream, int sampleCount)
-#endif
 {
-#if RETRO_USING_SDL1 || RETRO_USING_SDL2
     (void)userdata; // Unused
-#endif
 
     if (!audioEnabled)
         return;
 
-    Sint16 *output_buffer = (Sint16 *)stream;
-
-#if RETRO_USING_SDL1 || RETRO_USING_SDL2
+    Sint16 *output_buffer    = (Sint16 *)stream;
     size_t samples_remaining = (size_t)len / sizeof(Sint16);
 #else
+void ProcessAudioPlayback(Sint16 *stream, int sampleCount)
+{
+    if (!audioEnabled)
+        return;
+
+    Sint16 *output_buffer    = stream;
     size_t samples_remaining = (size_t)sampleCount;
 #endif
+
     static Sint32 mix_buffer[MIX_BUFFER_SAMPLES] __attribute__((aligned(16)));
     static Sint16 sfx_temp_buffer[MIX_BUFFER_SAMPLES] __attribute__((aligned(16)));
 
@@ -516,8 +519,10 @@ void ProcessAudioPlayback(Sint16 *stream, int sampleCount)
         // MIX_BUFFER_SAMPLES is 2048, enough for 1024 stereo frames.
         // We limit to 1024 here to avoid overflows during expansion.
         size_t samples_to_do = (samples_remaining < 1024) ? samples_remaining : 1024;
-        if (samples_to_do % 2 != 0) samples_to_do--; 
-        if (samples_to_do == 0) break;
+        if (samples_to_do % 2 != 0)
+            samples_to_do--;
+        if (samples_to_do == 0)
+            break;
 
         LockAudioDevice();
         // Mix music
@@ -538,10 +543,11 @@ void ProcessAudioPlayback(Sint16 *stream, int sampleCount)
             size_t samples_done = 0;
             while (samples_done < samples_to_do) {
                 size_t samples_needed = samples_to_do - samples_done;
-                size_t sampleLen = (sfx->sampleLength < samples_needed) ? sfx->sampleLength : samples_needed;
-                
+                size_t sampleLen      = (sfx->sampleLength < samples_needed) ? sfx->sampleLength : samples_needed;
+
                 // SFX must be frame-aligned (even number of samples)
-                if (sampleLen % 2 != 0) sampleLen--;
+                if (sampleLen % 2 != 0)
+                    sampleLen--;
 
                 if (sampleLen > 0 && sfx->samplePtr != NULL) {
                     memcpy(&sfx_temp_buffer[samples_done], sfx->samplePtr, sampleLen * sizeof(Sint16));
@@ -562,12 +568,40 @@ void ProcessAudioPlayback(Sint16 *stream, int sampleCount)
                         break;
                     }
                 }
-                
-                if (sampleLen == 0) break; // Avoid infinite loop
+
+                if (sampleLen == 0)
+                    break; // Avoid infinite loop
             }
 
             if (samples_done > 0)
                 ProcessAudioMixing(mix_buffer, sfx_temp_buffer, (int)samples_done, sfxVolume, sfx->pan);
+        }
+
+        // CRT TV Sound Simulation (60Hz hum and subtle static)
+        // Only during 2D gameplay (ignore presentation/menus)
+        if (Engine.filterMode == FILTER_TV && activeStageList != STAGELIST_PRESENTATION) {
+            float dimFactor = Engine.dimMax * Engine.dimPercent;
+            if (Engine.masterPaused || stageMode == STAGEMODE_PAUSED || stageMode == STAGEMODE_PAUSED_STEP) {
+                dimFactor *= 0.65f;
+            }
+
+            float phase_inc = (2.0f * 3.14159265f * 60.0f) / (float)AUDIO_FREQUENCY;
+            for (size_t i = 0; i < samples_to_do; i += 2) {
+                // 60Hz hum - volume scales with dimming
+                float hum = sinf(tvHumPhase) * (1200.0f * dimFactor);
+                tvHumPhase += phase_inc;
+                if (tvHumPhase > 2.0f * 3.14159265f)
+                    tvHumPhase -= 2.0f * 3.14159265f;
+
+                // White noise static - volume scales with dimming
+                tvNoiseSeed        = tvNoiseSeed * 1664525 + 1013904223;
+                float static_noise = ((float)(int32_t)tvNoiseSeed / 2147483647.0f) * (800.0f * dimFactor);
+
+                Sint32 tv_sample = (Sint32)(hum + static_noise);
+                mix_buffer[i] += tv_sample; // Left
+                if (i + 1 < samples_to_do)
+                    mix_buffer[i + 1] += tv_sample; // Right
+            }
         }
         UnlockAudioDevice();
 
@@ -576,19 +610,23 @@ void ProcessAudioPlayback(Sint16 *stream, int sampleCount)
         if ((((uintptr_t)output_buffer | (uintptr_t)mix_buffer) & 15) == 0 && (samples_to_do & 7) == 0) {
             int vectors = samples_to_do / 8;
             for (int v = 0; v < vectors; v++) {
-                vector signed int v_low = vec_ld(0, mix_buffer + v * 8);
+                vector signed int v_low  = vec_ld(0, mix_buffer + v * 8);
                 vector signed int v_high = vec_ld(16, mix_buffer + v * 8);
-                
+
                 // Pack with saturation
                 vector signed short v_out = vec_packs(v_low, v_high);
                 vec_st(v_out, 0, output_buffer + v * 8);
             }
-        } else {
+        }
+        else {
             for (size_t i = 0; i < samples_to_do; ++i) {
                 const Sint32 sample = mix_buffer[i];
-                if (sample > 32767) output_buffer[i] = 32767;
-                else if (sample < -32768) output_buffer[i] = -32768;
-                else output_buffer[i] = (Sint16)sample;
+                if (sample > 32767)
+                    output_buffer[i] = 32767;
+                else if (sample < -32768)
+                    output_buffer[i] = -32768;
+                else
+                    output_buffer[i] = (Sint16)sample;
             }
         }
 #else
@@ -611,7 +649,6 @@ void ProcessAudioPlayback(Sint16 *stream, int sampleCount)
         samples_remaining -= samples_to_do;
     }
 }
-
 #endif
 
 #if RETRO_PLATFORM == RETRO_PS3

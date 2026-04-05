@@ -149,6 +149,8 @@ extern CGparameter cgOutputSizeV;
 extern CGparameter cgTextureSizeF;
 extern CGparameter cgVideoSizeF;
 extern CGparameter cgOutputSizeF;
+extern CGparameter cgTimeF;
+extern CGparameter cgDimF;
 
 extern CGparameter cgModelViewProjCRT;
 extern CGparameter cgTextureSizeVCRT;
@@ -157,6 +159,8 @@ extern CGparameter cgOutputSizeVCRT;
 extern CGparameter cgTextureSizeFCRT;
 extern CGparameter cgVideoSizeFCRT;
 extern CGparameter cgOutputSizeFCRT;
+extern CGparameter cgTimeFCRT;
+extern CGparameter cgDimFCRT;
 
 extern CGparameter cgModelViewProjTV;
 extern CGparameter cgTextureSizeVTV;
@@ -165,6 +169,8 @@ extern CGparameter cgOutputSizeVTV;
 extern CGparameter cgTextureSizeFTV;
 extern CGparameter cgVideoSizeFTV;
 extern CGparameter cgOutputSizeFTV;
+extern CGparameter cgTimeFTV;
+extern CGparameter cgDimFTV;
 #endif
 
 // Matricies

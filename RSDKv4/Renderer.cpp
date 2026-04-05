@@ -52,6 +52,8 @@ CGparameter cgOutputSizeV     = NULL;
 CGparameter cgTextureSizeF    = NULL;
 CGparameter cgVideoSizeF      = NULL;
 CGparameter cgOutputSizeF     = NULL;
+CGparameter cgTimeF           = NULL;
+CGparameter cgDimF            = NULL;
 
 CGparameter cgModelViewProjCRT = NULL;
 CGparameter cgTextureSizeVCRT  = NULL;
@@ -60,6 +62,8 @@ CGparameter cgOutputSizeVCRT   = NULL;
 CGparameter cgTextureSizeFCRT  = NULL;
 CGparameter cgVideoSizeFCRT    = NULL;
 CGparameter cgOutputSizeFCRT   = NULL;
+CGparameter cgTimeFCRT         = NULL;
+CGparameter cgDimFCRT          = NULL;
 
 CGparameter cgModelViewProjTV  = NULL;
 CGparameter cgTextureSizeVTV   = NULL;
@@ -68,6 +72,8 @@ CGparameter cgOutputSizeVTV    = NULL;
 CGparameter cgTextureSizeFTV   = NULL;
 CGparameter cgVideoSizeFTV     = NULL;
 CGparameter cgOutputSizeFTV    = NULL;
+CGparameter cgTimeFTV          = NULL;
+CGparameter cgDimFTV           = NULL;
 #endif
 
 void SetIdentityMatrixF(MatrixF *matrix)
@@ -683,6 +689,22 @@ void RenderScene()
 
             if (osV) cgGLSetParameter2fv(osV, outputSize);
             if (osF) cgGLSetParameter2fv(osF, outputSize);
+
+            float time = (float)Engine.frameCounter;
+            CGparameter tF = cgTimeF;
+            if (state->filterMode == FILTER_CRT) tF = cgTimeFCRT;
+            if (state->filterMode == FILTER_TV) tF = cgTimeFTV;
+            if (tF) cgGLSetParameter1f(tF, time);
+
+            float dimFactor = Engine.dimMax * Engine.dimPercent;
+            if (Engine.masterPaused || stageMode == STAGEMODE_PAUSED || stageMode == STAGEMODE_PAUSED_STEP) {
+                dimFactor *= 0.65f; // Attenuate CRT artifacts and brightness when paused
+            }
+
+            CGparameter dF = cgDimF;
+            if (state->filterMode == FILTER_CRT) dF = cgDimFCRT;
+            if (state->filterMode == FILTER_TV) dF = cgDimFTV;
+            if (dF) cgGLSetParameter1f(dF, dimFactor);
 
             GLenum filter = Engine.scalingMode ? GL_LINEAR : GL_NEAREST;
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);

@@ -519,6 +519,7 @@ public:
     int refreshRate; // user-picked screen update rate
     int screenRefreshRate; // hardware screen update rate
     int targetRefreshRate; // game logic update rate
+    uint32_t frameCounter;
 
     int renderFrameIndex;
     int skipFrameIndex;

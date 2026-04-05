@@ -387,6 +387,7 @@ void RetroEngine::Init()
 #endif
     frameSkipSetting = 0;
     frameSkipTimer   = 0;
+    frameCounter     = 0;
 
 #if !RETRO_USE_ORIGINAL_CODE
     startList_Game      = -1;
@@ -836,6 +837,7 @@ void RetroEngine::Run()
 
         Engine.deltaTime = 1.0 / 60;
 #endif
+        Engine.frameCounter++;
         running = ProcessEvents();
 
         // Focus Checks

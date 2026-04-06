@@ -135,6 +135,9 @@ bool ReadSaveRAMData()
         useSGame = true;
     }
     fRead(saveRAM, sizeof(int), SAVEDATA_SIZE, saveFile);
+#if RETRO_IS_BIG_ENDIAN
+    for (int i = 0; i < SAVEDATA_SIZE; ++i) SWAP_ENDIAN(saveRAM[i]);
+#endif
     fClose(saveFile);
     return true;
 }
@@ -205,7 +208,18 @@ bool WriteSaveRAMData()
     FileIO *saveFile = fOpen(buffer, "wb");
     if (!saveFile)
         return false;
+
+#if RETRO_IS_BIG_ENDIAN
+    int saveRAMCopy[SAVEDATA_SIZE];
+    for (int i = 0; i < SAVEDATA_SIZE; ++i) {
+        saveRAMCopy[i] = saveRAM[i];
+        SWAP_ENDIAN(saveRAMCopy[i]);
+    }
+    fWrite(saveRAMCopy, sizeof(int), SAVEDATA_SIZE, saveFile);
+#else
     fWrite(saveRAM, sizeof(int), SAVEDATA_SIZE, saveFile);
+#endif
+
     fClose(saveFile);
     return true;
 }
@@ -1045,10 +1059,16 @@ void ReadUserdata()
     int buf = 0;
     for (int a = 0; a < ACHIEVEMENT_COUNT; ++a) {
         fRead(&buf, 4, 1, userFile);
+#if RETRO_IS_BIG_ENDIAN
+        SWAP_ENDIAN(buf);
+#endif
         achievements[a].status = buf;
     }
     for (int l = 0; l < LEADERBOARD_COUNT; ++l) {
         fRead(&buf, 4, 1, userFile);
+#if RETRO_IS_BIG_ENDIAN
+        SWAP_ENDIAN(buf);
+#endif
         leaderboards[l].score = buf;
         if (!leaderboards[l].score)
             leaderboards[l].score = 0x7FFFFFF;
@@ -1096,8 +1116,20 @@ void WriteUserdata()
     if (!userFile)
         return;
 
-    for (int a = 0; a < ACHIEVEMENT_COUNT; ++a) fWrite(&achievements[a].status, 4, 1, userFile);
-    for (int l = 0; l < LEADERBOARD_COUNT; ++l) fWrite(&leaderboards[l].score, 4, 1, userFile);
+    for (int a = 0; a < ACHIEVEMENT_COUNT; ++a) {
+        int status = achievements[a].status;
+#if RETRO_IS_BIG_ENDIAN
+        SWAP_ENDIAN(status);
+#endif
+        fWrite(&status, 4, 1, userFile);
+    }
+    for (int l = 0; l < LEADERBOARD_COUNT; ++l) {
+        int score = leaderboards[l].score;
+#if RETRO_IS_BIG_ENDIAN
+        SWAP_ENDIAN(score);
+#endif
+        fWrite(&score, 4, 1, userFile);
+    }
 
     fClose(userFile);
 

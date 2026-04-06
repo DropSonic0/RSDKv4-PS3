@@ -2983,8 +2983,8 @@ void DrawRectangle(int XPos, int YPos, int width, int height, int R, int G, int 
     if (A > 0xFF)
         A = 0xFF;
 #if RETRO_SOFTWARE_RENDER
-    if (width + XPos > GFX_LINESIZE)
-        width = GFX_LINESIZE - XPos;
+    if (width + XPos > SCREEN_XSIZE)
+        width = SCREEN_XSIZE - XPos;
     if (XPos < 0) {
         width += XPos;
         XPos = 0;
@@ -3076,8 +3076,14 @@ void SetFadeHQ(int R, int G, int B, int A)
 void DrawTintRectangle(int XPos, int YPos, int width, int height)
 {
 #if RETRO_SOFTWARE_RENDER
-    if (width + XPos > GFX_LINESIZE)
-        width = GFX_LINESIZE - XPos;
+    if (width + XPos > SCREEN_XSIZE)
+        width = SCREEN_XSIZE - XPos;
+    if (width + XPos > SCREEN_XSIZE)
+        width = SCREEN_XSIZE - XPos;
+    if (width + XPos > SCREEN_XSIZE)
+        width = SCREEN_XSIZE - XPos;
+    if (width + XPos > SCREEN_XSIZE)
+        width = SCREEN_XSIZE - XPos;
     if (XPos < 0) {
         width += XPos;
         XPos = 0;
@@ -3121,8 +3127,8 @@ void DrawScaledTintMask(int direction, int XPos, int YPos, int pivotX, int pivot
     height          = truescaleY * height >> 11;
     int finalscaleX = (signed int)(float)((float)(2048.0 / (float)truescaleX) * 2048.0);
     int finalscaleY = (signed int)(float)((float)(2048.0 / (float)truescaleY) * 2048.0);
-    if (width + trueXPos > GFX_LINESIZE) {
-        width = GFX_LINESIZE - trueXPos;
+    if (width + trueXPos > SCREEN_XSIZE) {
+        width = SCREEN_XSIZE - trueXPos;
     }
 
     if (direction) {
@@ -3209,8 +3215,8 @@ void DrawScaledTintMask(int direction, int XPos, int YPos, int pivotX, int pivot
 void DrawSprite(int XPos, int YPos, int width, int height, int sprX, int sprY, int sheetID)
 {
 #if RETRO_SOFTWARE_RENDER
-    if (width + XPos > GFX_LINESIZE)
-        width = GFX_LINESIZE - XPos;
+    if (width + XPos > SCREEN_XSIZE)
+        width = SCREEN_XSIZE - XPos;
     if (XPos < 0) {
         sprX -= XPos;
         width += XPos;
@@ -3252,8 +3258,14 @@ void DrawSprite(int XPos, int YPos, int width, int height, int sprX, int sprY, i
 #if RETRO_REV00
 void DrawSpriteClipped(int XPos, int YPos, int width, int height, int sprX, int sprY, int sheetID, int clipY)
 {
-    if (width + XPos > GFX_LINESIZE)
-        width = GFX_LINESIZE - XPos;
+    if (width + XPos > SCREEN_XSIZE)
+        width = SCREEN_XSIZE - XPos;
+    if (width + XPos > SCREEN_XSIZE)
+        width = SCREEN_XSIZE - XPos;
+    if (width + XPos > SCREEN_XSIZE)
+        width = SCREEN_XSIZE - XPos;
+    if (width + XPos > SCREEN_XSIZE)
+        width = SCREEN_XSIZE - XPos;
     if (XPos < 0) {
         sprX -= XPos;
         width += XPos;
@@ -3298,8 +3310,8 @@ void DrawSpriteFlipped(int XPos, int YPos, int width, int height, int sprX, int 
     int widthFlip  = width;
     int heightFlip = height;
 
-    if (width + XPos > GFX_LINESIZE) {
-        width = GFX_LINESIZE - XPos;
+    if (width + XPos > SCREEN_XSIZE) {
+        width = SCREEN_XSIZE - XPos;
     }
     if (XPos < 0) {
         sprX -= XPos;
@@ -3430,8 +3442,8 @@ void DrawSpriteScaled(int direction, int XPos, int YPos, int pivotX, int pivotY,
     height          = truescaleY * height >> 11;
     int finalscaleX = (signed int)(float)((float)(2048.0 / (float)truescaleX) * 2048.0);
     int finalscaleY = (signed int)(float)((float)(2048.0 / (float)truescaleY) * 2048.0);
-    if (width + trueXPos > GFX_LINESIZE) {
-        width = GFX_LINESIZE - trueXPos;
+    if (width + trueXPos > SCREEN_XSIZE) {
+        width = SCREEN_XSIZE - trueXPos;
     }
 
     if (direction) {
@@ -3834,8 +3846,14 @@ void DrawSpriteRotozoom(int direction, int XPos, int YPos, int pivotX, int pivot
 void DrawBlendedSprite(int XPos, int YPos, int width, int height, int sprX, int sprY, int sheetID)
 {
 #if RETRO_SOFTWARE_RENDER
-    if (width + XPos > GFX_LINESIZE)
-        width = GFX_LINESIZE - XPos;
+    if (width + XPos > SCREEN_XSIZE)
+        width = SCREEN_XSIZE - XPos;
+    if (width + XPos > SCREEN_XSIZE)
+        width = SCREEN_XSIZE - XPos;
+    if (width + XPos > SCREEN_XSIZE)
+        width = SCREEN_XSIZE - XPos;
+    if (width + XPos > SCREEN_XSIZE)
+        width = SCREEN_XSIZE - XPos;
     if (XPos < 0) {
         sprX -= XPos;
         width += XPos;
@@ -3878,8 +3896,12 @@ void DrawAlphaBlendedSprite(int XPos, int YPos, int width, int height, int sprX,
     if (alpha > 0xFF)
         alpha = 0xFF;
 #if RETRO_SOFTWARE_RENDER
-    if (width + XPos > GFX_LINESIZE)
-        width = GFX_LINESIZE - XPos;
+    if (width + XPos > SCREEN_XSIZE)
+        width = SCREEN_XSIZE - XPos;
+    if (width + XPos > SCREEN_XSIZE)
+        width = SCREEN_XSIZE - XPos;
+    if (width + XPos > SCREEN_XSIZE)
+        width = SCREEN_XSIZE - XPos;
     if (XPos < 0) {
         sprX -= XPos;
         width += XPos;
@@ -3950,8 +3972,10 @@ void DrawAdditiveBlendedSprite(int XPos, int YPos, int width, int height, int sp
     if (alpha > 0xFF)
         alpha = 0xFF;
 #if RETRO_SOFTWARE_RENDER
-    if (width + XPos > GFX_LINESIZE)
-        width = GFX_LINESIZE - XPos;
+    if (width + XPos > SCREEN_XSIZE)
+        width = SCREEN_XSIZE - XPos;
+    if (width + XPos > SCREEN_XSIZE)
+        width = SCREEN_XSIZE - XPos;
     if (XPos < 0) {
         sprX -= XPos;
         width += XPos;
@@ -4004,8 +4028,8 @@ void DrawSubtractiveBlendedSprite(int XPos, int YPos, int width, int height, int
         alpha = 0xFF;
 
 #if RETRO_SOFTWARE_RENDER
-    if (width + XPos > GFX_LINESIZE)
-        width = GFX_LINESIZE - XPos;
+    if (width + XPos > SCREEN_XSIZE)
+        width = SCREEN_XSIZE - XPos;
     if (XPos < 0) {
         sprX -= XPos;
         width += XPos;
@@ -4187,7 +4211,7 @@ void DrawFace(void *v, uint color)
     if (verts[0].x < 0 && verts[1].x < 0 && verts[2].x < 0 && verts[3].x < 0)
         return;
 
-    if (verts[0].x > GFX_LINESIZE && verts[1].x > GFX_LINESIZE && verts[2].x > GFX_LINESIZE && verts[3].x > GFX_LINESIZE)
+    if (verts[0].x > SCREEN_XSIZE && verts[1].x > SCREEN_XSIZE && verts[2].x > SCREEN_XSIZE && verts[3].x > SCREEN_XSIZE)
         return;
 
     if (verts[0].y < 0 && verts[1].y < 0 && verts[2].y < 0 && verts[3].y < 0)
@@ -4262,14 +4286,14 @@ void DrawFace(void *v, uint color)
         while (faceTop < faceBottom) {
             int startX = faceLineStart[faceTop];
             int endX   = faceLineEnd[faceTop];
-            if (startX >= GFX_LINESIZE || endX <= 0) {
+            if (startX >= SCREEN_XSIZE || endX <= 0) {
                 frameBufferPtr += GFX_LINESIZE;
             }
             else {
                 if (startX < 0)
                     startX = 0;
-                if (endX > GFX_LINESIZE_MINUSONE)
-                    endX = GFX_LINESIZE_MINUSONE;
+                if (endX > (SCREEN_XSIZE - 1))
+                    endX = (SCREEN_XSIZE - 1);
                 ushort *fbPtr = &frameBufferPtr[startX];
                 frameBufferPtr += GFX_LINESIZE;
                 int vertexwidth = endX - startX + 1;
@@ -4288,14 +4312,14 @@ void DrawFace(void *v, uint color)
         while (faceTop < faceBottom) {
             int startX = faceLineStart[faceTop];
             int endX   = faceLineEnd[faceTop];
-            if (startX >= GFX_LINESIZE || endX <= 0) {
+            if (startX >= SCREEN_XSIZE || endX <= 0) {
                 frameBufferPtr += GFX_LINESIZE;
             }
             else {
                 if (startX < 0)
                     startX = 0;
-                if (endX > GFX_LINESIZE_MINUSONE)
-                    endX = GFX_LINESIZE_MINUSONE;
+                if (endX > (SCREEN_XSIZE - 1))
+                    endX = (SCREEN_XSIZE - 1);
                 ushort *fbPtr = &frameBufferPtr[startX];
                 frameBufferPtr += GFX_LINESIZE;
                 int vertexwidth = endX - startX + 1;
@@ -4403,14 +4427,14 @@ void DrawFadedFace(void *v, uint color, uint fogColor, int alpha)
     while (faceTop < faceBottom) {
         int startX = faceLineStart[faceTop];
         int endX   = faceLineEnd[faceTop];
-        if (startX >= GFX_LINESIZE || endX <= 0) {
+        if (startX >= SCREEN_XSIZE || endX <= 0) {
             frameBufferPtr += GFX_LINESIZE;
         }
         else {
             if (startX < 0)
                 startX = 0;
-            if (endX > GFX_LINESIZE_MINUSONE)
-                endX = GFX_LINESIZE_MINUSONE;
+            if (endX > (SCREEN_XSIZE - 1))
+                endX = (SCREEN_XSIZE - 1);
             ushort *fbPtr = &frameBufferPtr[startX];
             frameBufferPtr += GFX_LINESIZE;
             int vertexwidth = endX - startX + 1;
@@ -4509,7 +4533,7 @@ void DrawTexturedFace(void *v, byte sheetID)
         int endX   = faceLineEnd[faceTop];
         int UPos   = faceLineStartU[faceTop];
         int VPos   = faceLineStartV[faceTop];
-        if (startX >= GFX_LINESIZE || endX <= 0) {
+        if (startX >= SCREEN_XSIZE || endX <= 0) {
             frameBufferPtr += GFX_LINESIZE;
         }
         else {
@@ -4524,8 +4548,8 @@ void DrawTexturedFace(void *v, byte sheetID)
                 bufferedUPos = (faceLineEndU[faceTop] - UPos) / posDifference;
                 bufferedVPos = (faceLineEndV[faceTop] - VPos) / posDifference;
             }
-            if (endX > GFX_LINESIZE_MINUSONE)
-                posDifference = GFX_LINESIZE_MINUSONE - startX;
+            if (endX > (SCREEN_XSIZE - 1))
+                posDifference = (SCREEN_XSIZE - 1) - startX;
             if (startX < 0) {
                 posDifference += startX;
                 UPos -= startX * bufferedUPos;
@@ -4642,7 +4666,7 @@ void DrawTexturedFaceBlended(void *v, byte sheetID)
         int endX   = faceLineEnd[faceTop];
         int UPos   = faceLineStartU[faceTop];
         int VPos   = faceLineStartV[faceTop];
-        if (startX >= GFX_LINESIZE || endX <= 0) {
+        if (startX >= SCREEN_XSIZE || endX <= 0) {
             frameBufferPtr += GFX_LINESIZE;
         }
         else {
@@ -4657,8 +4681,8 @@ void DrawTexturedFaceBlended(void *v, byte sheetID)
                 bufferedUPos = (faceLineEndU[faceTop] - UPos) / posDifference;
                 bufferedVPos = (faceLineEndV[faceTop] - VPos) / posDifference;
             }
-            if (endX > GFX_LINESIZE_MINUSONE)
-                posDifference = GFX_LINESIZE_MINUSONE - startX;
+            if (endX > (SCREEN_XSIZE - 1))
+                posDifference = (SCREEN_XSIZE - 1) - startX;
             if (startX < 0) {
                 posDifference += startX;
                 UPos -= startX * bufferedUPos;

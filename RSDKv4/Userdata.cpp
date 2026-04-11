@@ -43,6 +43,30 @@ int disableFocusPause_Config = 0;
 bool useSGame = false;
 
 #if RETRO_PLATFORM == RETRO_PS3
+sys_ppu_thread_t userdataSaveThread;
+bool userdataSaveThreadRunning = false;
+bool userdataSaveRequired      = false;
+sys_lwmutex_t userdataSaveMutex;
+
+static void UserdataSaveLoop(uint64_t arg)
+{
+    while (userdataSaveThreadRunning) {
+        bool shouldSave = false;
+        sys_lwmutex_lock(&userdataSaveMutex, 0);
+        if (userdataSaveRequired) {
+            userdataSaveRequired = false;
+            shouldSave           = true;
+        }
+        sys_lwmutex_unlock(&userdataSaveMutex);
+
+        if (shouldSave) {
+            WriteUserdata();
+        }
+        sys_timer_usleep(100000); // Check every 100ms
+    }
+    sys_ppu_thread_exit(0);
+}
+
 int GetPS3SystemLanguage()
 {
     int lang = CELL_SYSUTIL_LANG_ENGLISH_US;
@@ -224,10 +248,34 @@ bool WriteSaveRAMData()
     return true;
 }
 
+void ShutdownUserdata()
+{
+#if RETRO_PLATFORM == RETRO_PS3
+    if (userdataSaveThreadRunning) {
+        userdataSaveThreadRunning = false;
+        uint64_t exit_code;
+        sys_ppu_thread_join(userdataSaveThread, &exit_code);
+        sys_lwmutex_destroy(&userdataSaveMutex);
+    }
+#endif
+}
+
 void InitUserdata()
 {
     // userdata files are loaded from this directory
     sprintf(gamePath, "%s", BASE_PATH);
+
+#if RETRO_PLATFORM == RETRO_PS3
+    if (!userdataSaveThreadRunning) {
+        sys_lwmutex_attribute_t attr;
+        sys_lwmutex_attribute_initialize(attr);
+        sys_lwmutex_create(&userdataSaveMutex, &attr);
+
+        userdataSaveThreadRunning = true;
+        sys_ppu_thread_create(&userdataSaveThread, UserdataSaveLoop, 0, 100, 16384, SYS_PPU_THREAD_CREATE_JOINABLE,
+                              "UserdataSaveThread");
+    }
+#endif
 #if RETRO_USE_MOD_LOADER
     sprintf(modsPath, "%s", BASE_PATH);
 #endif
@@ -1153,7 +1201,13 @@ void AwardAchievement(int id, int status)
         // Set Achievement online
     }
 #if !RETRO_USE_ORIGINAL_CODE
+#if RETRO_PLATFORM == RETRO_PS3
+    sys_lwmutex_lock(&userdataSaveMutex, 0);
+    userdataSaveRequired = true;
+    sys_lwmutex_unlock(&userdataSaveMutex);
+#else
     WriteUserdata();
+#endif
 #endif
 }
 
@@ -1237,7 +1291,13 @@ int SetLeaderboard(int *leaderboardID, int *score)
         if (*score < leaderboards[*leaderboardID].score) {
             PrintLog("Set leaderboard (%d) value to %d", *leaderboardID, score);
             leaderboards[*leaderboardID].score = *score;
+#if RETRO_PLATFORM == RETRO_PS3
+            sys_lwmutex_lock(&userdataSaveMutex, 0);
+            userdataSaveRequired = true;
+            sys_lwmutex_unlock(&userdataSaveMutex);
+#else
             WriteUserdata();
+#endif
         }
         else {
             PrintLog("Attempted to set leaderboard (%d) value to %d... but score was already %d!", *leaderboardID, *score,

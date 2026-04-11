@@ -1039,6 +1039,7 @@ void RetroEngine::Run()
 #if RETRO_USE_MOD_LOADER
     SaveMods();
 #endif
+    ShutdownUserdata();
 #endif
 
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2

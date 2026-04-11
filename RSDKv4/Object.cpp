@@ -73,17 +73,54 @@ void ProcessObjects()
 {
     for (int i = 0; i < DRAWLAYER_COUNT; ++i) drawListEntries[i].listSize = 0;
 
+    Entity *entityP1 = &objectEntityList[0];
+    Entity *entityP2 = &objectEntityList[1];
+
+    int p1X = entityP1->xpos >> 16;
+    int p1Y = entityP1->ypos >> 16;
+    int p2X = entityP2->xpos >> 16;
+    int p2Y = entityP2->ypos >> 16;
+
+    // Camera boundaries
+    int camX1 = xScrollOffset - OBJECT_BORDER_X1;
+    int camX2 = xScrollOffset + OBJECT_BORDER_X2;
+    int camY1 = yScrollOffset - OBJECT_BORDER_Y1;
+    int camY2 = yScrollOffset + OBJECT_BORDER_Y2;
+
+    int camX3 = xScrollOffset - OBJECT_BORDER_X3;
+    int camX4 = xScrollOffset + OBJECT_BORDER_X4;
+    int camY3 = yScrollOffset - OBJECT_BORDER_Y3;
+    int camY4 = yScrollOffset + OBJECT_BORDER_Y4;
+
+    // Player proximity boundaries
+    int p1Active = entityP1->type > OBJ_TYPE_BLANKOBJECT;
+    int p2Active = entityP2->type > OBJ_TYPE_BLANKOBJECT;
+
+    int p1BX1 = p1X - OBJECT_BORDER_X1, p1BX2 = p1X + OBJECT_BORDER_X1;
+    int p1BY1 = p1Y - OBJECT_BORDER_Y1, p1BY2 = p1Y + OBJECT_BORDER_Y1;
+    int p2BX1 = p2X - OBJECT_BORDER_X1, p2BX2 = p2X + OBJECT_BORDER_X1;
+    int p2BY1 = p2Y - OBJECT_BORDER_Y1, p2BY2 = p2Y + OBJECT_BORDER_Y1;
+
+    int p1BX3 = p1X - OBJECT_BORDER_X3, p1BX4 = p1X + OBJECT_BORDER_X3;
+    int p1BY3 = p1Y - OBJECT_BORDER_Y3, p1BY4 = p1Y + OBJECT_BORDER_Y3;
+    int p2BX3 = p2X - OBJECT_BORDER_X3, p2BX4 = p2X + OBJECT_BORDER_X3;
+    int p2BY3 = p2Y - OBJECT_BORDER_Y3, p2BY4 = p2Y + OBJECT_BORDER_Y3;
+
     for (objectEntityPos = 0; objectEntityPos < ENTITY_COUNT; ++objectEntityPos) {
         processObjectFlag[objectEntityPos] = false;
-        int x = 0, y = 0;
         Entity *entity = &objectEntityList[objectEntityPos];
-        x              = entity->xpos >> 16;
-        y              = entity->ypos >> 16;
+        int x          = entity->xpos >> 16;
+        int y          = entity->ypos >> 16;
 
         switch (entity->priority) {
             case PRIORITY_BOUNDS:
-                processObjectFlag[objectEntityPos] = x > xScrollOffset - OBJECT_BORDER_X1 && x < xScrollOffset + OBJECT_BORDER_X2
-                                                     && y > yScrollOffset - OBJECT_BORDER_Y1 && y < yScrollOffset + OBJECT_BORDER_Y2;
+                processObjectFlag[objectEntityPos] = (x > camX1 && x < camX2 && y > camY1 && y < camY2);
+                if (!processObjectFlag[objectEntityPos]) {
+                    if (p1Active && x > p1BX1 && x < p1BX2 && y > p1BY1 && y < p1BY2)
+                        processObjectFlag[objectEntityPos] = true;
+                    else if (p2Active && x > p2BX1 && x < p2BX2 && y > p2BY1 && y < p2BY2)
+                        processObjectFlag[objectEntityPos] = true;
+                }
                 break;
 
             case PRIORITY_ACTIVE:
@@ -91,21 +128,38 @@ void ProcessObjects()
             case PRIORITY_ACTIVE_SMALL: processObjectFlag[objectEntityPos] = true; break;
 
             case PRIORITY_XBOUNDS:
-                processObjectFlag[objectEntityPos] = x > xScrollOffset - OBJECT_BORDER_X1 && x < OBJECT_BORDER_X2 + xScrollOffset;
+                processObjectFlag[objectEntityPos] = (x > camX1 && x < camX2);
+                if (!processObjectFlag[objectEntityPos]) {
+                    if (p1Active && x > p1BX1 && x < p1BX2)
+                        processObjectFlag[objectEntityPos] = true;
+                    else if (p2Active && x > p2BX1 && x < p2BX2)
+                        processObjectFlag[objectEntityPos] = true;
+                }
                 break;
 
             case PRIORITY_XBOUNDS_DESTROY:
-                processObjectFlag[objectEntityPos] = x > xScrollOffset - OBJECT_BORDER_X1 && x < xScrollOffset + OBJECT_BORDER_X2;
+                processObjectFlag[objectEntityPos] = (x > camX1 && x < camX2);
                 if (!processObjectFlag[objectEntityPos]) {
-                    processObjectFlag[objectEntityPos] = false;
-                    entity->type                       = OBJ_TYPE_BLANKOBJECT;
+                    if (p1Active && x > p1BX1 && x < p1BX2)
+                        processObjectFlag[objectEntityPos] = true;
+                    else if (p2Active && x > p2BX1 && x < p2BX2)
+                        processObjectFlag[objectEntityPos] = true;
+                }
+
+                if (!processObjectFlag[objectEntityPos]) {
+                    entity->type = OBJ_TYPE_BLANKOBJECT;
                 }
                 break;
 
             case PRIORITY_INACTIVE: processObjectFlag[objectEntityPos] = false; break;
             case PRIORITY_BOUNDS_SMALL:
-                processObjectFlag[objectEntityPos] = x > xScrollOffset - OBJECT_BORDER_X3 && x < OBJECT_BORDER_X4 + xScrollOffset
-                                                     && y > yScrollOffset - OBJECT_BORDER_Y3 && y < yScrollOffset + OBJECT_BORDER_Y4;
+                processObjectFlag[objectEntityPos] = (x > camX3 && x < camX4 && y > camY3 && y < camY4);
+                if (!processObjectFlag[objectEntityPos]) {
+                    if (p1Active && x > p1BX3 && x < p1BX4 && y > p1BY3 && y < p1BY4)
+                        processObjectFlag[objectEntityPos] = true;
+                    else if (p2Active && x > p2BX3 && x < p2BX4 && y > p2BY3 && y < p2BY4)
+                        processObjectFlag[objectEntityPos] = true;
+                }
                 break;
 
             default: break;
@@ -163,17 +217,54 @@ void ProcessFrozenObjects()
 {
     for (int i = 0; i < DRAWLAYER_COUNT; ++i) drawListEntries[i].listSize = 0;
 
+    Entity *entityP1 = &objectEntityList[0];
+    Entity *entityP2 = &objectEntityList[1];
+
+    int p1X = entityP1->xpos >> 16;
+    int p1Y = entityP1->ypos >> 16;
+    int p2X = entityP2->xpos >> 16;
+    int p2Y = entityP2->ypos >> 16;
+
+    // Camera boundaries
+    int camX1 = xScrollOffset - OBJECT_BORDER_X1;
+    int camX2 = xScrollOffset + OBJECT_BORDER_X2;
+    int camY1 = yScrollOffset - OBJECT_BORDER_Y1;
+    int camY2 = yScrollOffset + OBJECT_BORDER_Y2;
+
+    int camX3 = xScrollOffset - OBJECT_BORDER_X3;
+    int camX4 = xScrollOffset + OBJECT_BORDER_X4;
+    int camY3 = yScrollOffset - OBJECT_BORDER_Y3;
+    int camY4 = yScrollOffset + OBJECT_BORDER_Y4;
+
+    // Player proximity boundaries
+    int p1Active = entityP1->type > OBJ_TYPE_BLANKOBJECT;
+    int p2Active = entityP2->type > OBJ_TYPE_BLANKOBJECT;
+
+    int p1BX1 = p1X - OBJECT_BORDER_X1, p1BX2 = p1X + OBJECT_BORDER_X1;
+    int p1BY1 = p1Y - OBJECT_BORDER_Y1, p1BY2 = p1Y + OBJECT_BORDER_Y1;
+    int p2BX1 = p2X - OBJECT_BORDER_X1, p2BX2 = p2X + OBJECT_BORDER_X1;
+    int p2BY1 = p2Y - OBJECT_BORDER_Y1, p2BY2 = p2Y + OBJECT_BORDER_Y1;
+
+    int p1BX3 = p1X - OBJECT_BORDER_X3, p1BX4 = p1X + OBJECT_BORDER_X3;
+    int p1BY3 = p1Y - OBJECT_BORDER_Y3, p1BY4 = p1Y + OBJECT_BORDER_Y3;
+    int p2BX3 = p2X - OBJECT_BORDER_X3, p2BX4 = p2X + OBJECT_BORDER_X3;
+    int p2BY3 = p2Y - OBJECT_BORDER_Y3, p2BY4 = p2Y + OBJECT_BORDER_Y3;
+
     for (objectEntityPos = 0; objectEntityPos < ENTITY_COUNT; ++objectEntityPos) {
         processObjectFlag[objectEntityPos] = false;
-        int x = 0, y = 0;
         Entity *entity = &objectEntityList[objectEntityPos];
-        x              = entity->xpos >> 16;
-        y              = entity->ypos >> 16;
+        int x          = entity->xpos >> 16;
+        int y          = entity->ypos >> 16;
 
         switch (entity->priority) {
             case PRIORITY_BOUNDS:
-                processObjectFlag[objectEntityPos] = x > xScrollOffset - OBJECT_BORDER_X1 && x < xScrollOffset + OBJECT_BORDER_X2
-                                                     && y > yScrollOffset - OBJECT_BORDER_Y1 && y < yScrollOffset + OBJECT_BORDER_Y2;
+                processObjectFlag[objectEntityPos] = (x > camX1 && x < camX2 && y > camY1 && y < camY2);
+                if (!processObjectFlag[objectEntityPos]) {
+                    if (p1Active && x > p1BX1 && x < p1BX2 && y > p1BY1 && y < p1BY2)
+                        processObjectFlag[objectEntityPos] = true;
+                    else if (p2Active && x > p2BX1 && x < p2BX2 && y > p2BY1 && y < p2BY2)
+                        processObjectFlag[objectEntityPos] = true;
+                }
                 break;
 
             case PRIORITY_ACTIVE:
@@ -181,22 +272,39 @@ void ProcessFrozenObjects()
             case PRIORITY_ACTIVE_SMALL: processObjectFlag[objectEntityPos] = true; break;
 
             case PRIORITY_XBOUNDS:
-                processObjectFlag[objectEntityPos] = x > xScrollOffset - OBJECT_BORDER_X1 && x < OBJECT_BORDER_X2 + xScrollOffset;
+                processObjectFlag[objectEntityPos] = (x > camX1 && x < camX2);
+                if (!processObjectFlag[objectEntityPos]) {
+                    if (p1Active && x > p1BX1 && x < p1BX2)
+                        processObjectFlag[objectEntityPos] = true;
+                    else if (p2Active && x > p2BX1 && x < p2BX2)
+                        processObjectFlag[objectEntityPos] = true;
+                }
                 break;
 
             case PRIORITY_XBOUNDS_DESTROY:
-                processObjectFlag[objectEntityPos] = x > xScrollOffset - OBJECT_BORDER_X1 && x < xScrollOffset + OBJECT_BORDER_X2;
+                processObjectFlag[objectEntityPos] = (x > camX1 && x < camX2);
                 if (!processObjectFlag[objectEntityPos]) {
-                    processObjectFlag[objectEntityPos] = false;
-                    entity->type                       = OBJ_TYPE_BLANKOBJECT;
+                    if (p1Active && x > p1BX1 && x < p1BX2)
+                        processObjectFlag[objectEntityPos] = true;
+                    else if (p2Active && x > p2BX1 && x < p2BX2)
+                        processObjectFlag[objectEntityPos] = true;
+                }
+
+                if (!processObjectFlag[objectEntityPos]) {
+                    entity->type = OBJ_TYPE_BLANKOBJECT;
                 }
                 break;
 
             case PRIORITY_INACTIVE: processObjectFlag[objectEntityPos] = false; break;
 
             case PRIORITY_BOUNDS_SMALL:
-                processObjectFlag[objectEntityPos] = x > xScrollOffset - OBJECT_BORDER_X3 && x < OBJECT_BORDER_X4 + xScrollOffset
-                                                     && y > yScrollOffset - OBJECT_BORDER_Y3 && y < yScrollOffset + OBJECT_BORDER_Y4;
+                processObjectFlag[objectEntityPos] = (x > camX3 && x < camX4 && y > camY3 && y < camY4);
+                if (!processObjectFlag[objectEntityPos]) {
+                    if (p1Active && x > p1BX3 && x < p1BX4 && y > p1BY3 && y < p1BY4)
+                        processObjectFlag[objectEntityPos] = true;
+                    else if (p2Active && x > p2BX3 && x < p2BX4 && y > p2BY3 && y < p2BY4)
+                        processObjectFlag[objectEntityPos] = true;
+                }
                 break;
 
             default: break;

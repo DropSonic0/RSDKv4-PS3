@@ -196,23 +196,23 @@ void ProcessAudioMixing(Sint32 *dst, const Sint16 *src, int len, int volume, sby
 #endif
 
 #if !RETRO_USE_ORIGINAL_CODE
-inline void FreeMusInfo(bool Lock = true)
+inline void FreeMusInfo(int index, bool Lock = true)
 {
     if (Lock) LockAudioDevice();
 
 #if RETRO_USING_SDL2
-    if (streamInfo[currentStreamIndex].stream)
-        SDL_FreeAudioStream(streamInfo[currentStreamIndex].stream);
-    streamInfo[currentStreamIndex].stream = NULL;
+    if (streamInfo[index].stream)
+        SDL_FreeAudioStream(streamInfo[index].stream);
+    streamInfo[index].stream = NULL;
 #endif
 
-    if (streamInfo[currentStreamIndex].loaded) {
-        ov_clear(&streamInfo[currentStreamIndex].vorbisFile);
-        streamInfo[currentStreamIndex].loaded = false;
+    if (streamInfo[index].loaded) {
+        ov_clear(&streamInfo[index].vorbisFile);
+        streamInfo[index].loaded = false;
     }
 
 #if RETRO_USING_SDL2
-    streamInfo[currentStreamIndex].stream = nullptr;
+    streamInfo[index].stream = nullptr;
 #endif
 
     if (Lock) UnlockAudioDevice();
@@ -230,7 +230,7 @@ inline void StopMusic(bool setStatus)
     musicPosition = 0;
 
 #if !RETRO_USE_ORIGINAL_CODE
-    FreeMusInfo(true);
+    FreeMusInfo(currentStreamIndex, true);
 #endif
 }
 
@@ -414,6 +414,7 @@ inline void ReleaseAudioDevice()
 
     LockAudioDevice();
     for (int i = 0; i < STREAMFILE_COUNT; i++) {
+        FreeMusInfo(i, false);
         if (streamFile[i].buffer) free(streamFile[i].buffer);
         streamFile[i].buffer = NULL;
     }

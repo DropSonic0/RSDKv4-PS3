@@ -784,19 +784,11 @@ void LoadMusic(void *userdata)
     PrintLog("LoadMusic: Processing loop started (track: %d)", currentMusicTrack);
     while (currentMusicTrack >= 0) {
         int oldStreamID = currentStreamIndex;
+        int nextStreamIndex = (currentStreamIndex + 1) % STREAMFILE_COUNT;
 
-        LockAudioDevice();
-        streamInfoPtr = NULL;
-        musicStatus   = MUSIC_LOADING;
-
-        currentStreamIndex++;
-        currentStreamIndex %= STREAMFILE_COUNT;
-
-        if (streamFile[currentStreamIndex].vsize > 0) {
-            musicPosition = 0;
-            FreeMusInfo(false);
+        if (streamFile[nextStreamIndex].vsize > 0) {
+            FreeMusInfo(nextStreamIndex, true);
         }
-        UnlockAudioDevice();
 
 #if RETRO_PLATFORM == RETRO_PS3
         uint64_t startTime = GetSystemTime();
@@ -812,14 +804,14 @@ void LoadMusic(void *userdata)
 #if RETRO_PLATFORM == RETRO_PS3
             openTime = GetSystemTime();
 #endif
-            StreamFile *musFile = &streamFile[currentStreamIndex];
+            StreamFile *musFile = &streamFile[nextStreamIndex];
             musFile->vpos       = 0;
             musFile->vsize      = info.vfileSize;
             if (info.vfileSize > MUSBUFFER_SIZE) {
                 musFile->vsize = MUSBUFFER_SIZE;
             }
 
-            FileRead(streamFile[currentStreamIndex].buffer, musFile->vsize);
+            FileRead(streamFile[nextStreamIndex].buffer, musFile->vsize);
             CloseFile();
 #if RETRO_PLATFORM == RETRO_PS3
             UnlockReader();
@@ -830,9 +822,7 @@ void LoadMusic(void *userdata)
             readTime = GetSystemTime();
 #endif
 
-            LockAudioDevice();
-
-            StreamInfo *strmInfo = &streamInfo[currentStreamIndex];
+            StreamInfo *strmInfo = &streamInfo[nextStreamIndex];
 
             unsigned long long samples = 0;
             ov_callbacks callbacks;
@@ -853,7 +843,6 @@ void LoadMusic(void *userdata)
                     ov_clear(&strmInfo->vorbisFile);
                     musicStatus = MUSIC_STOPPED;
                     currentMusicTrack = -1;
-                    UnlockAudioDevice();
                     continue;
                 }
 
@@ -896,6 +885,9 @@ void LoadMusic(void *userdata)
                 strmInfo->trackLoop = musicTracks[currentMusicTrack].trackLoop;
                 strmInfo->loopPoint = musicTracks[currentMusicTrack].loopPoint;
                 strmInfo->loaded    = true;
+
+                LockAudioDevice();
+                currentStreamIndex = nextStreamIndex;
                 streamFilePtr       = &streamFile[currentStreamIndex];
                 streamInfoPtr       = &streamInfo[currentStreamIndex];
 
@@ -1005,7 +997,8 @@ bool PlayMusic(int track, int musStartPos)
         if (musicStatus != MUSIC_LOADING && !musicThreadRunning) {
             musicStartPos     = musStartPos;
             currentMusicTrack = track;
-            musicStatus       = MUSIC_LOADING;
+            if (musicStatus == MUSIC_STOPPED)
+                musicStatus = MUSIC_LOADING;
 #if RETRO_PLATFORM == RETRO_PS3
             PrintLog("PlayMusic: Starting load thread for track %d", track);
             musicLoadStartTime = GetSystemTime();

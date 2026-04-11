@@ -207,6 +207,8 @@ void ProcessStage(void)
 
     switch (stageMode) {
         case STAGEMODE_LOAD: // Startup
+            CheckKeyDown(&keyDown);
+            CheckKeyPress(&keyPress);
             SetActivePalette(0, 0, 256);
             gameMenu[0].visibleRowOffset = 0;
             gameMenu[1].alignment        = 0;

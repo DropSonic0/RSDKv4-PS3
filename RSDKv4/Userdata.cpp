@@ -33,8 +33,8 @@ int sendCounter = 0;
 #endif
 
 #if !RETRO_USE_ORIGINAL_CODE
-bool forceUseScripts         = false;
-bool forceUseScripts_Config  = false;
+bool forceUseScripts         = true;
+bool forceUseScripts_Config  = true;
 bool skipStartMenu           = false;
 bool skipStartMenu_Config    = false;
 int disableFocusPause        = 0;
@@ -454,7 +454,7 @@ void InitUserdata()
 
         ini.SetBool("Dev", "DevMenu", Engine.devMenu = false);
         ini.SetBool("Dev", "EngineDebugMode", engineDebugMode = false);
-        ini.SetBool("Dev", "TxtScripts", forceUseScripts = false);
+        ini.SetBool("Dev", "TxtScripts", forceUseScripts = true);
         forceUseScripts_Config = forceUseScripts;
         ini.SetInteger("Dev", "StartingCategory", Engine.startList = 255);
         ini.SetInteger("Dev", "StartingScene", Engine.startStage = 255);
@@ -504,13 +504,11 @@ void InitUserdata()
         ini.SetBool("Window", "Borderless", Engine.borderless = false);
 #if RETRO_PLATFORM == RETRO_PS3
         ini.SetBool("Window", "VSync", Engine.vsync = true);
-        ini.SetBool("Window", "XbrzFilter", Engine.useXbrzFilter = true);
-        ini.SetInteger("Window", "ScreenFilter", Engine.filterMode = FILTER_XBRZ);
 #else
         ini.SetBool("Window", "VSync", Engine.vsync = false);
+#endif
         ini.SetBool("Window", "XbrzFilter", Engine.useXbrzFilter = false);
         ini.SetInteger("Window", "ScreenFilter", Engine.filterMode = FILTER_NONE);
-#endif
         ini.SetInteger("Window", "ScalingMode", Engine.scalingMode = 0);
         ini.SetInteger("Window", "WindowScale", Engine.windowScale = 2);
         ini.SetInteger("Window", "ScreenWidth", SCREEN_XSIZE_CONFIG = DEFAULT_SCREEN_XSIZE);
@@ -607,7 +605,7 @@ void InitUserdata()
         if (!ini.GetBool("Dev", "EngineDebugMode", &engineDebugMode))
             engineDebugMode = false;
         if (!ini.GetBool("Dev", "TxtScripts", &forceUseScripts))
-            forceUseScripts = false;
+            forceUseScripts = true;
         forceUseScripts_Config = forceUseScripts;
         if (!ini.GetInteger("Dev", "StartingCategory", &Engine.startList))
             Engine.startList = 255;
@@ -687,11 +685,7 @@ void InitUserdata()
                 Engine.filterMode = Engine.useXbrzFilter ? FILTER_XBRZ : FILTER_NONE;
             }
             else {
-#if RETRO_PLATFORM == RETRO_PS3
-                Engine.filterMode = FILTER_XBRZ;
-#else
                 Engine.filterMode = FILTER_NONE;
-#endif
             }
         }
         Engine.useXbrzFilter = Engine.filterMode == FILTER_XBRZ;

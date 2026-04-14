@@ -534,9 +534,19 @@ void InitModInstallList()
                 if (stat(fullPath, &st) == 0 && S_ISDIR(st.st_mode)) {
                     ModInfo info;
                     if (LoadMod(&info, packagesPath, entry->d_name, false)) {
-                        info.basePath = packagesPath; 
-                        modInstallList.push_back(info);
-                        PrintLog("Mod encontrado en %s: %s", packagesPath, info.name.c_str());
+                        bool duplicate = false;
+                        for (int m = 0; m < (int)modInstallList.size(); ++m) {
+                            if (modInstallList[m].name == info.name && modInstallList[m].folder == info.folder) {
+                                duplicate = true;
+                                break;
+                            }
+                        }
+
+                        if (!duplicate) {
+                            info.basePath = packagesPath;
+                            modInstallList.push_back(info);
+                            PrintLog("Mod encontrado en %s: %s", packagesPath, info.name.c_str());
+                        }
                     }
                 }
             }

@@ -103,13 +103,13 @@ void MultiplayerHandler_Main(void *objPtr)
             self->errorPanel->buttonCount = DLGTYPE_OK;
             char *set                     = NULL;
             switch (dcError) {
-                case 1: set = (char *)"The other player has disconnected.\rReturning to title screen."; break;
-                case 2: set = (char *)"Connection timed out.\rReturning to title screen."; break;
-                case 3: set = (char *)"This room is full.\rReturning to title screen.";
+                case 1: set = (char *)"The other player has disconnected.\rReturning to main menu."; break;
+                case 2: set = (char *)"Connection timed out.\rReturning to main menu."; break;
+                case 3: set = (char *)"This room is full.\rReturning to main menu.";
                 // fallthrough
                 case 5:
                     if (!set)
-                        set = (char *)"This room doesn't exist.\rReturning to title screen.";
+                        set = (char *)"This room doesn't exist.\rReturning to main menu.";
                     self->fadeError->timer = self->fadeError->delay;
                     for (int i = 0; i < nativeEntityCount; ++i) {
                         if (objectEntityBank[activeEntityList[i]].eventMain == MultiplayerScreen_Main) {
@@ -118,7 +118,7 @@ void MultiplayerHandler_Main(void *objPtr)
                         }
                     }
                     break;
-                case 4: set = (char *)"Couldn't connect after 10 retries.\rReturning to title screen."; break;
+                case 4: set = (char *)"Couldn't connect after 10 retries.\rReturning to main menu."; break;
             }
             SetStringToFont8(self->errorPanel->text, set, FONT_TEXT);
             self->state = 3;
@@ -154,7 +154,17 @@ void MultiplayerHandler_Main(void *objPtr)
                 }
                 else {
                     RenderRect(-SCREEN_CENTERX_F, SCREEN_CENTERY_F, 160.0, SCREEN_XSIZE_F, SCREEN_YSIZE_F, 0, 0, 0, 255);
-                    CREATE_ENTITY(SegaSplash);
+                    NativeEntity_MenuControl *menu = CREATE_ENTITY(MenuControl);
+                    for (int i = 0; i < menu->buttonCount; ++i) {
+                        if (menu->buttonFlags[i] == BUTTON_MULTIPLAYER) {
+                            menu->buttonID            = i;
+                            menu->targetButtonMovePos = -(i * menu->buttonSpacing);
+                            menu->buttonMovePos       = menu->targetButtonMovePos;
+                            break;
+                        }
+                    }
+                    NativeEntity_FadeScreen *fade = CREATE_ENTITY(FadeScreen);
+                    fade->state                   = FADESCREEN_STATE_FADEIN;
                 }
             }
             break;

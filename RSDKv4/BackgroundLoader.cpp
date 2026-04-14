@@ -522,7 +522,7 @@ void StartStagePreload(int listID, int stageID)
     }
 #endif
 
-    PrintLog("Background Loading START for %s - %s", stageListNames[listID], stageList[listID][stageID].name);
+     // PrintLog("Background Loading START for %s - %s", stageListNames[listID], stageList[listID][stageID].name);
 
     preloadListID = listID;
     preloadStageID = stageID;
@@ -543,7 +543,7 @@ void AbortPreload()
     if (preloadStatus == PRELOAD_IDLE && !preloadThreadRunning) return;
     
     abortPreload = true;
-    PrintLog("Background Loading ABORT requested");
+     // PrintLog("Background Loading ABORT requested");
 
 #if RETRO_PLATFORM == RETRO_PS3
     if (preloadThreadNeedsJoin) {
@@ -659,7 +659,7 @@ void PreloadThreadFunc(uint64_t arg)
         bool encrypted = false;
 
         if (ThreadedResolvePath(fullPath, relPaths[i], &packID, &offset, &size, &encrypted)) {
-            PrintLog("Threaded Preload opening: %s (PackID: %d, Offset: %d, Encrypted: %s)", fullPath, packID, offset, encrypted ? "YES" : "NO");
+             // PrintLog("Threaded Preload opening: %s (PackID: %d, Offset: %d, Encrypted: %s)", fullPath, packID, offset, encrypted ? "YES" : "NO");
 
             FILE *f = fopen(fullPath, "rb");
             if (f) {
@@ -683,7 +683,7 @@ void PreloadThreadFunc(uint64_t arg)
                         preloadedData->files[i].encrypted = encrypted;
                         strncpy(preloadedData->files[i].fileName, relPaths[i], 0xFF);
                         preloadedData->files[i].fileName[0xFF] = 0;
-                        PrintLog("Threaded Preload successful: %s (%d bytes)", relPaths[i], preloadedData->files[i].size);
+                         // PrintLog("Threaded Preload successful: %s (%d bytes)", relPaths[i], preloadedData->files[i].size);
                     } else {
                         preloadedData->files[i].fileName[0] = 0;
                         preloadedData->files[i].size = 0;
@@ -691,17 +691,17 @@ void PreloadThreadFunc(uint64_t arg)
                 }
                 fclose(f);
             } else {
-                PrintLog("Threaded Preload FAILED to open: %s", fullPath);
+                 // PrintLog("Threaded Preload FAILED to open: %s", fullPath);
             }
         } else {
-            PrintLog("Threaded Preload FAILED to resolve: %s", relPaths[i]);
+             // PrintLog("Threaded Preload FAILED to resolve: %s", relPaths[i]);
         }
     }
 
     if (abortPreload) {
-        PrintLog("Background Loading ABORTED for %s - %s (Partial ready)", stageListNames[preloadListID], stageList[preloadListID][preloadStageID].name);
+         // PrintLog("Background Loading ABORTED for %s - %s (Partial ready)", stageListNames[preloadListID], stageList[preloadListID][preloadStageID].name);
     } else {
-        PrintLog("Background Loading READY for %s - %s", stageListNames[preloadListID], stageList[preloadListID][preloadStageID].name);
+         // PrintLog("Background Loading READY for %s - %s", stageListNames[preloadListID], stageList[preloadListID][preloadStageID].name);
     }
     preloadStatus = PRELOAD_READY;
     

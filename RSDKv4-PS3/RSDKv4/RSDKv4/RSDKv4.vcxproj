@@ -1,12 +1,52 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|PS3">
-      <Configuration>Debug</Configuration>
+    <ProjectConfiguration Include="RSDKv4 Blu-ray|PS3">
+      <Configuration>RSDKv4 Blu-ray</Configuration>
       <Platform>PS3</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|PS3">
-      <Configuration>Release</Configuration>
+    <ProjectConfiguration Include="RSDKv4 PLUS Blu-ray|PS3">
+      <Configuration>RSDKv4 PLUS Blu-ray</Configuration>
+      <Platform>PS3</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RSDKv4 PLUS|PS3">
+      <Configuration>RSDKv4 PLUS</Configuration>
+      <Platform>PS3</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RSDKv4|PS3">
+      <Configuration>RSDKv4</Configuration>
+      <Platform>PS3</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Sonic 1 Blu-ray|PS3">
+      <Configuration>Sonic 1 Blu-ray</Configuration>
+      <Platform>PS3</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Sonic 1 PLUS Blu-ray|PS3">
+      <Configuration>Sonic 1 PLUS Blu-ray</Configuration>
+      <Platform>PS3</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Sonic 1 PLUS|PS3">
+      <Configuration>Sonic 1 PLUS</Configuration>
+      <Platform>PS3</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Sonic 1|PS3">
+      <Configuration>Sonic 1</Configuration>
+      <Platform>PS3</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Sonic 2 Blu-ray|PS3">
+      <Configuration>Sonic 2 Blu-ray</Configuration>
+      <Platform>PS3</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Sonic 2 PLUS Blu-ray|PS3">
+      <Configuration>Sonic 2 PLUS Blu-ray</Configuration>
+      <Platform>PS3</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Sonic 2 PLUS|PS3">
+      <Configuration>Sonic 2 PLUS</Configuration>
+      <Platform>PS3</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Sonic 2|PS3">
+      <Configuration>Sonic 2</Configuration>
       <Platform>PS3</Platform>
     </ProjectConfiguration>
   </ItemGroup>
@@ -15,11 +55,51 @@
     <ProjectGuid>{9FA572B9-1F46-43A7-800E-74689F661AC5}</ProjectGuid>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|PS3'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RSDKv4|PS3'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>SNC</PlatformToolset>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|PS3'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 1|PS3'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>SNC</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 2|PS3'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>SNC</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 1 PLUS|PS3'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>SNC</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 2 PLUS|PS3'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>SNC</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 1 Blu-ray|PS3'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>SNC</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 2 Blu-ray|PS3'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>SNC</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 1 PLUS Blu-ray|PS3'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>SNC</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 2 PLUS Blu-ray|PS3'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>SNC</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RSDKv4 PLUS|PS3'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>SNC</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RSDKv4 PLUS Blu-ray|PS3'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>SNC</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RSDKv4 Blu-ray|PS3'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>SNC</PlatformToolset>
   </PropertyGroup>
@@ -38,30 +118,294 @@
   </PropertyGroup>
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|PS3'">
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='RSDKv4|PS3'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|PS3'">
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 1|PS3'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 2|PS3'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 1 PLUS|PS3'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 2 PLUS|PS3'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 1 Blu-ray|PS3'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 2 Blu-ray|PS3'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 1 PLUS Blu-ray|PS3'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 2 PLUS Blu-ray|PS3'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='RSDKv4 PLUS|PS3'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='RSDKv4 PLUS Blu-ray|PS3'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='RSDKv4 Blu-ray|PS3'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|PS3'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RSDKv4|PS3'">
     <TargetExt>.elf</TargetExt>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|PS3'">
-    <ClCompile>
-      <PreprocessorDefinitions>_DEBUG;__CELL_ASSERT__;%(PreprocessorDefinitions);</PreprocessorDefinitions>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|PS3'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 1|PS3'">
+    <TargetExt>.elf</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 2|PS3'">
+    <TargetExt>.elf</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 1 PLUS|PS3'">
+    <TargetExt>.elf</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 2 PLUS|PS3'">
+    <TargetExt>.elf</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 1 Blu-ray|PS3'">
+    <TargetExt>.elf</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 2 Blu-ray|PS3'">
+    <TargetExt>.elf</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 1 PLUS Blu-ray|PS3'">
+    <TargetExt>.elf</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 2 PLUS Blu-ray|PS3'">
+    <TargetExt>.elf</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RSDKv4 PLUS|PS3'">
+    <TargetExt>.elf</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RSDKv4 PLUS Blu-ray|PS3'">
+    <TargetExt>.elf</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RSDKv4 Blu-ray|PS3'">
+    <TargetExt>.elf</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RSDKv4|PS3'">
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <OptimizationLevel>Level2</OptimizationLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <AdditionalIncludeDirectories>$(SolutionDir)\..\..\RSDKv4;$(SolutionDir)\..\..\RSDKv4\Shaders;$(SolutionDir)\..\..\RSDKv4\NativeObjects;$(SolutionDir)\..\..\dependencies\all;$(SolutionDir)\..\..\dependencies\all\asio\asio\include;$(SolutionDir)\..\..\dependencies\all\libogg\include;$(SolutionDir)\..\..\dependencies\all\pugixml\src;$(SolutionDir)\..\..\dependencies\all\stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>-DRSDK_AUTOBUILD=1 -DSONIC_1 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-DRSDK_AUTOBUILD=0 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <OutputFormat>ELFFile</OutputFormat>
+    </Link>
+    <Link>
+      <AdditionalDependencies>libcs.a;libsn.a;pugixml.a;libivorbis.a;libogg.a;libPSGL.a;libPSGLU.a;libPSGLFX.a;libPSGLcgc.a;libsysmodule_stub.a;libresc_stub.a;libm.a;libdbgfont.a;libsysutil_stub.a;libio_stub.a;libaudio_stub.a;libpthread.a;libsysutil_game_stub.a;libnet_stub.a;libcgc.a;libgcm_cmd.a;libgcm_sys_stub.a;libstdc++.a;libnetctl_stub.a;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Link>
+      <AdditionalLibraryDirectories>C:\usr\local\cell\target\ppu\lib;C:\usr\local\cell\target\ppu\lib\PSGL\RSX\ultra-opt;$(SolutionDir)\PS3_Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>--strip-unused-data %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 1|PS3'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <OptimizationLevel>Level2</OptimizationLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\RSDKv4;$(SolutionDir)\..\..\RSDKv4\Shaders;$(SolutionDir)\..\..\RSDKv4\NativeObjects;$(SolutionDir)\..\..\dependencies\all;$(SolutionDir)\..\..\dependencies\all\asio\asio\include;$(SolutionDir)\..\..\dependencies\all\libogg\include;$(SolutionDir)\..\..\dependencies\all\pugixml\src;$(SolutionDir)\..\..\dependencies\all\stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>-DRSDK_AUTOBUILD=0 -DSONIC_1 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <OutputFormat>ELFFile</OutputFormat>
+    </Link>
+    <Link>
+      <AdditionalDependencies>libcs.a;libsn.a;pugixml.a;libivorbis.a;libogg.a;libPSGL.a;libPSGLU.a;libPSGLFX.a;libPSGLcgc.a;libsysmodule_stub.a;libresc_stub.a;libm.a;libdbgfont.a;libsysutil_stub.a;libio_stub.a;libaudio_stub.a;libpthread.a;libsysutil_game_stub.a;libnet_stub.a;libcgc.a;libgcm_cmd.a;libgcm_sys_stub.a;libstdc++.a;libnetctl_stub.a;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Link>
+      <AdditionalLibraryDirectories>C:\usr\local\cell\target\ppu\lib;C:\usr\local\cell\target\ppu\lib\PSGL\RSX\ultra-opt;$(SolutionDir)\PS3_Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>--strip-unused-data %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 2|PS3'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <OptimizationLevel>Level2</OptimizationLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\RSDKv4;$(SolutionDir)\..\..\RSDKv4\Shaders;$(SolutionDir)\..\..\RSDKv4\NativeObjects;$(SolutionDir)\..\..\dependencies\all;$(SolutionDir)\..\..\dependencies\all\asio\asio\include;$(SolutionDir)\..\..\dependencies\all\libogg\include;$(SolutionDir)\..\..\dependencies\all\pugixml\src;$(SolutionDir)\..\..\dependencies\all\stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>-DRSDK_AUTOBUILD=0 -DSONIC_2 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <OutputFormat>ELFFile</OutputFormat>
+    </Link>
+    <Link>
+      <AdditionalDependencies>libcs.a;libsn.a;pugixml.a;libivorbis.a;libogg.a;libPSGL.a;libPSGLU.a;libPSGLFX.a;libPSGLcgc.a;libsysmodule_stub.a;libresc_stub.a;libm.a;libdbgfont.a;libsysutil_stub.a;libio_stub.a;libaudio_stub.a;libpthread.a;libsysutil_game_stub.a;libnet_stub.a;libcgc.a;libgcm_cmd.a;libgcm_sys_stub.a;libstdc++.a;libnetctl_stub.a;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Link>
+      <AdditionalLibraryDirectories>C:\usr\local\cell\target\ppu\lib;C:\usr\local\cell\target\ppu\lib\PSGL\RSX\ultra-opt;$(SolutionDir)\PS3_Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>--strip-unused-data %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 1 PLUS|PS3'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <OptimizationLevel>Level2</OptimizationLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\RSDKv4;$(SolutionDir)\..\..\RSDKv4\Shaders;$(SolutionDir)\..\..\RSDKv4\NativeObjects;$(SolutionDir)\..\..\dependencies\all;$(SolutionDir)\..\..\dependencies\all\asio\asio\include;$(SolutionDir)\..\..\dependencies\all\libogg\include;$(SolutionDir)\..\..\dependencies\all\pugixml\src;$(SolutionDir)\..\..\dependencies\all\stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>-DSONIC_1 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <OutputFormat>ELFFile</OutputFormat>
+    </Link>
+    <Link>
+      <AdditionalDependencies>libcs.a;libsn.a;pugixml.a;libivorbis.a;libogg.a;libPSGL.a;libPSGLU.a;libPSGLFX.a;libPSGLcgc.a;libsysmodule_stub.a;libresc_stub.a;libm.a;libdbgfont.a;libsysutil_stub.a;libio_stub.a;libaudio_stub.a;libpthread.a;libsysutil_game_stub.a;libnet_stub.a;libcgc.a;libgcm_cmd.a;libgcm_sys_stub.a;libstdc++.a;libnetctl_stub.a;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Link>
+      <AdditionalLibraryDirectories>C:\usr\local\cell\target\ppu\lib;C:\usr\local\cell\target\ppu\lib\PSGL\RSX\ultra-opt;$(SolutionDir)\PS3_Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>--strip-unused-data %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 2 PLUS|PS3'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <OptimizationLevel>Level2</OptimizationLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\RSDKv4;$(SolutionDir)\..\..\RSDKv4\Shaders;$(SolutionDir)\..\..\RSDKv4\NativeObjects;$(SolutionDir)\..\..\dependencies\all;$(SolutionDir)\..\..\dependencies\all\asio\asio\include;$(SolutionDir)\..\..\dependencies\all\libogg\include;$(SolutionDir)\..\..\dependencies\all\pugixml\src;$(SolutionDir)\..\..\dependencies\all\stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>-DSONIC_2 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <OutputFormat>ELFFile</OutputFormat>
+    </Link>
+    <Link>
+      <AdditionalDependencies>libcs.a;libsn.a;pugixml.a;libivorbis.a;libogg.a;libPSGL.a;libPSGLU.a;libPSGLFX.a;libPSGLcgc.a;libsysmodule_stub.a;libresc_stub.a;libm.a;libdbgfont.a;libsysutil_stub.a;libio_stub.a;libaudio_stub.a;libpthread.a;libsysutil_game_stub.a;libnet_stub.a;libcgc.a;libgcm_cmd.a;libgcm_sys_stub.a;libstdc++.a;libnetctl_stub.a;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Link>
+      <AdditionalLibraryDirectories>C:\usr\local\cell\target\ppu\lib;C:\usr\local\cell\target\ppu\lib\PSGL\RSX\ultra-opt;$(SolutionDir)\PS3_Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>--strip-unused-data %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 1 Blu-ray|PS3'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <OptimizationLevel>Level2</OptimizationLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\RSDKv4;$(SolutionDir)\..\..\RSDKv4\Shaders;$(SolutionDir)\..\..\RSDKv4\NativeObjects;$(SolutionDir)\..\..\dependencies\all;$(SolutionDir)\..\..\dependencies\all\asio\asio\include;$(SolutionDir)\..\..\dependencies\all\libogg\include;$(SolutionDir)\..\..\dependencies\all\pugixml\src;$(SolutionDir)\..\..\dependencies\all\stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>-DRSDK_AUTOBUILD=0 -DSONIC_1 -DBLURAY %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <OutputFormat>ELFFile</OutputFormat>
+    </Link>
+    <Link>
+      <AdditionalDependencies>libcs.a;libsn.a;pugixml.a;libivorbis.a;libogg.a;libPSGL.a;libPSGLU.a;libPSGLFX.a;libPSGLcgc.a;libsysmodule_stub.a;libresc_stub.a;libm.a;libdbgfont.a;libsysutil_stub.a;libio_stub.a;libaudio_stub.a;libpthread.a;libsysutil_game_stub.a;libnet_stub.a;libcgc.a;libgcm_cmd.a;libgcm_sys_stub.a;libstdc++.a;libnetctl_stub.a;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Link>
+      <AdditionalLibraryDirectories>C:\usr\local\cell\target\ppu\lib;C:\usr\local\cell\target\ppu\lib\PSGL\RSX\ultra-opt;$(SolutionDir)\PS3_Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>--strip-unused-data %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 2 Blu-ray|PS3'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <OptimizationLevel>Level2</OptimizationLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\RSDKv4;$(SolutionDir)\..\..\RSDKv4\Shaders;$(SolutionDir)\..\..\RSDKv4\NativeObjects;$(SolutionDir)\..\..\dependencies\all;$(SolutionDir)\..\..\dependencies\all\asio\asio\include;$(SolutionDir)\..\..\dependencies\all\libogg\include;$(SolutionDir)\..\..\dependencies\all\pugixml\src;$(SolutionDir)\..\..\dependencies\all\stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>-DRSDK_AUTOBUILD=0 -DSONIC_2 -DBLURAY %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <OutputFormat>ELFFile</OutputFormat>
+    </Link>
+    <Link>
+      <AdditionalDependencies>libcs.a;libsn.a;pugixml.a;libivorbis.a;libogg.a;libPSGL.a;libPSGLU.a;libPSGLFX.a;libPSGLcgc.a;libsysmodule_stub.a;libresc_stub.a;libm.a;libdbgfont.a;libsysutil_stub.a;libio_stub.a;libaudio_stub.a;libpthread.a;libsysutil_game_stub.a;libnet_stub.a;libcgc.a;libgcm_cmd.a;libgcm_sys_stub.a;libstdc++.a;libnetctl_stub.a;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Link>
+      <AdditionalLibraryDirectories>C:\usr\local\cell\target\ppu\lib;C:\usr\local\cell\target\ppu\lib\PSGL\RSX\ultra-opt;$(SolutionDir)\PS3_Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>--strip-unused-data %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 1 PLUS Blu-ray|PS3'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <OptimizationLevel>Level2</OptimizationLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\RSDKv4;$(SolutionDir)\..\..\RSDKv4\Shaders;$(SolutionDir)\..\..\RSDKv4\NativeObjects;$(SolutionDir)\..\..\dependencies\all;$(SolutionDir)\..\..\dependencies\all\asio\asio\include;$(SolutionDir)\..\..\dependencies\all\libogg\include;$(SolutionDir)\..\..\dependencies\all\pugixml\src;$(SolutionDir)\..\..\dependencies\all\stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>-DSONIC_1 -DBLURAY %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <OutputFormat>ELFFile</OutputFormat>
+    </Link>
+    <Link>
+      <AdditionalDependencies>libcs.a;libsn.a;pugixml.a;libivorbis.a;libogg.a;libPSGL.a;libPSGLU.a;libPSGLFX.a;libPSGLcgc.a;libsysmodule_stub.a;libresc_stub.a;libm.a;libdbgfont.a;libsysutil_stub.a;libio_stub.a;libaudio_stub.a;libpthread.a;libsysutil_game_stub.a;libnet_stub.a;libcgc.a;libgcm_cmd.a;libgcm_sys_stub.a;libstdc++.a;libnetctl_stub.a;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Link>
+      <AdditionalLibraryDirectories>C:\usr\local\cell\target\ppu\lib;C:\usr\local\cell\target\ppu\lib\PSGL\RSX\ultra-opt;$(SolutionDir)\PS3_Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>--strip-unused-data %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Sonic 2 PLUS Blu-ray|PS3'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <OptimizationLevel>Level2</OptimizationLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\RSDKv4;$(SolutionDir)\..\..\RSDKv4\Shaders;$(SolutionDir)\..\..\RSDKv4\NativeObjects;$(SolutionDir)\..\..\dependencies\all;$(SolutionDir)\..\..\dependencies\all\asio\asio\include;$(SolutionDir)\..\..\dependencies\all\libogg\include;$(SolutionDir)\..\..\dependencies\all\pugixml\src;$(SolutionDir)\..\..\dependencies\all\stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>-DSONIC_2 -DBLURAY %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <OutputFormat>ELFFile</OutputFormat>
+    </Link>
+    <Link>
+      <AdditionalDependencies>libcs.a;libsn.a;pugixml.a;libivorbis.a;libogg.a;libPSGL.a;libPSGLU.a;libPSGLFX.a;libPSGLcgc.a;libsysmodule_stub.a;libresc_stub.a;libm.a;libdbgfont.a;libsysutil_stub.a;libio_stub.a;libaudio_stub.a;libpthread.a;libsysutil_game_stub.a;libnet_stub.a;libcgc.a;libgcm_cmd.a;libgcm_sys_stub.a;libstdc++.a;libnetctl_stub.a;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Link>
+      <AdditionalLibraryDirectories>C:\usr\local\cell\target\ppu\lib;C:\usr\local\cell\target\ppu\lib\PSGL\RSX\ultra-opt;$(SolutionDir)\PS3_Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>--strip-unused-data %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RSDKv4 PLUS|PS3'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <OptimizationLevel>Level2</OptimizationLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\RSDKv4;$(SolutionDir)\..\..\RSDKv4\Shaders;$(SolutionDir)\..\..\RSDKv4\NativeObjects;$(SolutionDir)\..\..\dependencies\all;$(SolutionDir)\..\..\dependencies\all\asio\asio\include;$(SolutionDir)\..\..\dependencies\all\libogg\include;$(SolutionDir)\..\..\dependencies\all\pugixml\src;$(SolutionDir)\..\..\dependencies\all\stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <OutputFormat>ELFFile</OutputFormat>
+    </Link>
+    <Link>
+      <AdditionalDependencies>libcs.a;libsn.a;pugixml.a;libivorbis.a;libogg.a;libPSGL.a;libPSGLU.a;libPSGLFX.a;libPSGLcgc.a;libsysmodule_stub.a;libresc_stub.a;libm.a;libdbgfont.a;libsysutil_stub.a;libio_stub.a;libaudio_stub.a;libpthread.a;libsysutil_game_stub.a;libnet_stub.a;libcgc.a;libgcm_cmd.a;libgcm_sys_stub.a;libstdc++.a;libnetctl_stub.a;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Link>
+      <AdditionalLibraryDirectories>C:\usr\local\cell\target\ppu\lib;C:\usr\local\cell\target\ppu\lib\PSGL\RSX\ultra-opt;$(SolutionDir)\PS3_Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>--strip-unused-data %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RSDKv4 PLUS Blu-ray|PS3'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <OptimizationLevel>Level2</OptimizationLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\RSDKv4;$(SolutionDir)\..\..\RSDKv4\Shaders;$(SolutionDir)\..\..\RSDKv4\NativeObjects;$(SolutionDir)\..\..\dependencies\all;$(SolutionDir)\..\..\dependencies\all\asio\asio\include;$(SolutionDir)\..\..\dependencies\all\libogg\include;$(SolutionDir)\..\..\dependencies\all\pugixml\src;$(SolutionDir)\..\..\dependencies\all\stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>-DBLURAY %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <OutputFormat>ELFFile</OutputFormat>
+    </Link>
+    <Link>
+      <AdditionalDependencies>libcs.a;libsn.a;pugixml.a;libivorbis.a;libogg.a;libPSGL.a;libPSGLU.a;libPSGLFX.a;libPSGLcgc.a;libsysmodule_stub.a;libresc_stub.a;libm.a;libdbgfont.a;libsysutil_stub.a;libio_stub.a;libaudio_stub.a;libpthread.a;libsysutil_game_stub.a;libnet_stub.a;libcgc.a;libgcm_cmd.a;libgcm_sys_stub.a;libstdc++.a;libnetctl_stub.a;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Link>
+      <AdditionalLibraryDirectories>C:\usr\local\cell\target\ppu\lib;C:\usr\local\cell\target\ppu\lib\PSGL\RSX\ultra-opt;$(SolutionDir)\PS3_Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>--strip-unused-data %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RSDKv4 Blu-ray|PS3'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <OptimizationLevel>Level2</OptimizationLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\RSDKv4;$(SolutionDir)\..\..\RSDKv4\Shaders;$(SolutionDir)\..\..\RSDKv4\NativeObjects;$(SolutionDir)\..\..\dependencies\all;$(SolutionDir)\..\..\dependencies\all\asio\asio\include;$(SolutionDir)\..\..\dependencies\all\libogg\include;$(SolutionDir)\..\..\dependencies\all\pugixml\src;$(SolutionDir)\..\..\dependencies\all\stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>-DRSDK_AUTOBUILD=0 -DBLURAY %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <OutputFormat>ELFFile</OutputFormat>
@@ -128,6 +472,7 @@
     <ClInclude Include="..\..\..\RSDKv4\Scene.hpp" />
     <ClInclude Include="..\..\..\RSDKv4\Scene3D.hpp" />
     <ClInclude Include="..\..\..\RSDKv4\Script.hpp" />
+    <ClInclude Include="..\..\..\RSDKv4\Shaders\crt_shaders.h" />
     <ClInclude Include="..\..\..\RSDKv4\Shaders\xbrz_shader.h" />
     <ClInclude Include="..\..\..\RSDKv4\Sprite.hpp" />
     <ClInclude Include="..\..\..\RSDKv4\String.hpp" />

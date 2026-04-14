@@ -112,7 +112,7 @@ void InitMods()
     sprintf(modBuf, "%smods", modsPath);
 #endif
 
-    PrintLog("InitMods: Scanning %s", modBuf);
+     // PrintLog("InitMods: Scanning %s", modBuf);
 
 #if RETRO_PLATFORM != RETRO_PS3
     fs::path modPath = resolvePath(modBuf);
@@ -180,7 +180,7 @@ void InitMods()
                 ModInfo info;
                 if (LoadMod(&info, modBuf, modConfig.items[m].key, active)) {
                     modList.push_back(info);
-                    PrintLog("InitMods: Loaded mod %s from config", info.name.c_str());
+                     // PrintLog("InitMods: Loaded mod %s from config", info.name.c_str());
                 }
             }
         }
@@ -207,7 +207,7 @@ void InitMods()
                     ModInfo info;
                     if (LoadMod(&info, modBuf, entry->d_name, false)) {
                         modList.push_back(info);
-                        PrintLog("InitMods: Found mod folder %s", info.name.c_str());
+                         // PrintLog("InitMods: Found mod folder %s", info.name.c_str());
                     }
                 }
             }
@@ -215,7 +215,7 @@ void InitMods()
         closedir(dir);
     }
     else {
-        PrintLog("InitMods: Failed to open mods directory %s", modBuf);
+         // PrintLog("InitMods: Failed to open mods directory %s", modBuf);
     }
 #endif
 
@@ -411,13 +411,13 @@ static char dstPathPool[16][0x400];
 void CopyDirectory(const char *src, const char *dst, int depth)
 {
     if (depth >= 16) {
-        PrintLog("CopyDirectory: Maximum depth reached!");
+         // PrintLog("CopyDirectory: Maximum depth reached!");
         return;
     }
 
     DIR *dir = opendir(src);
     if (!dir) {
-        PrintLog("CopyDirectory: Failed to open source dir: %s", src);
+         // PrintLog("CopyDirectory: Failed to open source dir: %s", src);
         return;
     }
 
@@ -451,12 +451,12 @@ void CopyDirectory(const char *src, const char *dst, int depth)
                         fclose(dstFile);
                     }
                     else {
-                        PrintLog("CopyDirectory: Failed to open destination file: %s", dstPath);
+                         // PrintLog("CopyDirectory: Failed to open destination file: %s", dstPath);
                     }
                     fclose(srcFile);
                 }
                 else {
-                    PrintLog("CopyDirectory: Failed to open source file: %s", srcPath);
+                     // PrintLog("CopyDirectory: Failed to open source file: %s", srcPath);
                 }
             }
         }
@@ -469,7 +469,7 @@ bool InstallMod(ModInfo *info)
     if (!info || info->basePath.empty())
         return false;
 
-    PrintLog("Installing mod: %s from %s", info->name.c_str(), info->basePath.c_str());
+     // PrintLog("Installing mod: %s from %s", info->name.c_str(), info->basePath.c_str());
 
     char srcPath[0x400];
     snprintf(srcPath, sizeof(srcPath), "%s/%s", info->basePath.c_str(), info->folder.c_str());
@@ -494,7 +494,7 @@ bool InstallMod(ModInfo *info)
 
     CopyDirectory(srcPath, dstPath, 0);
 
-    PrintLog("Installation complete, reloading mods...");
+     // PrintLog("Installation complete, reloading mods...");
     InitMods();
     return true;
 }
@@ -545,7 +545,7 @@ void InitModInstallList()
                         if (!duplicate) {
                             info.basePath = packagesPath;
                             modInstallList.push_back(info);
-                            PrintLog("Mod encontrado en %s: %s", packagesPath, info.name.c_str());
+                             // PrintLog("Mod encontrado en %s: %s", packagesPath, info.name.c_str());
                         }
                     }
                 }

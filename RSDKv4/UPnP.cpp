@@ -67,7 +67,7 @@ static bool SendSOAPRequest(const char *ip, int port, const char *path, const ch
 {
     int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sock < 0) {
-        PrintLog("UPnP - SOAP: Failed to create socket.");
+         // PrintLog("UPnP - SOAP: Failed to create socket.");
         return false;
     }
 
@@ -88,7 +88,7 @@ static bool SendSOAPRequest(const char *ip, int port, const char *path, const ch
     setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv, sizeof(struct timeval));
 
     if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        PrintLog("UPnP - SOAP: Failed to connect to %s:%d", ip, port);
+         // PrintLog("UPnP - SOAP: Failed to connect to %s:%d", ip, port);
         socketclose(sock);
         return false;
     }
@@ -126,20 +126,20 @@ static bool SendSOAPRequest(const char *ip, int port, const char *path, const ch
         response[bytes] = 0;
         bool success = strstr(response, "200 OK") != NULL;
         if (!success) {
-            PrintLog("UPnP - SOAP: Request failed. Response: %.300s...", response);
+             // PrintLog("UPnP - SOAP: Request failed. Response: %.300s...", response);
         }
         free(response);
         return success;
     }
     
-    PrintLog("UPnP - SOAP: No response received.");
+     // PrintLog("UPnP - SOAP: No response received.");
     free(response);
     return false;
 }
 
 void UPnP_AddPortMapping(uint16_t port)
 {
-    PrintLog("UPnP - Starting discovery...");
+     // PrintLog("UPnP - Starting discovery...");
     controlURL[0] = '\0';
     serviceURN[0] = '\0';
 
@@ -177,12 +177,12 @@ void UPnP_AddPortMapping(uint16_t port)
         socklen_t fromlen = sizeof(from);
         bytes = recvfrom(sock, buffer, sizeof(buffer) - 1, 0, (struct sockaddr *)&from, &fromlen);
         if (bytes > 0) break;
-        PrintLog("UPnP - SSDP retry %d...", retry + 1);
+         // PrintLog("UPnP - SSDP retry %d...", retry + 1);
     }
     socketclose(sock);
 
     if (bytes <= 0) {
-        PrintLog("UPnP - No response from router after retries.");
+         // PrintLog("UPnP - No response from router after retries.");
         return;
     }
 
@@ -191,7 +191,7 @@ void UPnP_AddPortMapping(uint16_t port)
     if (!loc) loc = strstr(buffer, "location:");
     if (!loc) loc = strstr(buffer, "Location:");
     if (!loc) {
-        PrintLog("UPnP - Location header not found.");
+         // PrintLog("UPnP - Location header not found.");
         return;
     }
 
@@ -210,7 +210,7 @@ void UPnP_AddPortMapping(uint16_t port)
 
     char path[256];
     ParseLocation(location, routerIP, &routerPort, path);
-    PrintLog("UPnP - Found router at %s:%d, desc: %s", routerIP, routerPort, path);
+     // PrintLog("UPnP - Found router at %s:%d, desc: %s", routerIP, routerPort, path);
 
     int xmlSock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (xmlSock < 0) return;
@@ -281,12 +281,12 @@ void UPnP_AddPortMapping(uint16_t port)
             free(xmlBuf);
         }
     } else {
-        PrintLog("UPnP - Failed to connect to router to fetch XML.");
+         // PrintLog("UPnP - Failed to connect to router to fetch XML.");
     }
     socketclose(xmlSock);
 
     if (controlURL[0] == '\0') {
-        PrintLog("UPnP - Could not find controlURL in XML.");
+         // PrintLog("UPnP - Could not find controlURL in XML.");
         return;
     }
 
@@ -301,7 +301,7 @@ void UPnP_AddPortMapping(uint16_t port)
         }
     }
 
-    PrintLog("UPnP - Control URL: %s (URN: %s)", controlURL, serviceURN);
+     // PrintLog("UPnP - Control URL: %s (URN: %s)", controlURL, serviceURN);
 
     char localIP[16];
     CellNetCtlInfo netInfo;
@@ -331,11 +331,11 @@ void UPnP_AddPortMapping(uint16_t port)
         serviceURN, port, port, localIP);
 
     if (SendSOAPRequest(routerIP, routerPort, controlURL, "AddPortMapping", soapBody, serviceURN)) {
-        PrintLog("UPnP - Port %d (UDP) mapped successfully to %s", port, localIP);
+         // PrintLog("UPnP - Port %d (UDP) mapped successfully to %s", port, localIP);
         isMapped = true;
         mappedPort = port;
     } else {
-        PrintLog("UPnP - Failed to map port %d.", port);
+         // PrintLog("UPnP - Failed to map port %d.", port);
         isMapped = false;
         mappedPort = 0;
     }
@@ -360,11 +360,11 @@ void UPnP_DeletePortMapping(uint16_t port)
         serviceURN, port);
 
     if (SendSOAPRequest(routerIP, routerPort, controlURL, "DeletePortMapping", soapBody, serviceURN)) {
-        PrintLog("UPnP - Port %d (UDP) unmapped successfully.", port);
+         // PrintLog("UPnP - Port %d (UDP) unmapped successfully.", port);
         isMapped = false;
         mappedPort = 0;
     } else {
-        PrintLog("UPnP - Failed to unmap port %d.", port);
+         // PrintLog("UPnP - Failed to unmap port %d.", port);
     }
 }
 

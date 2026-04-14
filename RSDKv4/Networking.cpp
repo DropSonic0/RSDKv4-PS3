@@ -175,7 +175,7 @@ public:
         sys_lwmutex_attribute_t attr;
         sys_lwmutex_attribute_initialize(attr);
         if (sys_lwmutex_create(&writeMutex, &attr) != CELL_OK) {
-            PrintLog("NetworkSession - Failed to create mutex");
+             // PrintLog("NetworkSession - Failed to create mutex");
         }
 
         running         = false;
@@ -190,7 +190,7 @@ public:
 
         sessionSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         if (sessionSocket < 0) {
-            PrintLog("NetworkSession - Failed to create socket: %d", sessionSocket);
+             // PrintLog("NetworkSession - Failed to create socket: %d", sessionSocket);
             running = false;
             return;
         }
@@ -204,11 +204,11 @@ public:
         
         struct hostent *he = gethostbyname(host);
         if (he) {
-            PrintLog("NetworkSession - Resolved %s to %s", host, inet_ntoa(*(struct in_addr *)he->h_addr));
+             // PrintLog("NetworkSession - Resolved %s to %s", host, inet_ntoa(*(struct in_addr *)he->h_addr));
             memcpy(&addr.sin_addr, he->h_addr, he->h_length);
         } else {
             addr.sin_addr.s_addr = inet_addr(host);
-            PrintLog("NetworkSession - Using IP %s", host);
+             // PrintLog("NetworkSession - Using IP %s", host);
         }
 
         int opt = 1;
@@ -258,7 +258,7 @@ public:
         // Fix: Do NOT swap endian here, it will be swapped in run() just before sending
         // SWAP_ENDIAN(l_room);
 #endif
-        PrintLog("NetworkSession::write() - Header=0x%02X, room=0x%08X, player=%u", sent.header, l_room, l_player);
+         // PrintLog("NetworkSession::write() - Header=0x%02X, room=0x%08X, player=%u", sent.header, l_room, l_player);
 
         sys_lwmutex_lock(&writeMutex, 0);
         write_msgs_.push_back(sent);
@@ -271,7 +271,7 @@ public:
 
     void start()
     {
-        PrintLog("NetworkSession::start()");
+         // PrintLog("NetworkSession::start()");
         sys_lwmutex_lock(&writeMutex, 0);
         write_msgs_.clear();
         sys_lwmutex_unlock(&writeMutex);
@@ -327,17 +327,17 @@ public:
         // Fix: Do NOT swap endian here, it will be swapped in SwapPacketEndian just before sending
         // SWAP_ENDIAN(l_room);
 #endif
-            PrintLog("NetworkSession::run() - Sending packet: header=0x%02X, room=0x%08X, player=%u", send->header, l_room, l_player);
+             // PrintLog("NetworkSession::run() - Sending packet: header=0x%02X, room=0x%08X, player=%u", send->header, l_room, l_player);
             
             ServerPacket packet = *send;
             SwapPacketEndian(&packet, false);
             int res = sendto(sessionSocket, (const char*)&packet, sizeof(ServerPacket), 0, (struct sockaddr *)&addr, sizeof(addr));
             if (res < 0) {
-                PrintLog("NetworkSession::run() - sendto failed: %d, errno: %d", res, errno);
+                 // PrintLog("NetworkSession::run() - sendto failed: %d, errno: %d", res, errno);
             }
             
             if (send->header == 0xFF) {
-                PrintLog("NetworkSession::run() - CL_LEAVE sent, stopping session");
+                 // PrintLog("NetworkSession::run() - CL_LEAVE sent, stopping session");
                 running = false;
             }
         }
@@ -415,13 +415,13 @@ private:
         StrCopy(repeat.game, networkGame);
 
         uint l_header = repeat.header;
-        PrintLog("NetworkSession::handle_timer() - Retrying packet: header=0x%02X, retries=%u", l_header, retries);
+         // PrintLog("NetworkSession::handle_timer() - Retrying packet: header=0x%02X, retries=%u", l_header, retries);
         
         ServerPacket packet = repeat;
         SwapPacketEndian(&packet, false);
         int res = sendto(sessionSocket, (const char*)&packet, sizeof(ServerPacket), 0, (struct sockaddr *)&addr, sizeof(addr));
         if (res < 0) {
-            PrintLog("NetworkSession::handle_timer() - sendto failed: %d, errno: %d", res, errno);
+             // PrintLog("NetworkSession::handle_timer() - sendto failed: %d, errno: %d", res, errno);
         }
         
         retries++;
@@ -439,13 +439,13 @@ private:
         memcpy(&l_room, &read_msg_.room, sizeof(uint));
         memcpy(&l_player, &read_msg_.player, sizeof(uint));
         // read_msg_ fields are already Host-endian after SwapPacketEndian
-        PrintLog("NetworkSession::handle_read() - Received packet: header=0x%02X, room=0x%08X, player=%u, ping=%.1fms", read_msg_.header, l_room, l_player, lastPing);
+         // PrintLog("NetworkSession::handle_read() - Received packet: header=0x%02X, room=0x%08X, player=%u, ping=%.1fms", read_msg_.header, l_room, l_player, lastPing);
         waitingForPing = false;
         if (!code) {
             if (read_msg_.header == SV_CODES && read_msg_.player) {
                 code = read_msg_.player;
                 room = read_msg_.room;
-                PrintLog("NetworkSession::handle_read() - Assigned player code: %u, room: 0x%08X", code, room);
+                 // PrintLog("NetworkSession::handle_read() - Assigned player code: %u, room: 0x%08X", code, room);
                 repeat.header = 0x80;
             }
             else {
@@ -458,9 +458,9 @@ private:
                 if (vsPlaying)
                     return;
                 room = read_msg_.room;
-                PrintLog("NetworkSession::handle_read() - SV_CODES: room=0x%08X, type=%d", room, read_msg_.data.multiData.type);
+                 // PrintLog("NetworkSession::handle_read() - SV_CODES: room=0x%08X, type=%d", room, read_msg_.data.multiData.type);
                 if (read_msg_.data.multiData.type > 2) {
-                    PrintLog("NetworkSession::handle_read() - Room full");
+                     // PrintLog("NetworkSession::handle_read() - Room full");
                     dcError = 3;
                     leave();
                     return;
@@ -468,7 +468,7 @@ private:
 
                 if (read_msg_.data.multiData.type - 1) {
                     partner = *read_msg_.data.multiData.data;
-                    PrintLog("NetworkSession::handle_read() - Match joined, partner=%u", partner);
+                     // PrintLog("NetworkSession::handle_read() - Match joined, partner=%u", partner);
                     repeat.header = 0x80;
                     Receive2PVSMatchCode(room);
                     return;
@@ -481,7 +481,7 @@ private:
                 repeat.header = 0x80;
                 vsPlayerID    = 0;
                 partner       = read_msg_.player;
-                PrintLog("NetworkSession::handle_read() - SV_NEW_PLAYER: partner=%u", partner);
+                 // PrintLog("NetworkSession::handle_read() - SV_NEW_PLAYER: partner=%u", partner);
                 Receive2PVSMatchCode(room);
                 return;
             }
@@ -574,7 +574,7 @@ public:
         // Fix: Do NOT swap endian here
         // SWAP_ENDIAN(l_room);
 #endif
-        PrintLog("NetworkSession::write() - Header=0x%02X, room=0x%08X, player=%u", sent.header, l_room, l_player);
+         // PrintLog("NetworkSession::write() - Header=0x%02X, room=0x%08X, player=%u", sent.header, l_room, l_player);
 
         write_msgs_.push_back(sent);
         if (repeat) {
@@ -584,7 +584,7 @@ public:
 
     void start()
     {
-        PrintLog("NetworkSession::start()");
+         // PrintLog("NetworkSession::start()");
         memset(&repeat, 0, sizeof(ServerPacket));
         repeat.header = 0x80;
         running       = true;
@@ -623,7 +623,7 @@ public:
         while (!write_msgs_.empty()) {
             ServerPacket *send = &write_msgs_.front();
             StrCopy(send->game, networkGame);
-            PrintLog("NetworkSession::run() - Sending packet: header=0x%02X, room=0x%08X, player=%u", send->header, send->room, send->player);
+             // PrintLog("NetworkSession::run() - Sending packet: header=0x%02X, room=0x%08X, player=%u", send->header, send->room, send->player);
 #if RETRO_IS_BIG_ENDIAN
             ServerPacket packet = *send;
             SwapPacketEndian(&packet, false);
@@ -633,7 +633,7 @@ public:
 #endif
             write_msgs_.pop_front();
             if (send->header == 0xFF) {
-                PrintLog("NetworkSession::run() - CL_LEAVE sent, stopping session");
+                 // PrintLog("NetworkSession::run() - CL_LEAVE sent, stopping session");
                 session->running = false;
             }
         }
@@ -702,7 +702,7 @@ private:
         if (repeat.header != CL_REQUEST_CODE && repeat.header != CL_JOIN)
             repeat.room = room;
         StrCopy(repeat.game, networkGame);
-        PrintLog("NetworkSession::handle_timer() - Retrying packet: header=0x%02X, retries=%u", repeat.header, retries);
+         // PrintLog("NetworkSession::handle_timer() - Retrying packet: header=0x%02X, retries=%u", repeat.header, retries);
 
         if (retries < 10) {
 #if RETRO_IS_BIG_ENDIAN
@@ -733,12 +733,12 @@ private:
 #if RETRO_IS_BIG_ENDIAN
         // SWAP_ENDIAN(l_room);
 #endif
-        PrintLog("NetworkSession::handle_read() - Received packet: header=0x%02X, room=0x%08X, player=%u, ping=%.1fms", read_msg_.header, l_room, read_msg_.player, lastPing);
+         // PrintLog("NetworkSession::handle_read() - Received packet: header=0x%02X, room=0x%08X, player=%u, ping=%.1fms", read_msg_.header, l_room, read_msg_.player, lastPing);
         waitingForPing = false;
         if (!code) {
             if (read_msg_.header == SV_CODES && read_msg_.player) {
                 code = read_msg_.player;
-                PrintLog("NetworkSession::handle_read() - Assigned player code: %u", code);
+                 // PrintLog("NetworkSession::handle_read() - Assigned player code: %u", code);
                 repeat.header = 0x80;
             }
             else {
@@ -751,9 +751,9 @@ private:
                 if (vsPlaying)
                     return;
                 room = read_msg_.room;
-                PrintLog("NetworkSession::handle_read() - SV_CODES: room=0x%08X, type=%d", room, read_msg_.data.multiData.type);
+                 // PrintLog("NetworkSession::handle_read() - SV_CODES: room=0x%08X, type=%d", room, read_msg_.data.multiData.type);
                 if (read_msg_.data.multiData.type > 2) {
-                    PrintLog("NetworkSession::handle_read() - Room full");
+                     // PrintLog("NetworkSession::handle_read() - Room full");
                     dcError = 3;
                     leave();
                     return;
@@ -761,7 +761,7 @@ private:
 
                 if (read_msg_.data.multiData.type - 1) {
                     partner = *read_msg_.data.multiData.data;
-                    PrintLog("NetworkSession::handle_read() - Match joined, partner=%u", partner);
+                     // PrintLog("NetworkSession::handle_read() - Match joined, partner=%u", partner);
                     repeat.header = 0x80;
                     Receive2PVSMatchCode(room);
                     return;
@@ -774,7 +774,7 @@ private:
                 repeat.header = 0x80;
                 vsPlayerID    = 0;
                 partner       = read_msg_.player;
-                PrintLog("NetworkSession::handle_read() - SV_NEW_PLAYER: partner=%u", partner);
+                 // PrintLog("NetworkSession::handle_read() - SV_NEW_PLAYER: partner=%u", partner);
                 Receive2PVSMatchCode(room);
                 return;
             }
@@ -847,7 +847,7 @@ static void relayLoop(uint64_t arg)
 {
     relaySocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (relaySocket < 0) {
-        PrintLog("RelayServer - Failed to create socket: %d", relaySocket);
+         // PrintLog("RelayServer - Failed to create socket: %d", relaySocket);
         relayThreadRunning = false;
         sys_ppu_thread_exit(0);
         return;
@@ -863,7 +863,7 @@ static void relayLoop(uint64_t arg)
     serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     if (bind(relaySocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0) {
-        PrintLog("RelayServer - Failed to bind to port %d", networkPort);
+         // PrintLog("RelayServer - Failed to bind to port %d", networkPort);
         socketclose(relaySocket);
         relaySocket = -1;
         relayThreadRunning = false;
@@ -875,7 +875,7 @@ static void relayLoop(uint64_t arg)
     int on = 1;
     setsockopt(relaySocket, SOL_SOCKET, SO_NBIO, (const char*)&on, sizeof(on));
 
-    PrintLog("RelayServer - Started on port %d", networkPort);
+     // PrintLog("RelayServer - Started on port %d", networkPort);
     srand((unsigned int)sys_time_get_system_time());
     memset(relayRooms, 0, sizeof(relayRooms));
 
@@ -897,7 +897,7 @@ static void relayLoop(uint64_t arg)
             SWAP_ENDIAN(player_host);
 
             if (packet.header == CL_REQUEST_CODE) {
-                PrintLog("RelayServer - Received CL_REQUEST_CODE from %s", inet_ntoa(clientAddr.sin_addr));
+                 // PrintLog("RelayServer - Received CL_REQUEST_CODE from %s", inet_ntoa(clientAddr.sin_addr));
                 int roomIdx = -1;
                 for (int i = 0; i < MAX_RELAY_ROOMS; ++i) {
                     if (!relayRooms[i].roomCode) {
@@ -937,13 +937,13 @@ static void relayLoop(uint64_t arg)
                     memcpy(&response.data.multiData.type, &r_type, sizeof(int));
 
                     sendto(relaySocket, (const char*)&response, sizeof(ServerPacket), 0, (struct sockaddr *)&clientAddr, sizeof(clientAddr));
-                    PrintLog("RelayServer - Created room 0x%08X for player %u", relayRooms[roomIdx].roomCode, relayRooms[roomIdx].player1_id);
+                     // PrintLog("RelayServer - Created room 0x%08X for player %u", relayRooms[roomIdx].roomCode, relayRooms[roomIdx].player1_id);
                 }
             }
             else if (packet.header == CL_JOIN) {
-                PrintLog("RelayServer - Received CL_JOIN for room 0x%08X", room_host);
+                 // PrintLog("RelayServer - Received CL_JOIN for room 0x%08X", room_host);
                 if (room_host == 0) {
-                    PrintLog("RelayServer - Ignoring JOIN for room 0");
+                     // PrintLog("RelayServer - Ignoring JOIN for room 0");
                     continue;
                 }
                 int roomIdx = -1;
@@ -990,7 +990,7 @@ static void relayLoop(uint64_t arg)
                     memcpy(&response.player, &r_player2, sizeof(uint));
                     
                     sendto(relaySocket, (const char*)&response, sizeof(ServerPacket), 0, (struct sockaddr *)&relayRooms[roomIdx].player1_addr, sizeof(relayRooms[roomIdx].player1_addr));
-                    PrintLog("RelayServer - Player %u joined room 0x%08X", relayRooms[roomIdx].player2_id, room_host);
+                     // PrintLog("RelayServer - Player %u joined room 0x%08X", relayRooms[roomIdx].player2_id, room_host);
                 } else {
                     ServerPacket response;
                     memset(&response, 0, sizeof(ServerPacket));
@@ -1025,7 +1025,7 @@ static void relayLoop(uint64_t arg)
                         memcpy(&response.player, &r_player, sizeof(uint));
                         sendto(relaySocket, (const char*)&response, sizeof(ServerPacket), 0, (struct sockaddr *)target, sizeof(struct sockaddr_in));
                         relayRooms[roomIdx].roomCode = 0; // Close room
-                        PrintLog("RelayServer - Room 0x%08X closed", room_host);
+                         // PrintLog("RelayServer - Room 0x%08X closed", room_host);
                     }
                     else if (target) {
                         sendto(relaySocket, (const char*)&packet, sizeof(ServerPacket), 0, (struct sockaddr *)target, sizeof(struct sockaddr_in));
@@ -1159,13 +1159,13 @@ void InitNetwork()
         }
 
         relayThreadRunning = true;
-        PrintLog("InitNetwork() - Starting Relay Server thread...");
+         // PrintLog("InitNetwork() - Starting Relay Server thread...");
         int res = sys_ppu_thread_create(&relayThread, relayLoop, 0, 400, 32768, SYS_PPU_THREAD_CREATE_JOINABLE, "RelayThread");
         if (res < 0) {
-            PrintLog("InitNetwork() - Failed to start Relay thread: %d", res);
+             // PrintLog("InitNetwork() - Failed to start Relay thread: %d", res);
             relayThreadRunning = false;
         } else {
-            PrintLog("InitNetwork() - Relay thread started successfully.");
+             // PrintLog("InitNetwork() - Relay thread started successfully.");
         }
         
         // When acting as host server, we connect to ourselves

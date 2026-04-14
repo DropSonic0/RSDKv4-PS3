@@ -28,17 +28,17 @@ bool readerMutexCreated = false;
 
 void InitReader() {
     if (readerMutexCreated) return;
-    PrintLog("InitReader: Creating recursive mutex...");
+     // PrintLog("InitReader: Creating recursive mutex...");
     sys_mutex_attribute_t mutexAttr;
     sys_mutex_attribute_initialize(mutexAttr);
     mutexAttr.attr_recursive = SYS_SYNC_RECURSIVE;
     mutexAttr.name[0] = 0;
     int ret = sys_mutex_create(&readerMutex, &mutexAttr);
     if (ret == CELL_OK) {
-        PrintLog("InitReader: Mutex created (ID: %d)", readerMutex);
+         // PrintLog("InitReader: Mutex created (ID: %d)", readerMutex);
         readerMutexCreated = true;
     } else {
-        PrintLog("InitReader: FAILED to create mutex (0x%08X)", ret);
+         // PrintLog("InitReader: FAILED to create mutex (0x%08X)", ret);
     }
 }
 
@@ -46,7 +46,7 @@ void LockReader() {
     if (!readerMutexCreated) return;
     int ret = sys_mutex_lock(readerMutex, 0);
     if (ret != CELL_OK) {
-        PrintLog("LockReader: Failed! (0x%08X)", ret);
+         // PrintLog("LockReader: Failed! (0x%08X)", ret);
     }
 }
 
@@ -54,7 +54,7 @@ void UnlockReader() {
     if (!readerMutexCreated) return;
     int ret = sys_mutex_unlock(readerMutex);
     if (ret != CELL_OK) {
-        PrintLog("UnlockReader: Failed! (0x%08X)", ret);
+         // PrintLog("UnlockReader: Failed! (0x%08X)", ret);
     }
 }
 #endif
@@ -138,7 +138,7 @@ bool CheckRSDKFile(const char *filePath)
             Engine.usingBytecode = true;
             CloseFile();
         }
-        PrintLog("loaded datapack '%s'", filePathBuffer);
+        PrintLog("Loaded Data Pack '%s'", filePathBuffer);
 
         rsdkContainer.packCount++;
 #if RETRO_PLATFORM == RETRO_PS3
@@ -160,7 +160,7 @@ bool CheckRSDKFile(const char *filePath)
             Engine.usingBytecode = true;
             CloseFile();
         }
-        PrintLog("Couldn't load datapack '%s'", filePathBuffer);
+        PrintLog("Couldn't load Data Pack '%s'", filePathBuffer);
         return false;
     }
 }

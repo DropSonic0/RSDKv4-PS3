@@ -60,6 +60,7 @@
     <ClInclude Include="..\..\..\RSDKv4\Userdata.hpp" />
     <ClInclude Include="..\..\..\RSDKv4\BackgroundLoader.hpp" />
     <ClInclude Include="..\..\..\RSDKv4\Shaders\xbrz_shader.h" />
+    <ClInclude Include="..\..\..\RSDKv4\Shaders\crt_shaders.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\..\RSDKv4\RSDKv4 Decomp Icon.ico" />

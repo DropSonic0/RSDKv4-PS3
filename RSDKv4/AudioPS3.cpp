@@ -111,7 +111,7 @@ skip_resample:
 
 bool InitPS3Audio(uint32_t samplerate, uint32_t buffersize) {
     (void)buffersize;
-    PrintLog("InitPS3Audio: Initializing context...");
+     // PrintLog("InitPS3Audio: Initializing context...");
     aud_ctx = (ps3_audio_ctx_t*)calloc(1, sizeof(*aud_ctx));
     if (!aud_ctx) return false;
 

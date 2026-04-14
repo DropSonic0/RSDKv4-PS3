@@ -63,59 +63,59 @@ void PS3SysutilCallback(uint64_t status, uint64_t param, void *userdata)
 
 void InitPS3Network()
 {
-    PrintLog("InitPS3Network() - Loading CELL_SYSMODULE_NET");
+     // PrintLog("InitPS3Network() - Loading CELL_SYSMODULE_NET");
     int res = cellSysmoduleLoadModule(CELL_SYSMODULE_NET);
     if (res < 0 && res != 0x80011100) {
-        PrintLog("InitPS3Network() - Failed to load net module: 0x%08X", res);
+         // PrintLog("InitPS3Network() - Failed to load net module: 0x%08X", res);
     }
 
-    PrintLog("InitPS3Network() - Loading CELL_SYSMODULE_NETCTL");
+     // PrintLog("InitPS3Network() - Loading CELL_SYSMODULE_NETCTL");
     res = cellSysmoduleLoadModule(CELL_SYSMODULE_NETCTL);
     if (res < 0 && res != 0x80011100) {
-        PrintLog("InitPS3Network() - Failed to load netctl module: 0x%08X", res);
+         // PrintLog("InitPS3Network() - Failed to load netctl module: 0x%08X", res);
     }
 
-    PrintLog("InitPS3Network() - Initializing network stack");
+     // PrintLog("InitPS3Network() - Initializing network stack");
     // Standard initialization for some SDKs
     res = sys_net_initialize_network();
     if (res < 0 && res != 0x80010214) {
-        PrintLog("InitPS3Network() - Failed to initialize network: 0x%08X", res);
+         // PrintLog("InitPS3Network() - Failed to initialize network: 0x%08X", res);
     }
 
-    PrintLog("InitPS3Network() - Initializing netctl");
+     // PrintLog("InitPS3Network() - Initializing netctl");
     res = cellNetCtlInit();
     if (res < 0 && res != 0x80010214) {
-        PrintLog("InitPS3Network() - Failed to initialize netctl: 0x%08X", res);
+         // PrintLog("InitPS3Network() - Failed to initialize netctl: 0x%08X", res);
     }
     
     // Check network status before continuing
     int state;
     res = cellNetCtlGetState(&state);
     if (res >= 0 && state != CELL_NET_CTL_STATE_IPObtained) {
-        PrintLog("InitPS3Network() - Network not ready (state: %d), some features may fail.", state);
+         // PrintLog("InitPS3Network() - Network not ready (state: %d), some features may fail.", state);
     }
 
     CellNetCtlInfo info;
     res = cellNetCtlGetInfo(CELL_NET_CTL_INFO_IP_ADDRESS, &info);
     if (res >= 0) {
-        PrintLog("InitPS3Network() - Local IP: %s", info.ip_address);
+         // PrintLog("InitPS3Network() - Local IP: %s", info.ip_address);
     }
 
     if (useHostServer) {
-        PrintLog("InitPS3Network() - Acting as Host Server (Built-in Relay enabled)");
-        PrintLog("InitPS3Network() - Local IP: %s (Use this ONLY for LAN play)", info.ip_address);
-        PrintLog("InitPS3Network() - For GLOBAL play, give your PUBLIC IP to the other player.");
-        PrintLog("InitPS3Network() - Important: IF UPnP fails, UDP Port %d must be forwarded on your router to %s", networkPort, info.ip_address);
+         // PrintLog("InitPS3Network() - Acting as Host Server (Built-in Relay enabled)");
+         // PrintLog("InitPS3Network() - Local IP: %s (Use this ONLY for LAN play)", info.ip_address);
+         // PrintLog("InitPS3Network() - For GLOBAL play, give your PUBLIC IP to the other player.");
+         // PrintLog("InitPS3Network() - Important: IF UPnP fails, UDP Port %d must be forwarded on your router to %s", networkPort, info.ip_address);
     }
     else {
-        PrintLog("InitPS3Network() - Connecting to host: %s", networkHost);
+         // PrintLog("InitPS3Network() - Connecting to host: %s", networkHost);
         if (strncmp(networkHost, "192.168.", 8) == 0 || strncmp(networkHost, "10.", 3) == 0) {
-            PrintLog("InitPS3Network() - WARNING: You are connecting to a PRIVATE IP. This only works on LAN.");
-            PrintLog("InitPS3Network() - For GLOBAL play, you MUST put the Host's PUBLIC IP in settings.ini");
+             // PrintLog("InitPS3Network() - WARNING: You are connecting to a PRIVATE IP. This only works on LAN.");
+             // PrintLog("InitPS3Network() - For GLOBAL play, you MUST put the Host's PUBLIC IP in settings.ini");
         }
     }
 
-    PrintLog("InitPS3Network() - Success");
+     // PrintLog("InitPS3Network() - Success");
 }
 #endif
 

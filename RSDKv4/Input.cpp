@@ -232,7 +232,7 @@ void controllerInit(int controllerID)
         }
         else {
             if (SDL_HapticRumbleInit(device.hapticPtr) < 0) {
-                printf("Unable to initialize rumble!\nSDL_GetError() -> %s", SDL_GetError());
+                PrintLog("Unable to initialize rumble!\nSDL_GetError() -> %s", SDL_GetError());
             }
         }
 

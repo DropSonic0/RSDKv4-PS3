@@ -487,7 +487,7 @@ void MultiplayerScreen_Main(void *objPtr)
             if (self->buttons[self->selectedButton]->state == PUSHBUTTON_STATE_UNSELECTED) {
                 int selected = self->selectedButton;
                 self->state  = MULTIPLAYERSCREEN_STATE_MAIN;
-                PrintLog("MultiplayerScreen - Action confirm: %d", selected);
+                 // PrintLog("MultiplayerScreen - Action confirm: %d", selected);
                 switch (selected) {
                     default: break;
                     case MULTIPLAYERSCREEN_BUTTON_HOST:
@@ -556,7 +556,7 @@ void MultiplayerScreen_Main(void *objPtr)
                         memset(&send, 0, sizeof(ServerPacket));
                         send.header = CL_JOIN;
                         send.room   = self->roomCode;
-                        PrintLog("MultiplayerScreen - Joining room 0x%08X", send.room);
+                         // PrintLog("MultiplayerScreen - Joining room 0x%08X", send.room);
                         SendServerPacket(send, true);
                     }
                 }
@@ -641,7 +641,7 @@ void MultiplayerScreen_Main(void *objPtr)
             else {
                 // listen for room creation success (SV_CODES or SV_NEW_PLAYER)
                 if (vsPlaying && vsPlayerID == 0) {
-                    PrintLog("MultiplayerScreen - Host session started, transitioning.");
+                     // PrintLog("MultiplayerScreen - Host session started, transitioning.");
                     self->selectedButton = MULTIPLAYERSCREEN_BUTTON_JOINROOM;
                     self->state          = MULTIPLAYERSCREEN_STATE_ACTION;
                 }
@@ -1091,7 +1091,7 @@ void MultiplayerScreen_Main(void *objPtr)
     switch (self->stateDraw) {
         default: break;
         case MULTIPLAYERSCREEN_STATEDRAW_MAIN:
-            PrintLog("MultiplayerScreen - DrawState: MAIN");
+             // PrintLog("MultiplayerScreen - DrawState: MAIN");
             for (int i = 0; i < MULTIPLAYERSCREEN_BUTTON_COUNT; ++i) self->buttons[i]->alpha = 0;
             self->buttons[MULTIPLAYERSCREEN_BUTTON_HOST]->alpha = 0x100;
             self->buttons[MULTIPLAYERSCREEN_BUTTON_JOIN]->alpha = 0x100;
@@ -1107,7 +1107,7 @@ void MultiplayerScreen_Main(void *objPtr)
             vsPlayerID           = -1;
             break;
         case MULTIPLAYERSCREEN_STATEDRAW_HOST: {
-            PrintLog("MultiplayerScreen - DrawState: HOST, vsPlayerID=%d", vsPlayerID);
+             // PrintLog("MultiplayerScreen - DrawState: HOST, vsPlayerID=%d", vsPlayerID);
             for (int i = 0; i < MULTIPLAYERSCREEN_BUTTON_COUNT; ++i) self->buttons[i]->alpha = 0;
             for (int i = 0; i < 3; ++i) self->codeLabel[i]->alpha = 0x100;
             for (int i = 0; i < 8; ++i) self->enterCodeLabel[i]->alpha = 0;
@@ -1138,7 +1138,7 @@ void MultiplayerScreen_Main(void *objPtr)
             break;
         }
         case MULTIPLAYERSCREEN_STATEDRAW_IPENTER: {
-            PrintLog("MultiplayerScreen - DrawState: IPENTER");
+             // PrintLog("MultiplayerScreen - DrawState: IPENTER");
             for (int i = 0; i < MULTIPLAYERSCREEN_BUTTON_COUNT; ++i) self->buttons[i]->alpha = 0;
             self->buttons[MULTIPLAYERSCREEN_BUTTON_JOINROOM]->alpha = 0x100;
             self->buttons[MULTIPLAYERSCREEN_BUTTON_JOINROOM]->x     = 0.0;
@@ -1187,7 +1187,7 @@ void MultiplayerScreen_Main(void *objPtr)
             break;
         }
         case MULTIPLAYERSCREEN_STATEDRAW_JOIN: {
-            PrintLog("MultiplayerScreen - DrawState: JOIN");
+             // PrintLog("MultiplayerScreen - DrawState: JOIN");
             self->buttons[MULTIPLAYERSCREEN_BUTTON_JOINROOM]->x     = -56.0;
             self->buttons[MULTIPLAYERSCREEN_BUTTON_JOINROOM]->state = PUSHBUTTON_STATE_SCALED;
             SetStringToFont8(self->buttons[MULTIPLAYERSCREEN_BUTTON_JOINROOM]->text, "JOIN ROOM", FONT_LABEL);

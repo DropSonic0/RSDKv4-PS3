@@ -197,7 +197,7 @@
       <OptimizationLevel>Level2</OptimizationLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <AdditionalIncludeDirectories>$(SolutionDir)\..\..\RSDKv4;$(SolutionDir)\..\..\RSDKv4\Shaders;$(SolutionDir)\..\..\RSDKv4\NativeObjects;$(SolutionDir)\..\..\dependencies\all;$(SolutionDir)\..\..\dependencies\all\asio\asio\include;$(SolutionDir)\..\..\dependencies\all\libogg\include;$(SolutionDir)\..\..\dependencies\all\pugixml\src;$(SolutionDir)\..\..\dependencies\all\stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>-DRSDK_AUTOBUILD=0 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-DRSDK_AUTOBUILD=1 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <OutputFormat>ELFFile</OutputFormat>
@@ -216,7 +216,7 @@
       <OptimizationLevel>Level2</OptimizationLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <AdditionalIncludeDirectories>$(SolutionDir)\..\..\RSDKv4;$(SolutionDir)\..\..\RSDKv4\Shaders;$(SolutionDir)\..\..\RSDKv4\NativeObjects;$(SolutionDir)\..\..\dependencies\all;$(SolutionDir)\..\..\dependencies\all\asio\asio\include;$(SolutionDir)\..\..\dependencies\all\libogg\include;$(SolutionDir)\..\..\dependencies\all\pugixml\src;$(SolutionDir)\..\..\dependencies\all\stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>-DRSDK_AUTOBUILD=0 -DSONIC_1 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-DRSDK_AUTOBUILD=1 -DSONIC_1 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <OutputFormat>ELFFile</OutputFormat>
@@ -235,7 +235,7 @@
       <OptimizationLevel>Level2</OptimizationLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <AdditionalIncludeDirectories>$(SolutionDir)\..\..\RSDKv4;$(SolutionDir)\..\..\RSDKv4\Shaders;$(SolutionDir)\..\..\RSDKv4\NativeObjects;$(SolutionDir)\..\..\dependencies\all;$(SolutionDir)\..\..\dependencies\all\asio\asio\include;$(SolutionDir)\..\..\dependencies\all\libogg\include;$(SolutionDir)\..\..\dependencies\all\pugixml\src;$(SolutionDir)\..\..\dependencies\all\stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>-DRSDK_AUTOBUILD=0 -DSONIC_2 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-DRSDK_AUTOBUILD=1 -DSONIC_2 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <OutputFormat>ELFFile</OutputFormat>
@@ -292,7 +292,7 @@
       <OptimizationLevel>Level2</OptimizationLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <AdditionalIncludeDirectories>$(SolutionDir)\..\..\RSDKv4;$(SolutionDir)\..\..\RSDKv4\Shaders;$(SolutionDir)\..\..\RSDKv4\NativeObjects;$(SolutionDir)\..\..\dependencies\all;$(SolutionDir)\..\..\dependencies\all\asio\asio\include;$(SolutionDir)\..\..\dependencies\all\libogg\include;$(SolutionDir)\..\..\dependencies\all\pugixml\src;$(SolutionDir)\..\..\dependencies\all\stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>-DRSDK_AUTOBUILD=0 -DSONIC_1 -DBLURAY %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-DRSDK_AUTOBUILD=1 -DSONIC_1 -DBLURAY %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <OutputFormat>ELFFile</OutputFormat>
@@ -311,7 +311,7 @@
       <OptimizationLevel>Level2</OptimizationLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <AdditionalIncludeDirectories>$(SolutionDir)\..\..\RSDKv4;$(SolutionDir)\..\..\RSDKv4\Shaders;$(SolutionDir)\..\..\RSDKv4\NativeObjects;$(SolutionDir)\..\..\dependencies\all;$(SolutionDir)\..\..\dependencies\all\asio\asio\include;$(SolutionDir)\..\..\dependencies\all\libogg\include;$(SolutionDir)\..\..\dependencies\all\pugixml\src;$(SolutionDir)\..\..\dependencies\all\stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>-DRSDK_AUTOBUILD=0 -DSONIC_2 -DBLURAY %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-DRSDK_AUTOBUILD=1 -DSONIC_2 -DBLURAY %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <OutputFormat>ELFFile</OutputFormat>
@@ -405,7 +405,7 @@
       <OptimizationLevel>Level2</OptimizationLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <AdditionalIncludeDirectories>$(SolutionDir)\..\..\RSDKv4;$(SolutionDir)\..\..\RSDKv4\Shaders;$(SolutionDir)\..\..\RSDKv4\NativeObjects;$(SolutionDir)\..\..\dependencies\all;$(SolutionDir)\..\..\dependencies\all\asio\asio\include;$(SolutionDir)\..\..\dependencies\all\libogg\include;$(SolutionDir)\..\..\dependencies\all\pugixml\src;$(SolutionDir)\..\..\dependencies\all\stb-image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>-DRSDK_AUTOBUILD=0 -DBLURAY %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-DRSDK_AUTOBUILD=1 -DBLURAY %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <OutputFormat>ELFFile</OutputFormat>

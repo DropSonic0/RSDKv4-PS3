@@ -494,9 +494,11 @@ void InitUserdata()
         disableFocusPause_Config = disableFocusPause;
 
 #if RETRO_USE_NETWORKING
-        ini.SetString("Network", "Host", (char *)"127.0.0.1");
-        StrCopy(networkHost, "127.0.0.1");
-        ini.SetInteger("Network", "Port", networkPort = 50);
+        ini.SetString("Network", "Host", (char *)"34.171.163.243");
+        StrCopy(networkHost, "34.171.163.243");
+        ini.SetString("Network", "Username", (char *)"Player");
+        StrCopy(networkUsername, "Player");
+        ini.SetInteger("Network", "Port", networkPort = 30000);
         ini.SetBool("Network", "HostServer", useHostServer = false);
 #endif
 
@@ -662,9 +664,11 @@ void InitUserdata()
 
 #if RETRO_USE_NETWORKING
         if (!ini.GetString("Network", "Host", networkHost))
-            StrCopy(networkHost, "127.0.0.1");
+            StrCopy(networkHost, "34.171.163.243");
+        if (!ini.GetString("Network", "Username", networkUsername))
+            StrCopy(networkUsername, "Player");
         if (!ini.GetInteger("Network", "Port", &networkPort))
-            networkPort = 50;
+            networkPort = 30000;
         if (!ini.GetBool("Network", "HostServer", &useHostServer))
             useHostServer = false;
 #endif
@@ -965,6 +969,8 @@ void WriteSettings()
 #if RETRO_USE_NETWORKING
     ini.SetComment("Network", "HostComment", "The host (IP address or \"URL\") that the game will try to connect to.");
     ini.SetString("Network", "Host", networkHost);
+    ini.SetComment("Network", "UsernameComment", "The username to show in the server list.");
+    ini.SetString("Network", "Username", networkUsername);
     ini.SetComment("Network", "PortComment", "The port the game will try to connect to.");
     ini.SetInteger("Network", "Port", networkPort);
     ini.SetComment("Network", "HostServerComment", "If enabled, the PS3 will act as the Master/Relay server.");

@@ -85,9 +85,10 @@ void MultiplayerScreen_Create(void *objPtr)
     self->state     = MULTIPLAYERSCREEN_STATE_ENTER;
     self->stateDraw = MULTIPLAYERSCREEN_STATEDRAW_MAIN;
     self->scale     = 0.0f;
-    self->timer     = 0.0f;
-    self->roomCode  = 0;
-    self->rotationY = 0.0f;
+    self->timer         = 0.0f;
+    self->roomCode      = 0;
+    self->requestedRoom = false;
+    self->rotationY     = 0.0f;
     self->flipDir   = 0;
     vsPlayerID      = -1;
 
@@ -491,8 +492,8 @@ void MultiplayerScreen_Main(void *objPtr)
                 switch (selected) {
                     default: break;
                     case MULTIPLAYERSCREEN_BUTTON_HOST:
-                        useHostServer = true;
-                        StrCopy(networkHost, "127.0.0.1");
+                        useHostServer = false;
+                        StrCopy(networkHost, "34.171.163.243");
                         WriteSettings();
                         RunNetwork();
 
@@ -503,13 +504,17 @@ void MultiplayerScreen_Main(void *objPtr)
                         break;
                     case MULTIPLAYERSCREEN_BUTTON_JOIN:
                         useHostServer = false;
+                        StrCopy(networkHost, "34.171.163.243");
                         WriteSettings();
                         RunNetwork();
 
                         self->state         = MULTIPLAYERSCREEN_STATE_FLIP;
-                        self->nextState     = MULTIPLAYERSCREEN_STATE_IPENTER;
-                        self->nextStateDraw = MULTIPLAYERSCREEN_STATEDRAW_IPENTER;
+                        self->nextState     = MULTIPLAYERSCREEN_STATE_JOINSCR;
+                        self->nextStateDraw = MULTIPLAYERSCREEN_STATEDRAW_JOIN;
                         self->flipDir       = 1;
+                        
+                        availableRoomCount = 0;
+                        self->requestedRoom = false; // Reset for reuse as list request flag
                         break;
                     case MULTIPLAYERSCREEN_BUTTON_JOINROOM: {
                         self->state                   = MULTIPLAYERSCREEN_STATE_STARTGAME;
@@ -637,6 +642,21 @@ void MultiplayerScreen_Main(void *objPtr)
                     self->codeLabel[1]->alignPtr(self->codeLabel[1], ALIGN_CENTER);
                     self->roomCode = code;
                 }
+                else {
+                    if (GetNetworkCode() && !self->requestedRoom) {
+                        ServerPacket send;
+                        memset(&send, 0, sizeof(ServerPacket));
+                        send.header = CL_REQUEST_CODE;
+                        if (!vsGameLength)
+                            vsGameLength = 4;
+                        if (!vsItemMode)
+                            vsItemMode = 1;
+                        send.data.multiData.type    = 0x00000FF0;
+                        send.data.multiData.data[0] = (vsGameLength << 4) | (vsItemMode << 8);
+                        SendServerPacket(send, true);
+                        self->requestedRoom = true;
+                    }
+                }
             }
             else {
                 // listen for room creation success (SV_CODES or SV_NEW_PLAYER)
@@ -682,6 +702,56 @@ void MultiplayerScreen_Main(void *objPtr)
         case MULTIPLAYERSCREEN_STATE_JOINSCR: {
             CheckKeyDown(&keyDown);
             CheckKeyPress(&keyPress);
+
+            if (!GetNetworkCode()) {
+                self->codeLabel[1]->alpha = 0x100;
+                self->codeLabel[1]->y     = 0;
+                SetStringToFont8(self->codeLabel[1]->text, "CONNECTING...", FONT_LABEL);
+                self->codeLabel[1]->alignPtr(self->codeLabel[1], ALIGN_CENTER);
+                memcpy(&self->codeLabel[1]->renderMatrix, &self->renderMatrix, sizeof(MatrixF));
+                return;
+            }
+
+            if (!self->requestedRoom) {
+                ServerPacket send;
+                memset(&send, 0, sizeof(ServerPacket));
+                send.header = CL_LIST_ROOMS;
+                SendServerPacket(send);
+                self->requestedRoom = true;
+                self->timer         = 0.0f;
+            }
+
+            self->timer += Engine.deltaTime;
+            if (self->timer > 5.0) { // Refresh every 5 seconds
+                self->requestedRoom = false;
+                self->timer         = 0.0f;
+            }
+
+            if (availableRoomCount > 0) {
+                if (keyPress.up) {
+                    self->touchedUpID--;
+                    if (self->touchedUpID < 0) self->touchedUpID = availableRoomCount - 1;
+                    PlaySfxByName("Menu Move", false);
+                }
+                if (keyPress.down) {
+                    self->touchedUpID++;
+                    if (self->touchedUpID >= availableRoomCount) self->touchedUpID = 0;
+                    PlaySfxByName("Menu Move", false);
+                }
+                if (keyPress.A || keyPress.start) {
+                    self->roomCode = availableRooms[self->touchedUpID].code;
+                    self->selectedButton = MULTIPLAYERSCREEN_BUTTON_JOINROOM;
+                    self->state = MULTIPLAYERSCREEN_STATE_ACTION;
+                    PlaySfxByName("Menu Select", false);
+                }
+                if (keyPress.B) {
+                    self->state         = MULTIPLAYERSCREEN_STATE_FLIP;
+                    self->nextState     = MULTIPLAYERSCREEN_STATE_MAIN;
+                    self->nextStateDraw = MULTIPLAYERSCREEN_STATEDRAW_MAIN;
+                    PlaySfxByName("Menu Back", false);
+                }
+                return;
+            }
 
             if (usePhysicalControls) {
                 if (touches > 0) {
@@ -1195,7 +1265,7 @@ void MultiplayerScreen_Main(void *objPtr)
             self->buttons[MULTIPLAYERSCREEN_BUTTON_PASTE]->state = PUSHBUTTON_STATE_SCALED;
             for (int i = 0; i < MULTIPLAYERSCREEN_BUTTON_COUNT; ++i) self->buttons[i]->alpha = 0;
             self->selectedButton = MULTIPLAYERSCREEN_BUTTON_COUNT;
-            self->touchedUpID    = -1;
+            self->touchedUpID    = 0;
             self->touchedDownID  = -1;
 
             for (int i = 0; i < 3; ++i) self->codeLabel[i]->alpha = 0;
@@ -1203,17 +1273,11 @@ void MultiplayerScreen_Main(void *objPtr)
             self->roomCode  = 0;
             vsPlayerID      = 1; // we are... Little Guy
             for (int i = 0; i < 8; ++i) {
-                self->enterCodeLabel[i]->alpha     = 0x100;
+                self->enterCodeLabel[i]->alpha     = 0;
                 self->enterCodeLabel[i]->useColors = false;
-
-                char codeBuf[0x10];
-                sprintf(codeBuf, "%X", 0);
-                SetStringToFont8(self->enterCodeLabel[i]->text, codeBuf, self->enterCodeLabel[i]->fontID);
-                self->enterCodeLabel[i]->alignPtr(self->enterCodeLabel[i], ALIGN_CENTER);
             }
-            self->enterCodeLabel[0]->useColors                      = true;
-            self->buttons[MULTIPLAYERSCREEN_BUTTON_JOINROOM]->alpha = 0x100;
-            self->buttons[MULTIPLAYERSCREEN_BUTTON_PASTE]->alpha    = 0x100;
+            self->buttons[MULTIPLAYERSCREEN_BUTTON_JOINROOM]->alpha = 0;
+            self->buttons[MULTIPLAYERSCREEN_BUTTON_PASTE]->alpha    = 0;
             if (self->ipPrefixLabel) self->ipPrefixLabel->alpha = 0;
             for (int i = 0; i < 12; ++i) self->ipDigitLabel[i]->alpha = 0;
             for (int i = 0; i < 3; ++i) self->ipDotLabel[i]->alpha = 0;
@@ -1233,5 +1297,46 @@ void MultiplayerScreen_Main(void *objPtr)
         RenderImage(128.0, -92.0, 160.0, 0.3, 0.3, 64.0, 64.0, 128.0, 128.0, 128.0, 128.0, self->arrowAlpha, self->textureArrows);
     else
         RenderImage(128.0, -92.0, 160.0, 0.3, 0.3, 64.0, 64.0, 128.0, 128.0, 128.0, 0.0, self->arrowAlpha, self->textureArrows);
+
+    if (self->state == MULTIPLAYERSCREEN_STATE_JOINSCR) {
+        for (int i = 0; i < 8; ++i) self->enterCodeLabel[i]->alpha = 0;
+        self->codeLabel[1]->alpha = 0;
+        self->enterCodeSlider[0]->alpha = 0;
+        self->enterCodeSlider[1]->alpha = 0;
+
+        if (availableRoomCount > 0) {
+            int count = availableRoomCount > 8 ? 8 : availableRoomCount;
+            for (int i = 0; i < count; ++i) {
+                float y = 40.0f - (i * 20.0f);
+                
+                self->enterCodeLabel[i]->alpha = 0x100;
+                self->enterCodeLabel[i]->useColors = (i == self->touchedUpID);
+                self->enterCodeLabel[i]->x = 0;
+                self->enterCodeLabel[i]->y = y;
+                SetStringToFont8(self->enterCodeLabel[i]->text, availableRooms[i].username, FONT_LABEL);
+                self->enterCodeLabel[i]->alignPtr(self->enterCodeLabel[i], ALIGN_CENTER);
+                memcpy(&self->enterCodeLabel[i]->renderMatrix, &self->renderMatrix, sizeof(MatrixF));
+
+                if (i == self->touchedUpID) {
+                    self->enterCodeSlider[0]->alpha = 0x100;
+                    self->enterCodeSlider[0]->x = -80.0f;
+                    self->enterCodeSlider[0]->y = y + 4.0f;
+                    memcpy(&self->enterCodeSlider[0]->renderMatrix, &self->renderMatrix, sizeof(MatrixF));
+
+                    self->enterCodeSlider[1]->alpha = 0x100;
+                    self->enterCodeSlider[1]->x = 80.0f;
+                    self->enterCodeSlider[1]->y = y - 4.0f;
+                    MatrixRotateZF(&self->enterCodeSlider[1]->renderMatrix, DegreesToRad(180));
+                    MatrixMultiplyF(&self->enterCodeSlider[1]->renderMatrix, &self->renderMatrix);
+                }
+            }
+        } else {
+            self->codeLabel[1]->alpha = 0x100;
+            self->codeLabel[1]->y = 0;
+            SetStringToFont8(self->codeLabel[1]->text, "NO ROOMS FOUND", FONT_LABEL);
+            self->codeLabel[1]->alignPtr(self->codeLabel[1], ALIGN_CENTER);
+            memcpy(&self->codeLabel[1]->renderMatrix, &self->renderMatrix, sizeof(MatrixF));
+        }
+    }
 }
 #endif

@@ -57,6 +57,7 @@ struct NativeEntity_MultiplayerScreen : NativeEntityBase {
     float rotationY;
     NativeEntity_TextLabel *codeLabel[3];
     int roomCode;
+    bool requestedRoom;
     NativeEntity_TextLabel *enterCodeLabel[8];
     NativeEntity_TextLabel *enterCodeSlider[2];
     NativeEntity_TextLabel *ipPrefixLabel;

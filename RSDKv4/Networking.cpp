@@ -34,8 +34,11 @@
 #endif
 
 char networkHost[64];
+char networkUsername[20] = "Player";
+RoomInfo availableRooms[16];
+int availableRoomCount = 0;
 char networkGame[7] = "SONIC2";
-int networkPort     = 50;
+int networkPort     = 30000;
 bool useHostServer  = false;
 int dcError         = 0;
 float lastPing      = 0;
@@ -109,7 +112,13 @@ void SwapPacketEndian(ServerPacket *p, bool receiving)
         // Decided to keep the packet Host-endian internally after reception for easier handling
         memcpy(&p->data.multiData.type, &type, sizeof(int));
         
-        if (hostType == 1) {
+        if (p->header == SV_ROOM_LIST) {
+            // SV_ROOM_LIST multiData.type is the count, sent as Little Endian from the Node.js server.
+            // SwapEndian above already swapped 'type' into host-endian if RETRO_IS_BIG_ENDIAN is true.
+            return;
+        }
+
+        if (hostType == 1 && (p->header == SV_DATA || p->header == SV_DATA_VERIFIED || p->header == CL_DATA || p->header == CL_DATA_VERIFIED)) {
             SwapEntityEndian((Entity *)p->data.multiData.data);
         }
         else {
@@ -230,7 +239,7 @@ public:
         if (!running) return;
 
         // Ignore redundant request codes if we already have a code/room
-        if (code && msg.header == CL_REQUEST_CODE)
+        if (code && room && msg.header == CL_REQUEST_CODE)
             return;
 
         // Ignore game data packets if we are not connected yet
@@ -277,6 +286,14 @@ public:
         sys_lwmutex_unlock(&writeMutex);
 
         running       = true;
+
+        ServerPacket send;
+        memset(&send, 0, sizeof(ServerPacket));
+        send.header = CL_REQUEST_CODE;
+        send.room   = 0x1F2F3F4F;
+        StrCopy((char*)send.data.bytes, networkUsername);
+        write(send);
+
         code          = 0;
         room          = 0;
         partner       = 0;
@@ -414,8 +431,7 @@ private:
             
         StrCopy(repeat.game, networkGame);
 
-        uint l_header = repeat.header;
-         // PrintLog("NetworkSession::handle_timer() - Retrying packet: header=0x%02X, retries=%u", l_header, retries);
+         // PrintLog("NetworkSession::handle_timer() - Retrying packet: header=0x%02X, retries=%u", repeat.header, retries);
         
         ServerPacket packet = repeat;
         SwapPacketEndian(&packet, false);
@@ -459,6 +475,10 @@ private:
                     return;
                 room = read_msg_.room;
                  // PrintLog("NetworkSession::handle_read() - SV_CODES: room=0x%08X, type=%d", room, read_msg_.data.multiData.type);
+                if (read_msg_.data.multiData.type == 1 && room != 0) {
+                    repeat.header = 0x80;
+                }
+
                 if (read_msg_.data.multiData.type > 2) {
                      // PrintLog("NetworkSession::handle_read() - Room full");
                     dcError = 3;
@@ -513,6 +533,21 @@ private:
                 repeat.header = 0x80;
                 return;
             }
+            case SV_ROOM_LIST: {
+                int count = read_msg_.data.multiData.type;
+                availableRoomCount = count > 16 ? 16 : count;
+                byte *ptr = (byte*)read_msg_.data.multiData.data;
+                for (int i = 0; i < availableRoomCount; ++i) {
+                    availableRooms[i].code = *(uint*)ptr;
+#if RETRO_IS_BIG_ENDIAN
+                    SWAP_ENDIAN(availableRooms[i].code);
+#endif
+                    ptr += 4;
+                    StrCopy(availableRooms[i].username, (char*)ptr);
+                    ptr += 20;
+                }
+                return;
+            }
             case SV_NO_ROOM: {
                 leave();
                 dcError = 5;
@@ -546,7 +581,7 @@ public:
         if (!running) return;
 
         // Ignore redundant request codes if we already have a code/room
-        if (code && msg.header == CL_REQUEST_CODE)
+        if (code && room && msg.header == CL_REQUEST_CODE)
             return;
 
         // Ignore game data packets if we are not connected yet
@@ -587,7 +622,15 @@ public:
          // PrintLog("NetworkSession::start()");
         memset(&repeat, 0, sizeof(ServerPacket));
         repeat.header = 0x80;
+
         running       = true;
+
+        ServerPacket send;
+        memset(&send, 0, sizeof(ServerPacket));
+        send.header = CL_REQUEST_CODE;
+        send.room   = 0x1F2F3F4F;
+        StrCopy((char*)send.data.bytes, networkUsername);
+        write(send);
     }
 
     void close()
@@ -804,6 +847,21 @@ private:
             }
             case SV_VERIFY_CLEAR: {
                 repeat.header = 0x80;
+                return;
+            }
+            case SV_ROOM_LIST: {
+                int count          = read_msg_.data.multiData.type;
+                availableRoomCount = count > 16 ? 16 : count;
+                byte *ptr          = (byte *)read_msg_.data.multiData.data;
+                for (int i = 0; i < availableRoomCount; ++i) {
+                    availableRooms[i].code = *(uint *)ptr;
+#if RETRO_IS_BIG_ENDIAN
+                    SWAP_ENDIAN(availableRooms[i].code);
+#endif
+                    ptr += 4;
+                    StrCopy(availableRooms[i].username, (char *)ptr);
+                    ptr += 20;
+                }
                 return;
             }
             case SV_NO_ROOM: {
@@ -1169,12 +1227,13 @@ void InitNetwork()
         }
         
         // When acting as host server, we connect to ourselves
-        StrCopy(networkHost, "127.0.0.1");
+        StrCopy(networkHost, "34.171.163.243");
     }
 
     if (session)
         delete session;
     session = new NetworkSession(networkHost, networkPort);
+    StrCopy(publicIP, networkHost);
 #else
     udp::resolver resolver(io_context);
     asio::error_code ec;
@@ -1215,10 +1274,8 @@ void RunNetwork()
     netThreadRunning = true;
     sys_ppu_thread_create(&netThread, networkLoop, 0, 500, 65536, SYS_PPU_THREAD_CREATE_JOINABLE, "NetworkingThread");
 #else
-    if (loopThread.joinable()) {
-        DisconnectNetwork();
-        InitNetwork();
-    }
+    DisconnectNetwork();
+    InitNetwork();
     loopThread = std::thread(networkLoop);
 #endif
 }
@@ -1309,6 +1366,12 @@ void SetRoomCode(int code)
 {
     if (session)
         session->room = code;
+}
+int GetNetworkCode()
+{
+    if (session)
+        return session->code;
+    return 0;
 }
 
 void SetNetworkGameName(int *a1, const char *name) { StrCopy(networkGame, name); }

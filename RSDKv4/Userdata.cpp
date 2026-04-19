@@ -1430,6 +1430,7 @@ void TransmitGlobal(int *globalValue, const char *globalName)
 
 void TransmitStageBreak()
 {
+    ResetMultiplayerInfo();
     multiplayerDataOUT.type    = 3;
     multiplayerDataOUT.data[0] = activeStageList;
     multiplayerDataOUT.data[1] = stageListPosition;
@@ -1451,6 +1452,7 @@ void Receive2PVSData(MultiplayerData *data)
             break;
         case 2: globalVariables[data->data[0]] = data->data[1]; break;
         case 3:
+            ResetMultiplayerInfo();
             activeStageList   = data->data[0];
             stageListPosition = data->data[1];
             if (vsPlaying && vsPlayerID != 0 && Engine.gameMode == ENGINE_DEVMENU) {

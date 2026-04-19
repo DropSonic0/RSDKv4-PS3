@@ -35,7 +35,7 @@
 
 char networkHost[64];
 char networkUsername[20] = "Player";
-RoomInfo availableRooms[16];
+RoomInfo availableRooms[10];
 int availableRoomCount = 0;
 char networkGame[7] = "SONIC2";
 int networkPort     = 30000;
@@ -112,9 +112,10 @@ void SwapPacketEndian(ServerPacket *p, bool receiving)
         // Decided to keep the packet Host-endian internally after reception for easier handling
         memcpy(&p->data.multiData.type, &type, sizeof(int));
         
-        if (p->header == SV_ROOM_LIST) {
-            // SV_ROOM_LIST multiData.type is the count, sent as Little Endian from the Node.js server.
-            // SwapEndian above already swapped 'type' into host-endian if RETRO_IS_BIG_ENDIAN is true.
+        if (p->header == SV_ROOM_LIST || p->header == CL_REQUEST_CODE || p->header == CL_JOIN) {
+            // These packets contain strings or handled specifically
+            // We still need to swap room and player IDs (done above)
+            // and we might need to handle the 'type' field which is an int
             return;
         }
 
@@ -135,6 +136,21 @@ void SwapPacketEndian(ServerPacket *p, bool receiving)
     else {
         // BE (Host) -> LE (to packet)
         int hostType = type;
+
+        if (p->header == CL_REQUEST_CODE || p->header == CL_JOIN) {
+            // Strings at multiData.data[1] (offset 20)
+            // settings at multiData.data[0] (offset 16)
+            int settings;
+            memcpy(&settings, &p->data.multiData.data[0], sizeof(int));
+            SWAP_ENDIAN(settings);
+            memcpy(&p->data.multiData.data[0], &settings, sizeof(int));
+            
+            // Swap type last
+            SwapEndian(&type, sizeof(int));
+            memcpy(&p->data.multiData.type, &type, sizeof(int));
+            return;
+        }
+
         if (hostType == 1) {
             SwapEntityEndian((Entity *)p->data.multiData.data);
         }
@@ -238,12 +254,8 @@ public:
     {
         if (!running) return;
 
-        // Ignore redundant request codes if we already have a code/room
-        if (code && room && msg.header == CL_REQUEST_CODE)
-            return;
-
         // Ignore game data packets if we are not connected yet
-        if (!code && msg.header != CL_REQUEST_CODE && msg.header != CL_JOIN)
+        if (!code && msg.header != CL_REQUEST_CODE && msg.header != CL_JOIN && msg.header != CL_LIST_ROOMS)
             return;
 
         ServerPacket sent = msg;
@@ -260,21 +272,14 @@ public:
             sent.room = room;
         }
         
-        uint l_room, l_player;
-        memcpy(&l_room, &sent.room, sizeof(uint));
-        memcpy(&l_player, &sent.player, sizeof(uint));
-#if RETRO_IS_BIG_ENDIAN
-        // Fix: Do NOT swap endian here, it will be swapped in run() just before sending
-        // SWAP_ENDIAN(l_room);
-#endif
-         // PrintLog("NetworkSession::write() - Header=0x%02X, room=0x%08X, player=%u", sent.header, l_room, l_player);
-
         sys_lwmutex_lock(&writeMutex, 0);
         write_msgs_.push_back(sent);
         sys_lwmutex_unlock(&writeMutex);
 
         if (repeat) {
             this->repeat = sent;
+            this->retries = 0;
+            this->timer = sys_time_get_system_time();
         }
     }
 
@@ -291,8 +296,8 @@ public:
         memset(&send, 0, sizeof(ServerPacket));
         send.header = CL_REQUEST_CODE;
         send.room   = 0x1F2F3F4F;
-        StrCopy((char*)send.data.bytes, networkUsername);
-        write(send);
+        StrCopy((char *)&send.data.multiData.data[6], networkUsername);
+        write(send, true);
 
         code          = 0;
         room          = 0;
@@ -337,17 +342,10 @@ public:
             ServerPacket *send = &sentMsg;
             StrCopy(send->game, networkGame);
 
-            uint l_room, l_player;
-            memcpy(&l_room, &send->room, sizeof(uint));
-            memcpy(&l_player, &send->player, sizeof(uint));
-#if RETRO_IS_BIG_ENDIAN
-        // Fix: Do NOT swap endian here, it will be swapped in SwapPacketEndian just before sending
-        // SWAP_ENDIAN(l_room);
-#endif
-             // PrintLog("NetworkSession::run() - Sending packet: header=0x%02X, room=0x%08X, player=%u", send->header, l_room, l_player);
-            
             ServerPacket packet = *send;
+#if RETRO_IS_BIG_ENDIAN
             SwapPacketEndian(&packet, false);
+#endif
             int res = sendto(sessionSocket, (const char*)&packet, sizeof(ServerPacket), 0, (struct sockaddr *)&addr, sizeof(addr));
             if (res < 0) {
                  // PrintLog("NetworkSession::run() - sendto failed: %d, errno: %d", res, errno);
@@ -362,31 +360,24 @@ public:
         do_read();
 
         uint64_t now = sys_time_get_system_time();
-        if (repeat.header != 0x80 && retried) {
+        if (repeat.header != 0x80) {
             if (now >= timer + 1000000) { // 1 second
                 handle_timer();
                 timer = now;
             }
         }
-        else if (repeat.header == 0x80) {
+        else {
             retries = 0;
             timer = now;
         }
 
-        if (retries > 10) {
+        if (retries > 30) {
             switch (repeat.header) {
-                case 0x01: {
+                case CL_JOIN:
+                case CL_REQUEST_CODE: {
                     dcError          = 4;
                     vsPlaying        = false;
-                    running = false;
-                    break;
-                }
-                case 0x00: {
-                    if (!room) {
-                        dcError          = 4;
-                        vsPlaying        = false;
-                        running = false;
-                    }
+                    running          = false;
                     break;
                 }
             }
@@ -425,7 +416,6 @@ private:
     {
         if (sessionSocket < 0) return;
 
-        retried     = true;
         if (repeat.header != CL_REQUEST_CODE && repeat.header != CL_JOIN)
             repeat.room = room;
             
@@ -434,7 +424,9 @@ private:
          // PrintLog("NetworkSession::handle_timer() - Retrying packet: header=0x%02X, retries=%u", repeat.header, retries);
         
         ServerPacket packet = repeat;
+#if RETRO_IS_BIG_ENDIAN
         SwapPacketEndian(&packet, false);
+#endif
         int res = sendto(sessionSocket, (const char*)&packet, sizeof(ServerPacket), 0, (struct sockaddr *)&addr, sizeof(addr));
         if (res < 0) {
              // PrintLog("NetworkSession::handle_timer() - sendto failed: %d, errno: %d", res, errno);
@@ -445,17 +437,14 @@ private:
 
     void handle_read(size_t bytes)
     {
+#if RETRO_IS_BIG_ENDIAN
         SwapPacketEndian(&read_msg_, true);
+#endif
 
         uint64_t now   = sys_time_get_system_time();
         lastPing       = (float)((now - lastTime) / 1000.0);
         lastTime       = now;
         
-        uint l_room, l_player;
-        memcpy(&l_room, &read_msg_.room, sizeof(uint));
-        memcpy(&l_player, &read_msg_.player, sizeof(uint));
-        // read_msg_ fields are already Host-endian after SwapPacketEndian
-         // PrintLog("NetworkSession::handle_read() - Received packet: header=0x%02X, room=0x%08X, player=%u, ping=%.1fms", read_msg_.header, l_room, l_player, lastPing);
         waitingForPing = false;
         if (!code) {
             if (read_msg_.header == SV_CODES && read_msg_.player) {
@@ -535,17 +524,33 @@ private:
             }
             case SV_ROOM_LIST: {
                 int count = read_msg_.data.multiData.type;
-                availableRoomCount = count > 16 ? 16 : count;
+                availableRoomCount = count > 10 ? 10 : count;
                 byte *ptr = (byte*)read_msg_.data.multiData.data;
                 for (int i = 0; i < availableRoomCount; ++i) {
-                    availableRooms[i].code = *(uint*)ptr;
+                    memcpy(&availableRooms[i].code, ptr, 4);
 #if RETRO_IS_BIG_ENDIAN
                     SWAP_ENDIAN(availableRooms[i].code);
 #endif
                     ptr += 4;
                     StrCopy(availableRooms[i].username, (char*)ptr);
                     ptr += 20;
+                    availableRooms[i].rounds   = *ptr++;
+                    availableRooms[i].itemMode = *ptr++;
+                    StrCopy(availableRooms[i].modName, (char*)ptr);
+                    ptr += 20;
                 }
+                return;
+            }
+            case SV_UNKNOWN_PLAYER: {
+                code    = 0;
+                room    = 0;
+                partner = 0;
+                ServerPacket send;
+                memset(&send, 0, sizeof(ServerPacket));
+                send.header = CL_REQUEST_CODE;
+                send.room   = 0x1F2F3F4F;
+                StrCopy((char *)&send.data.multiData.data[6], networkUsername);
+                write(send, true);
                 return;
             }
             case SV_NO_ROOM: {
@@ -580,12 +585,8 @@ public:
     {
         if (!running) return;
 
-        // Ignore redundant request codes if we already have a code/room
-        if (code && room && msg.header == CL_REQUEST_CODE)
-            return;
-
         // Ignore game data packets if we are not connected yet
-        if (!code && msg.header != CL_REQUEST_CODE && msg.header != CL_JOIN)
+        if (!code && msg.header != CL_REQUEST_CODE && msg.header != CL_JOIN && msg.header != CL_LIST_ROOMS)
             return;
 
         ServerPacket sent(msg);
@@ -602,18 +603,11 @@ public:
             sent.room = room;
         }
 
-        uint l_room, l_player;
-        memcpy(&l_room, &sent.room, sizeof(uint));
-        memcpy(&l_player, &sent.player, sizeof(uint));
-#if RETRO_IS_BIG_ENDIAN
-        // Fix: Do NOT swap endian here
-        // SWAP_ENDIAN(l_room);
-#endif
-         // PrintLog("NetworkSession::write() - Header=0x%02X, room=0x%08X, player=%u", sent.header, l_room, l_player);
-
         write_msgs_.push_back(sent);
         if (repeat) {
             this->repeat = sent;
+            this->retries = 0;
+            this->retried = true;
         }
     }
 
@@ -630,7 +624,7 @@ public:
         send.header = CL_REQUEST_CODE;
         send.room   = 0x1F2F3F4F;
         StrCopy((char*)send.data.bytes, networkUsername);
-        write(send);
+        write(send, true);
     }
 
     void close()
@@ -666,18 +660,18 @@ public:
         while (!write_msgs_.empty()) {
             ServerPacket *send = &write_msgs_.front();
             StrCopy(send->game, networkGame);
-             // PrintLog("NetworkSession::run() - Sending packet: header=0x%02X, room=0x%08X, player=%u", send->header, send->room, send->player);
-#if RETRO_IS_BIG_ENDIAN
+
             ServerPacket packet = *send;
+#if RETRO_IS_BIG_ENDIAN
             SwapPacketEndian(&packet, false);
             socket.send_to(asio::buffer(&packet, sizeof(ServerPacket)), endpoint);
 #else
-            socket.send_to(asio::buffer(send, sizeof(ServerPacket)), endpoint);
+            socket.send_to(asio::buffer(&packet, sizeof(ServerPacket)), endpoint);
 #endif
             write_msgs_.pop_front();
             if (send->header == 0xFF) {
                  // PrintLog("NetworkSession::run() - CL_LEAVE sent, stopping session");
-                session->running = false;
+                running = false;
             }
         }
         if (!awaitingReceive)
@@ -689,20 +683,14 @@ public:
         }
         else if (repeat.header == 0x80)
             retries = 0;
-        if (retries > 10) {
+            
+        if (retries > 30) {
             switch (repeat.header) {
-                case 0x01: {
+                case CL_JOIN:
+                case CL_REQUEST_CODE: {
                     dcError          = 4;
                     vsPlaying        = false;
-                    session->running = false;
-                    break;
-                }
-                case 0x00: {
-                    if (!room) {
-                        dcError          = 4;
-                        vsPlaying        = false;
-                        session->running = false;
-                    }
+                    running          = false;
                     break;
                 }
             }
@@ -739,7 +727,7 @@ private:
 
     void handle_timer(const asio::error_code &ec)
     {
-        if (ec || !session->running)
+        if (ec || !running)
             return;
         retried = true;
         if (repeat.header != CL_REQUEST_CODE && repeat.header != CL_JOIN)
@@ -747,14 +735,12 @@ private:
         StrCopy(repeat.game, networkGame);
          // PrintLog("NetworkSession::handle_timer() - Retrying packet: header=0x%02X, retries=%u", repeat.header, retries);
 
-        if (retries < 10) {
-#if RETRO_IS_BIG_ENDIAN
+        if (retries < 30) {
             ServerPacket packet = repeat;
+#if RETRO_IS_BIG_ENDIAN
             SwapPacketEndian(&packet, false);
-            socket.send_to(asio::buffer(&packet, sizeof(ServerPacket)), endpoint);
-#else
-            socket.send_to(asio::buffer(&repeat, sizeof(ServerPacket)), endpoint);
 #endif
+            socket.send_to(asio::buffer(&packet, sizeof(ServerPacket)), endpoint);
             retries++;
         }
     }
@@ -762,7 +748,7 @@ private:
     void handle_read(const asio::error_code &ec, size_t bytes)
     {
         awaitingReceive = false; // async, not threaded. this is safe
-        if (ec || !session->running)
+        if (ec || !running)
             return;
 
 #if RETRO_IS_BIG_ENDIAN
@@ -772,15 +758,12 @@ private:
         // it's ok to use preformace counter; we're in a different thread and slowdown is safe
         lastPing       = ((SDL_GetPerformanceCounter() - lastTime) * 1000.0 / SDL_GetPerformanceFrequency());
         lastTime       = SDL_GetPerformanceCounter();
-        uint l_room = read_msg_.room;
-#if RETRO_IS_BIG_ENDIAN
-        // SWAP_ENDIAN(l_room);
-#endif
-         // PrintLog("NetworkSession::handle_read() - Received packet: header=0x%02X, room=0x%08X, player=%u, ping=%.1fms", read_msg_.header, l_room, read_msg_.player, lastPing);
+
         waitingForPing = false;
         if (!code) {
             if (read_msg_.header == SV_CODES && read_msg_.player) {
                 code = read_msg_.player;
+                room = read_msg_.room;
                  // PrintLog("NetworkSession::handle_read() - Assigned player code: %u", code);
                 repeat.header = 0x80;
             }
@@ -851,17 +834,33 @@ private:
             }
             case SV_ROOM_LIST: {
                 int count          = read_msg_.data.multiData.type;
-                availableRoomCount = count > 16 ? 16 : count;
+                availableRoomCount = count > 10 ? 10 : count;
                 byte *ptr          = (byte *)read_msg_.data.multiData.data;
                 for (int i = 0; i < availableRoomCount; ++i) {
-                    availableRooms[i].code = *(uint *)ptr;
+                    memcpy(&availableRooms[i].code, ptr, 4);
 #if RETRO_IS_BIG_ENDIAN
                     SWAP_ENDIAN(availableRooms[i].code);
 #endif
                     ptr += 4;
                     StrCopy(availableRooms[i].username, (char *)ptr);
                     ptr += 20;
+                    availableRooms[i].rounds   = *ptr++;
+                    availableRooms[i].itemMode = *ptr++;
+                    StrCopy(availableRooms[i].modName, (char *)ptr);
+                    ptr += 20;
                 }
+                return;
+            }
+            case SV_UNKNOWN_PLAYER: {
+                code    = 0;
+                room    = 0;
+                partner = 0;
+                ServerPacket send;
+                memset(&send, 0, sizeof(ServerPacket));
+                send.header = CL_REQUEST_CODE;
+                send.room   = 0x1F2F3F4F;
+                StrCopy((char *)&send.data.multiData.data[6], networkUsername);
+                write(send, true);
                 return;
             }
             case SV_NO_ROOM: {
@@ -878,10 +877,6 @@ private:
             }
         }
     }
-
-    bool writing = false;
-
-    int attempts;
 };
 #endif
 

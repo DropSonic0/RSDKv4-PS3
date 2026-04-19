@@ -105,7 +105,7 @@ void MultiplayerScreen_Create(void *objPtr)
     self->label->alignPtr(self->label, ALIGN_CENTER);
 
     self->meshPanel = LoadMesh("Data/Game/Models/Panel.bin", -2);
-    SetMeshVertexColors(self->meshPanel, 0, 0, 0, 0xC0);
+    SetMeshVertexColors(self->meshPanel, 0, 0, 0, 192);
     self->textureArrows                                           = LoadTexture("Data/Game/Menu/ArrowButtons.png", TEXFMT_RGBA4444);
     self->buttons[MULTIPLAYERSCREEN_BUTTON_HOST]                  = CREATE_ENTITY(PushButton);
     self->buttons[MULTIPLAYERSCREEN_BUTTON_HOST]->useRenderMatrix = true;
@@ -187,7 +187,7 @@ void MultiplayerScreen_Create(void *objPtr)
     char codeBuf[0x8];
     sprintf(codeBuf, "%X", 0);
 
-    for (int i = 0; i < 8; ++i) {
+    for (int i = 0; i < 10; ++i) {
         self->enterCodeLabel[i]                  = CREATE_ENTITY(TextLabel);
         self->enterCodeLabel[i]->useRenderMatrix = true;
         self->enterCodeLabel[i]->fontID          = FONT_LABEL;
@@ -302,7 +302,7 @@ void MultiplayerScreen_Destroy(void *objPtr)
     RSDK_THIS(MultiplayerScreen);
     RemoveNativeObject(self->label);
     for (int i = 0; i < 3; ++i) RemoveNativeObject(self->codeLabel[i]);
-    for (int i = 0; i < 8; ++i) RemoveNativeObject(self->enterCodeLabel[i]);
+    for (int i = 0; i < 10; ++i) RemoveNativeObject(self->enterCodeLabel[i]);
     for (int i = 0; i < 2; ++i) RemoveNativeObject(self->enterCodeSlider[i]);
     RemoveNativeObject(self->ipPrefixLabel);
     for (int i = 0; i < 12; ++i) RemoveNativeObject(self->ipDigitLabel[i]);
@@ -352,7 +352,7 @@ void MultiplayerScreen_Main(void *objPtr)
     for (int i = 0; i < MULTIPLAYERSCREEN_BUTTON_COUNT; ++i) {
         if (self->buttons[i]) memcpy(&self->buttons[i]->renderMatrix, &self->renderMatrix, sizeof(MatrixF));
     }
-    for (int i = 0; i < 8; ++i) {
+    for (int i = 0; i < 10; ++i) {
         if (self->enterCodeLabel[i]) memcpy(&self->enterCodeLabel[i]->renderMatrix, &self->renderMatrix, sizeof(MatrixF));
     }
     for (int i = 0; i < 12; ++i) {
@@ -642,26 +642,42 @@ void MultiplayerScreen_Main(void *objPtr)
                     self->codeLabel[1]->alignPtr(self->codeLabel[1], ALIGN_CENTER);
                     self->roomCode = code;
                 }
-                else {
-                    if (GetNetworkCode() && !self->requestedRoom) {
-                        ServerPacket send;
-                        memset(&send, 0, sizeof(ServerPacket));
-                        send.header = CL_REQUEST_CODE;
-                        if (!vsGameLength)
-                            vsGameLength = 4;
-                        if (!vsItemMode)
-                            vsItemMode = 1;
-                        send.data.multiData.type    = 0x00000FF0;
-                        send.data.multiData.data[0] = (vsGameLength << 4) | (vsItemMode << 8);
-                        SendServerPacket(send, true);
-                        self->requestedRoom = true;
+            }
+
+            if (GetNetworkCode()) {
+                self->timer += Engine.deltaTime;
+                if (self->timer > 4.0 || (!self->requestedRoom && !self->roomCode)) {
+                    ServerPacket send;
+                    memset(&send, 0, sizeof(ServerPacket));
+                    send.header = CL_REQUEST_CODE;
+                    StrCopy((char *)&send.data.multiData.data[6], networkUsername);
+                    if (!vsGameLength)
+                        vsGameLength = 4;
+                    if (!vsItemMode)
+                        vsItemMode = 1;
+                    send.data.multiData.type    = 0x00000FF0;
+                    send.data.multiData.data[0] = (vsGameLength << 4) | (vsItemMode << 8);
+#if RETRO_USE_MOD_LOADER
+                    if (activeMod >= 0) {
+                        StrCopy((char *)&send.data.multiData.data[1], modList[activeMod].name.c_str());
                     }
+#endif
+                    SendServerPacket(send, true);
+                    self->requestedRoom = true;
+                    self->timer         = 0.0;
                 }
             }
-            else {
+            else if (self->requestedRoom) {
+                // If we had a room/code but lost it (server reset or error), allow re-registration
+                self->roomCode = 0;
+                SetRoomCode(0);
+                self->requestedRoom = false;
+            }
+
+            if (self->roomCode) {
                 // listen for room creation success (SV_CODES or SV_NEW_PLAYER)
                 if (vsPlaying && vsPlayerID == 0) {
-                     // PrintLog("MultiplayerScreen - Host session started, transitioning.");
+                    // PrintLog("MultiplayerScreen - Host session started, transitioning.");
                     self->selectedButton = MULTIPLAYERSCREEN_BUTTON_JOINROOM;
                     self->state          = MULTIPLAYERSCREEN_STATE_ACTION;
                 }
@@ -709,307 +725,55 @@ void MultiplayerScreen_Main(void *objPtr)
                 SetStringToFont8(self->codeLabel[1]->text, "CONNECTING...", FONT_LABEL);
                 self->codeLabel[1]->alignPtr(self->codeLabel[1], ALIGN_CENTER);
                 memcpy(&self->codeLabel[1]->renderMatrix, &self->renderMatrix, sizeof(MatrixF));
-                return;
             }
+            else {
+                if (!self->requestedRoom) {
+                    ServerPacket send;
+                    memset(&send, 0, sizeof(ServerPacket));
+                    send.header = CL_LIST_ROOMS;
+                    SendServerPacket(send);
+                    self->requestedRoom = true;
+                    self->timer         = 0.0f;
+                }
 
-            if (!self->requestedRoom) {
-                ServerPacket send;
-                memset(&send, 0, sizeof(ServerPacket));
-                send.header = CL_LIST_ROOMS;
-                SendServerPacket(send);
-                self->requestedRoom = true;
-                self->timer         = 0.0f;
-            }
+                self->timer += Engine.deltaTime;
+                if (self->timer > 5.0) { // Refresh every 5 seconds
+                    self->requestedRoom = false;
+                    self->timer         = 0.0f;
+                }
 
-            self->timer += Engine.deltaTime;
-            if (self->timer > 5.0) { // Refresh every 5 seconds
-                self->requestedRoom = false;
-                self->timer         = 0.0f;
-            }
-
-            if (availableRoomCount > 0) {
-                if (keyPress.up) {
-                    self->touchedUpID--;
-                    if (self->touchedUpID < 0) self->touchedUpID = availableRoomCount - 1;
-                    PlaySfxByName("Menu Move", false);
-                }
-                if (keyPress.down) {
-                    self->touchedUpID++;
-                    if (self->touchedUpID >= availableRoomCount) self->touchedUpID = 0;
-                    PlaySfxByName("Menu Move", false);
-                }
-                if (keyPress.A || keyPress.start) {
-                    self->roomCode = availableRooms[self->touchedUpID].code;
-                    self->selectedButton = MULTIPLAYERSCREEN_BUTTON_JOINROOM;
-                    self->state = MULTIPLAYERSCREEN_STATE_ACTION;
-                    PlaySfxByName("Menu Select", false);
-                }
-                if (keyPress.B) {
-                    self->state         = MULTIPLAYERSCREEN_STATE_FLIP;
-                    self->nextState     = MULTIPLAYERSCREEN_STATE_MAIN;
-                    self->nextStateDraw = MULTIPLAYERSCREEN_STATEDRAW_MAIN;
-                    PlaySfxByName("Menu Back", false);
-                }
-                return;
-            }
-
-            if (usePhysicalControls) {
-                if (touches > 0) {
-                    usePhysicalControls = false;
-                }
-                else {
-                    if (keyPress.left) {
+                if (availableRoomCount > 0) {
+                    int maxRooms = availableRoomCount > 10 ? 10 : availableRoomCount;
+                    if (keyPress.up) {
+                        self->touchedUpID--;
+                        if (self->touchedUpID < 0)
+                            self->touchedUpID = maxRooms - 1;
                         PlaySfxByName("Menu Move", false);
-                        self->selectedButton--;
-                        if (self->selectedButton < 3)
-                            self->selectedButton = 12;
                     }
-                    else if (keyPress.right) {
+                    if (keyPress.down) {
+                        self->touchedUpID++;
+                        if (self->touchedUpID >= maxRooms)
+                            self->touchedUpID = 0;
                         PlaySfxByName("Menu Move", false);
-                        self->selectedButton++;
-                        if (self->selectedButton > 12)
-                            self->selectedButton = 3;
                     }
-
-                    if ((self->selectedButton != MULTIPLAYERSCREEN_BUTTON_JOINROOM && self->selectedButton != MULTIPLAYERSCREEN_BUTTON_PASTE)
-                        && (keyPress.up || keyPress.down)) {
-                        union {
-                            int val;
-                            byte bytes[4];
-                        } u;
-                        u.val         = self->roomCode;
-#if RETRO_IS_BIG_ENDIAN
-                        SWAP_ENDIAN(u.val);
-#endif
-                        int n         = 7 - (self->selectedButton - 5);
-                        int nybbles[] = { u.bytes[n >> 1] & 0xF, ((u.bytes[n >> 1] & 0xF0) >> 4) & 0xF };
-
-                        if (keyPress.up) {
-                            PlaySfxByName("Menu Move", false);
-                            nybbles[n & 1] = (nybbles[n & 1] + 1) & 0xF;
-                        }
-                        else if (keyPress.down) {
-                            PlaySfxByName("Menu Move", false);
-                            nybbles[n & 1] = (nybbles[n & 1] - 1) & 0xF;
-                        }
-
-                        u.bytes[n >> 1] = (nybbles[1] << 4) | (nybbles[0] & 0xF);
-#if RETRO_IS_BIG_ENDIAN
-                        SWAP_ENDIAN(u.val);
-#endif
-                        self->roomCode  = u.val;
-
-                        MultiplayerScreen_DrawJoinCode(self, 7 - n);
+                    if (keyPress.A || keyPress.start) {
+                        self->roomCode       = availableRooms[self->touchedUpID].code;
+                        self->selectedButton = MULTIPLAYERSCREEN_BUTTON_JOINROOM;
+                        self->state          = MULTIPLAYERSCREEN_STATE_ACTION;
+                        PlaySfxByName("Menu Select", false);
                     }
-
-                    for (int i = 0; i < 8; ++i) self->enterCodeLabel[i]->useColors = false;
-                    self->buttons[MULTIPLAYERSCREEN_BUTTON_JOINROOM]->state = PUSHBUTTON_STATE_UNSELECTED;
-                    self->buttons[MULTIPLAYERSCREEN_BUTTON_PASTE]->state    = PUSHBUTTON_STATE_UNSELECTED;
-                    self->enterCodeSlider[0]->alpha                         = 0;
-                    self->enterCodeSlider[1]->alpha                         = 0;
-
-                    if (self->selectedButton == MULTIPLAYERSCREEN_BUTTON_JOINROOM)
-                        self->buttons[MULTIPLAYERSCREEN_BUTTON_JOINROOM]->state = PUSHBUTTON_STATE_SELECTED;
-                    else if (self->selectedButton == MULTIPLAYERSCREEN_BUTTON_PASTE)
-                        self->buttons[MULTIPLAYERSCREEN_BUTTON_PASTE]->state = PUSHBUTTON_STATE_SELECTED;
-                    else if (self->selectedButton > 4) {
-                        self->enterCodeSlider[0]->x     = self->enterCodeLabel[self->selectedButton - 5]->x;
-                        self->enterCodeSlider[1]->x     = -self->enterCodeLabel[self->selectedButton - 5]->x;
-                        self->enterCodeSlider[0]->alpha = 0x100;
-                        self->enterCodeSlider[1]->alpha = 0x100;
-
-                        self->enterCodeLabel[self->selectedButton - 5]->useColors = true;
-                    }
-
-                    if (keyPress.start || keyPress.A) {
-                        if (self->selectedButton == MULTIPLAYERSCREEN_BUTTON_JOINROOM) {
-                            PlaySfxByName("Menu Select", false);
-                            self->buttons[MULTIPLAYERSCREEN_BUTTON_JOINROOM]->state = PUSHBUTTON_STATE_UNSELECTED;
-                            self->selectedButton                                    = MULTIPLAYERSCREEN_BUTTON_JOINROOM;
-                            self->state                                             = MULTIPLAYERSCREEN_STATE_ACTION;
-                        }
-                        else if (self->selectedButton == MULTIPLAYERSCREEN_BUTTON_PASTE) {
-                            self->buttons[MULTIPLAYERSCREEN_BUTTON_PASTE]->state = PUSHBUTTON_STATE_FLASHING;
-#if RETRO_PLATFORM != RETRO_PS3
-                            char buf[0x30];
-                            char *txt = SDL_GetClipboardText(); // easier bc we must SDL free after
-                            if (StrLength(txt) && StrLength(txt) < 0x30 - 2) {
-                                StrCopy(buf, "0x");
-                                StrAdd(buf, txt);
-                                int before = self->roomCode;
-                                if (ConvertStringToInteger(buf, &self->roomCode)) {
-                                    MultiplayerScreen_DrawJoinCode(self, 0);
-                                    self->enterCodeLabel[0]->useColors = false;
-                                    self->selectedButton               = MULTIPLAYERSCREEN_BUTTON_JOINROOM;
-                                    if (Engine.gameType == GAME_SONIC1) //??
-                                        PlaySfxByName("Lamp Post", false);
-                                    else
-                                        PlaySfxByName("Star Post", false);
-                                }
-                                else {
-                                    self->roomCode = before;
-                                    PlaySfxByName("Hurt", false);
-                                }
-                            }
-                            else
-                                PlaySfxByName("Hurt", false);
-                            SDL_free(txt);
-#else
-                            PlaySfxByName("Hurt", false);
-#endif
-                        }
-                    }
-                    else if (keyPress.B) {
-                        PlaySfxByName("Menu Back", false);
+                    if (keyPress.B || self->backPressed) {
+                        self->backPressed   = false;
                         self->state         = MULTIPLAYERSCREEN_STATE_FLIP;
                         self->nextState     = MULTIPLAYERSCREEN_STATE_MAIN;
                         self->nextStateDraw = MULTIPLAYERSCREEN_STATEDRAW_MAIN;
+                        PlaySfxByName("Menu Back", false);
                     }
-                }
-            }
-            else {
-                if (touches > 0) {
-                    float w = self->enterCodeLabel[1]->x - self->enterCodeLabel[0]->x;
-                    for (int i = 0; i < 8; ++i) {
-                        if (CheckTouchRect(self->enterCodeLabel[i]->x, 22.0f, w / 2, 16.0) >= 0)
-                            self->touchedUpID = i;
-                        if (CheckTouchRect(self->enterCodeLabel[i]->x, -22.0f, w / 2, 16.0) >= 0)
-                            self->touchedDownID = i;
-                    }
-
-                    for (int i = 0; i < 8; ++i) self->enterCodeLabel[i]->useColors = false;
-
-                    int id = self->touchedDownID;
-                    if (self->touchedUpID >= 0)
-                        id = self->touchedUpID;
-                    if (id >= 0) {
-                        self->selectedButton            = id + 5;
-                        self->enterCodeSlider[0]->x     = self->enterCodeLabel[id]->x;
-                        self->enterCodeSlider[1]->x     = -self->enterCodeLabel[id]->x;
-                        self->enterCodeSlider[0]->alpha = 0x100;
-                        self->enterCodeSlider[1]->alpha = 0x100;
-
-                        self->enterCodeLabel[id]->useColors = true;
-                    }
-
-                    self->buttons[MULTIPLAYERSCREEN_BUTTON_JOINROOM]->state =
-                        CheckTouchRect(-56.0f, -64.0f,
-                                       ((64.0 * self->buttons[MULTIPLAYERSCREEN_BUTTON_JOINROOM]->scale)
-                                        + self->buttons[MULTIPLAYERSCREEN_BUTTON_JOINROOM]->textWidth)
-                                           * 0.75,
-                                       12.0)
-                        >= 0;
-                    self->buttons[MULTIPLAYERSCREEN_BUTTON_PASTE]->state =
-                        CheckTouchRect(
-                            64.0f, -64.0f,
-                            ((64.0 * self->buttons[MULTIPLAYERSCREEN_BUTTON_PASTE]->scale) + self->buttons[MULTIPLAYERSCREEN_BUTTON_PASTE]->textWidth)
-                                * 0.75,
-                            12.0)
-                        >= 0;
-
-                    self->backPressed = CheckTouchRect(128.0, -92.0, 32.0, 32.0) >= 0;
-                    if (keyDown.left || keyDown.right) {
-                        usePhysicalControls = true;
+                    else if (!usePhysicalControls && touches > 0) {
+                        self->backPressed = CheckTouchRect(128.0, -92.0, 32.0, 32.0) >= 0;
                     }
                 }
                 else {
-                    if (self->touchedUpID >= 0 || self->touchedDownID >= 0) {
-                        int id = self->touchedDownID;
-                        if (self->touchedUpID >= 0)
-                            id = self->touchedUpID;
-
-                        union {
-                            int val;
-                            byte bytes[4];
-                        } u;
-                        u.val         = self->roomCode;
-#if RETRO_IS_BIG_ENDIAN
-                        SWAP_ENDIAN(u.val);
-#endif
-                        int n         = 7 - id;
-                        int nybbles[] = { u.bytes[n >> 1] & 0xF, ((u.bytes[n >> 1] & 0xF0) >> 4) & 0xF };
-
-                        if (self->touchedUpID >= 0) {
-                            PlaySfxByName("Menu Move", false);
-                            nybbles[n & 1] = (nybbles[n & 1] + 1) & 0xF;
-                        }
-                        else if (self->touchedDownID >= 0) {
-                            PlaySfxByName("Menu Move", false);
-                            nybbles[n & 1] = (nybbles[n & 1] - 1) & 0xF;
-                        }
-
-                        u.bytes[n >> 1] = (nybbles[1] << 4) | (nybbles[0] & 0xF);
-#if RETRO_IS_BIG_ENDIAN
-                        SWAP_ENDIAN(u.val);
-#endif
-                        self->roomCode  = u.val;
-
-                        u.val = self->roomCode;
-#if RETRO_IS_BIG_ENDIAN
-                        SWAP_ENDIAN(u.val);
-#endif
-                        for (int i = 0; i < 8; i += 2) {
-                            int n         = 7 - i;
-                            int nybbles[] = { u.bytes[n >> 1] & 0xF, ((u.bytes[n >> 1] & 0xF0) >> 4) & 0xF };
-
-                            self->enterCodeLabel[i + 0]->alpha = 0x100;
-                            self->enterCodeLabel[i + 1]->alpha = 0x100;
-
-                            self->enterCodeLabel[i + 0]->useColors = false;
-                            self->enterCodeLabel[i + 1]->useColors = false;
-
-                            char codeBuf[0x10];
-                            sprintf(codeBuf, "%X", nybbles[1]);
-                            SetStringToFont8(self->enterCodeLabel[i + 0]->text, codeBuf, self->enterCodeLabel[i + 0]->fontID);
-                            self->enterCodeLabel[i + 0]->alignPtr(self->enterCodeLabel[i + 0], ALIGN_CENTER);
-
-                            sprintf(codeBuf, "%X", nybbles[0]);
-                            SetStringToFont8(self->enterCodeLabel[i + 1]->text, codeBuf, self->enterCodeLabel[i + 1]->fontID);
-                            self->enterCodeLabel[i + 1]->alignPtr(self->enterCodeLabel[i + 1], ALIGN_CENTER);
-                        }
-                        self->enterCodeLabel[id]->useColors = true;
-
-                        self->touchedUpID   = -1;
-                        self->touchedDownID = -1;
-                    }
-
-                    if (self->buttons[MULTIPLAYERSCREEN_BUTTON_JOINROOM]->state == PUSHBUTTON_STATE_SELECTED) {
-                        PlaySfxByName("Menu Select", false);
-                        self->buttons[MULTIPLAYERSCREEN_BUTTON_JOINROOM]->state = PUSHBUTTON_STATE_UNSELECTED;
-                        self->selectedButton                                    = MULTIPLAYERSCREEN_BUTTON_JOINROOM;
-                        self->state                                             = MULTIPLAYERSCREEN_STATE_ACTION;
-                    }
-                    else if (self->buttons[MULTIPLAYERSCREEN_BUTTON_PASTE]->state == PUSHBUTTON_STATE_SELECTED) {
-                        self->buttons[MULTIPLAYERSCREEN_BUTTON_PASTE]->state = PUSHBUTTON_STATE_FLASHING;
-#if RETRO_PLATFORM != RETRO_PS3
-                        char buf[0x30];
-                        char *txt = SDL_GetClipboardText(); // easier bc we must SDL free after
-                        if (StrLength(txt) && StrLength(txt) < 0x30 - 2) {
-                            StrCopy(buf, "0x");
-                            StrAdd(buf, txt);
-                            int before = self->roomCode;
-                            if (ConvertStringToInteger(buf, &self->roomCode)) {
-                                MultiplayerScreen_DrawJoinCode(self, 0);
-                                self->enterCodeLabel[0]->useColors = false;
-                                self->selectedButton               = 5;
-                                if (Engine.gameType == GAME_SONIC1)
-                                    PlaySfxByName("Lamp Post", false);
-                                else
-                                    PlaySfxByName("Star Post", false);
-                            }
-                            else {
-                                self->roomCode = before;
-                                PlaySfxByName("Hurt", false);
-                            }
-                        }
-                        else
-                            PlaySfxByName("Hurt", false);
-                        SDL_free(txt);
-#else
-                        PlaySfxByName("Hurt", false);
-#endif
-                    }
-
                     if (keyPress.B || self->backPressed) {
                         PlaySfxByName("Menu Back", false);
                         self->backPressed   = false;
@@ -1017,15 +781,8 @@ void MultiplayerScreen_Main(void *objPtr)
                         self->nextState     = MULTIPLAYERSCREEN_STATE_MAIN;
                         self->nextStateDraw = MULTIPLAYERSCREEN_STATEDRAW_MAIN;
                     }
-                    else {
-                        if (keyDown.left) {
-                            self->selectedButton = 5;
-                            usePhysicalControls  = true;
-                        }
-                        if (keyDown.right) {
-                            self->selectedButton = 12;
-                            usePhysicalControls  = true;
-                        }
+                    else if (!usePhysicalControls && touches > 0) {
+                        self->backPressed = CheckTouchRect(128.0, -92.0, 32.0, 32.0) >= 0;
                     }
                 }
             }
@@ -1202,7 +959,12 @@ void MultiplayerScreen_Main(void *objPtr)
                 vsItemMode = 1;
             send.data.multiData.type    = 0x00000FF0;
             send.data.multiData.data[0] = (vsGameLength << 4) | (vsItemMode << 8);
-            vsPlayerID                  = 0; // we are... Big Host
+#if RETRO_USE_MOD_LOADER
+            if (activeMod >= 0) {
+                StrCopy((char *)&send.data.multiData.data[1], modList[activeMod].name.c_str());
+            }
+#endif
+            vsPlayerID = 0; // we are... Big Host
 
             SendServerPacket(send, true);
             break;
@@ -1299,40 +1061,74 @@ void MultiplayerScreen_Main(void *objPtr)
         RenderImage(128.0, -92.0, 160.0, 0.3, 0.3, 64.0, 64.0, 128.0, 128.0, 128.0, 0.0, self->arrowAlpha, self->textureArrows);
 
     if (self->state == MULTIPLAYERSCREEN_STATE_JOINSCR) {
-        for (int i = 0; i < 8; ++i) self->enterCodeLabel[i]->alpha = 0;
-        self->codeLabel[1]->alpha = 0;
+        for (int i = 0; i < 10; ++i) self->enterCodeLabel[i]->alpha = 0;
+        self->codeLabel[1]->alpha       = 0;
         self->enterCodeSlider[0]->alpha = 0;
         self->enterCodeSlider[1]->alpha = 0;
 
-        if (availableRoomCount > 0) {
-            int count = availableRoomCount > 8 ? 8 : availableRoomCount;
-            for (int i = 0; i < count; ++i) {
-                float y = 40.0f - (i * 20.0f);
-                
-                self->enterCodeLabel[i]->alpha = 0x100;
-                self->enterCodeLabel[i]->useColors = (i == self->touchedUpID);
-                self->enterCodeLabel[i]->x = 0;
-                self->enterCodeLabel[i]->y = y;
-                SetStringToFont8(self->enterCodeLabel[i]->text, availableRooms[i].username, FONT_LABEL);
-                self->enterCodeLabel[i]->alignPtr(self->enterCodeLabel[i], ALIGN_CENTER);
-                memcpy(&self->enterCodeLabel[i]->renderMatrix, &self->renderMatrix, sizeof(MatrixF));
-
-                if (i == self->touchedUpID) {
-                    self->enterCodeSlider[0]->alpha = 0x100;
-                    self->enterCodeSlider[0]->x = -80.0f;
-                    self->enterCodeSlider[0]->y = y + 4.0f;
-                    memcpy(&self->enterCodeSlider[0]->renderMatrix, &self->renderMatrix, sizeof(MatrixF));
-
-                    self->enterCodeSlider[1]->alpha = 0x100;
-                    self->enterCodeSlider[1]->x = 80.0f;
-                    self->enterCodeSlider[1]->y = y - 4.0f;
-                    MatrixRotateZF(&self->enterCodeSlider[1]->renderMatrix, DegreesToRad(180));
-                    MatrixMultiplyF(&self->enterCodeSlider[1]->renderMatrix, &self->renderMatrix);
-                }
-            }
-        } else {
+        if (!GetNetworkCode()) {
             self->codeLabel[1]->alpha = 0x100;
-            self->codeLabel[1]->y = 0;
+            self->codeLabel[1]->y     = 0;
+            SetStringToFont8(self->codeLabel[1]->text, "CONNECTING...", FONT_LABEL);
+            self->codeLabel[1]->alignPtr(self->codeLabel[1], ALIGN_CENTER);
+            memcpy(&self->codeLabel[1]->renderMatrix, &self->renderMatrix, sizeof(MatrixF));
+        }
+        else if (self->timer < 3.0 && availableRoomCount == 0) {
+            self->codeLabel[1]->alpha = 0x100;
+            self->codeLabel[1]->y     = 0;
+            SetStringToFont8(self->codeLabel[1]->text, "SEARCHING...", FONT_LABEL);
+            self->codeLabel[1]->alignPtr(self->codeLabel[1], ALIGN_CENTER);
+            memcpy(&self->codeLabel[1]->renderMatrix, &self->renderMatrix, sizeof(MatrixF));
+        }
+        else if (availableRoomCount > 0) {
+            int count = availableRoomCount > 10 ? 10 : availableRoomCount;
+            for (int i = 0; i < count; ++i) {
+                float y = 70.0f - (i * 22.0f);
+
+                self->enterCodeLabel[i]->alpha     = 0x100;
+                self->enterCodeLabel[i]->useColors = true;
+                if (i == self->touchedUpID) {
+                    self->enterCodeLabel[i]->r = 0xFF;
+                    self->enterCodeLabel[i]->g = 0xFF;
+                    self->enterCodeLabel[i]->b = 0xFF;
+                }
+                else {
+                    self->enterCodeLabel[i]->r = 0xFF;
+                    self->enterCodeLabel[i]->g = 0xFF;
+                    self->enterCodeLabel[i]->b = 0x00;
+                }
+                self->enterCodeLabel[i]->scale = 0.15f;
+                self->enterCodeLabel[i]->x     = -130.0f;
+                self->enterCodeLabel[i]->y     = y;
+
+                char roomStr[256];
+                const char *itemModes[] = { "FIXED", "TELEPORT", "RANDOM" };
+                const char *itemStr     = availableRooms[i].itemMode < 3 ? itemModes[availableRooms[i].itemMode] : "UNK";
+                sprintf(roomStr, "HOST: %s SALA: %08X ITEMS: %s RD: %d MOD: %s", availableRooms[i].username, availableRooms[i].code, itemStr,
+                        availableRooms[i].rounds, availableRooms[i].modName[0] ? availableRooms[i].modName : "NONE");
+                SetStringToFont8(self->enterCodeLabel[i]->text, roomStr, FONT_LABEL);
+                self->enterCodeLabel[i]->alignPtr(self->enterCodeLabel[i], ALIGN_LEFT);
+                memcpy(&self->enterCodeLabel[i]->renderMatrix, &self->renderMatrix, sizeof(MatrixF));
+            }
+
+            // Selection arrows
+            float selectedY = 70.0f - (self->touchedUpID * 22.0f);
+            self->enterCodeSlider[0]->alpha = 0x100;
+            self->enterCodeSlider[0]->scale = 0.2f;
+            self->enterCodeSlider[0]->x     = -145.0f;
+            self->enterCodeSlider[0]->y     = selectedY + 12.0f;
+            memcpy(&self->enterCodeSlider[0]->renderMatrix, &self->renderMatrix, sizeof(MatrixF));
+
+            self->enterCodeSlider[1]->alpha = 0x100;
+            self->enterCodeSlider[1]->scale = 0.2f;
+            self->enterCodeSlider[1]->x     = -145.0f;
+            self->enterCodeSlider[1]->y     = selectedY - 12.0f;
+            MatrixRotateZF(&self->enterCodeSlider[1]->renderMatrix, DegreesToRad(180));
+            MatrixMultiplyF(&self->enterCodeSlider[1]->renderMatrix, &self->renderMatrix);
+        }
+        else {
+            self->codeLabel[1]->alpha = 0x100;
+            self->codeLabel[1]->y     = 0.0f;
             SetStringToFont8(self->codeLabel[1]->text, "NO ROOMS FOUND", FONT_LABEL);
             self->codeLabel[1]->alignPtr(self->codeLabel[1], ALIGN_CENTER);
             memcpy(&self->codeLabel[1]->renderMatrix, &self->renderMatrix, sizeof(MatrixF));

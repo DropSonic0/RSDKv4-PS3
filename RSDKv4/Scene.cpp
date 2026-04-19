@@ -1003,23 +1003,34 @@ void LoadStageFiles(void)
 
     Init3DFloorBuffer(0);
     if (vsPlaying) {
-        ResetMultiplayerInfo();
-
         if (vsPlayerID == 0) { // Host
             TransmitStageBreak();
         }
 
         // Final handshake: tell peer we are ready
-        int verify = true;
+        int verify    = true;
         int increment = true;
-        if (vsPlayerID != 0) {
-            int ready = 1;
-            SendValue(&ready, &verify);
+        if (vsPlayerID != 0) { // Joiner
+            int ready   = 100;
+            int start   = 0;
+            int timeout = 0;
+            while (start != 101 && timeout < 1800) {
+                SendValue(&ready, &verify);
+                UpdateNetwork();
+                ReceiveValue(&start, &increment);
+#if RETRO_PLATFORM == RETRO_PS3
+                sys_timer_usleep(16000);
+#else
+                SDL_Delay(16);
+#endif
+                timeout++;
+            }
         }
-        else {
-            int ready = 0;
-            int timeout   = 0;
-            while (ready == 0 && timeout < 300) {
+        else { // Host
+            int ready   = 0;
+            int timeout = 0;
+            while (ready != 100 && timeout < 1800) {
+                UpdateNetwork();
                 ReceiveValue(&ready, &increment);
 #if RETRO_PLATFORM == RETRO_PS3
                 sys_timer_usleep(16000);
@@ -1027,6 +1038,17 @@ void LoadStageFiles(void)
                 SDL_Delay(16);
 #endif
                 timeout++;
+            }
+
+            int start = 101;
+            for (int i = 0; i < 10; ++i) {
+                SendValue(&start, &verify);
+                UpdateNetwork();
+#if RETRO_PLATFORM == RETRO_PS3
+                sys_timer_usleep(16000);
+#else
+                SDL_Delay(16);
+#endif
             }
         }
     }
